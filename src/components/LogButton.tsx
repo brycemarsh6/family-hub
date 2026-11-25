@@ -1,9 +1,33 @@
 import { Check, Plus, SkipForward } from "lucide-react";
 import { SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 
+/** The 30px check circle drawn inside every 44px tap, so the circles match. */
+export const CHECK_CIRCLE_CLASS = "flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full";
+
 /**
- * The 44px round tap that logs a habit: an outlined "+" until today has its
- * check, then a filled check that taps back to undo.
+ * The read-only check circle (a row the viewer may not tick, or a done mark
+ * with nothing to tap): a 30px circle inside the same 44px box as the button,
+ * filled with a check when done. The screen reader hears `srText`.
+ */
+export function CheckMarker({ done, srText }: { done: boolean; srText: string }) {
+  return (
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center">
+      <span
+        className={`${CHECK_CIRCLE_CLASS} ${
+          done ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
+        }`}
+      >
+        {done && <Check aria-hidden="true" size={16} />}
+      </span>
+      <span className="sr-only">{srText}</span>
+    </span>
+  );
+}
+
+/**
+ * The round tap that logs a habit: an outlined "+" until today has its
+ * check, then a filled check that taps back to undo. It is a 44px tap target
+ * drawing a 30px circle.
  * `label` names the habit ("Run"), so the button reads "Log Run" / "Undo Run".
  * `idle="empty"` draws the open state as an empty ring (the Today list) and
  * reads "Mark Run done". `forName` names whose check it is on a shared screen
@@ -32,8 +56,10 @@ export function LogButton({
 }) {
   if (skipped) {
     return (
-      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
-        <SkipForward aria-hidden="true" size={18} />
+      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+        <span className={`${CHECK_CIRCLE_CLASS} border-2 border-dashed border-line-strong text-muted`}>
+          <SkipForward aria-hidden="true" size={14} />
+        </span>
         <span className="sr-only">{skippedLabel}</span>
       </span>
     );
@@ -47,15 +73,19 @@ export function LogButton({
       disabled={disabled}
       aria-pressed={done}
       aria-label={`${done ? `Undo ${label}` : open}${suffix}`}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-        done ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
-      }`}
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
     >
-      {done ? (
-        <Check aria-hidden="true" size={22} />
-      ) : (
-        idle === "plus" && <Plus aria-hidden="true" size={22} />
-      )}
+      <span
+        className={`${CHECK_CIRCLE_CLASS} transition-colors ${
+          done ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
+        }`}
+      >
+        {done ? (
+          <Check aria-hidden="true" size={16} />
+        ) : (
+          idle === "plus" && <Plus aria-hidden="true" size={16} />
+        )}
+      </span>
     </button>
   );
 }

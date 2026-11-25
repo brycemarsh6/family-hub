@@ -37,9 +37,15 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `HabitLog`, `HabitTimeEntry` and `Nudge` tables for pages and actions
   (an action that needs one entry uses `loadTimeEntryForAction`). Both are
   `server-only`, and each hands its rows to a pure builder. A third reader
-  is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
-  `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `householdDate.ts`,
-  `constants.ts`, `householdPeople.ts` (the write files only), `db.ts` and the generated
+  is a BLOCKER. One named exception (mission-79): `loadStarBanks` in
+  `src/lib/starBankRead.ts` sums `HabitLog.stars` per person with one
+  `groupBy`, reads no other `HabitLog` column and no other habit table, and
+  builds no habit row (rules: docs/structure/rewards.md, "Stars and the
+  star bank"). **Dependency direction:** `src/lib/habits/` may import
+  `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `rewardVocabulary.ts` and
+  `rewards/stars.ts` (mission-79), `householdDate.ts`,
+  `constants.ts`, `householdPeople.ts` and `rewardSettingsRead.ts` (the
+  write files only; also mission-79), `db.ts` and the generated
   client (types). Its writers take `today` from their caller and never
   compute it. It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`
@@ -292,8 +298,9 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   new habit words stay there while its code is well under the cap, past
   about 300 code lines a concern gets its own file, and an exported word
   is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
-  353 (about 283 code), `habitsReportScope.ts` 275, `HabitForm.tsx` 350
-  (at the soft cap), `habitsRead.ts` 350, `habitsFamily.ts` 360 (its stats-page data is
+  361 (about 288 code; mission-79 added stars plumbing only),
+  `habitsReportScope.ts` 275, `HabitForm.tsx` 339 (288 code),
+  `habitsRead.ts` 365, `habitsFamily.ts` 360 (its stats-page data is
   the split seam), and the tests `habitsStats.test.ts` 426,
   `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
   `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and

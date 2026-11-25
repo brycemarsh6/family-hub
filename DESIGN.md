@@ -182,6 +182,10 @@ tell when a rule's reason has expired.
   **brand artwork**, not members of the icon system, so they aren't Lucide
   outlines either. (Decorative one-off emoji in empty states are outside the
   icon system and tolerated.)
+  A third exception (mission 79, Bryce 2026-11-24): the **star** is one
+  filled Lucide `Star` (`fill="currentColor"`) in `--star`, used only for
+  stars: the row chip (`StarChip`) and the star bank (`StarBank`). No other
+  icon is filled.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -316,6 +320,28 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   `--streak-soft` is 4.72:1 light / 6.43:1 dark (measured, mission-32
   Strange pass 2). Plain `--muted` fails on it in light (4.31:1); never
   use it there.
+- **`--star` is the star's own colour** (mission-79/C3): the filled gold star
+  on a habit row's chip and in the star bank, from the Butter family. It is a
+  graphic, so the floor is 3:1; the number beside it stays `--fg`. Light
+  `#a87500` is 4.03:1 on `--surface`, 3.56:1 on `--bg`, 3.25:1 on
+  `--surface-2`; dark `#f4d26b` (brand Butter) is 10.53:1 on `--surface`,
+  11.72:1 on `--bg`, 9.33:1 on `--surface-2` (measured). Never use it for
+  text, and never for anything but stars.
+- **Stars show in three places** (Bryce, 2026-11-24, from the "star bank on
+  Mine" mock). A row with stars carries a small chip beside the streak,
+  "star 10" (no chip without stars; hours rows never). A carried-over row's
+  chip shows what the late tap pays under Late checks (Half: a 3 shows 2;
+  None: no chip), so the chip never promises more than the bank gets
+  (Bryce, 2026-11-24, Strange's pass 1). On Mine the star bank sits at the
+  right end of the count line on a phone; on an iPad (md up) it follows the
+  count with a small gap, because the title block there is only as wide as
+  the date (Bryce, 2026-11-24). The word "Mine" is **not** on
+  that line any more: it reads "2 of 5 done" (then the streak, if shown) with
+  the bank at the right (this overrides the earlier "Mine · 2 of 7 done"
+  wording). On Whole family, phone and iPad, the bank sits at the right of
+  each person's header. The bank moves the instant a check is tapped
+  (`starDiff` over the server's rows and the optimistic ones) and matches the
+  server after refresh. A negative bank shows its minus.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro
@@ -385,7 +411,7 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `SortableList`: the one drag-to-reorder list (dnd-kit; a grip handle only,
   so finger scrolling anywhere else on a row still scrolls). A new reorderable
   list wraps its rows in it rather than wiring dnd-kit again
-- `HabitRow`: one line of the Habits & Chores Today list (44px check, title,
+- `HabitRow`: one line of the Habits & Chores Today list (30px check circle in a 44px tap, title,
   tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
   a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
   `HabitScheduleField` and the small fields in `HabitFormFields` (`Field`,
@@ -393,8 +419,9 @@ A new one-off that duplicates one of these jobs is a design violation:
   it, never in a second form
 - `HabitsBar` / `HabitFilterSheet`: the one thin bar at the top of Habits &
   Chores, on both views and every screen (decisions 255, 258; mission-53):
-  the day as the page title with a subtitle ("Mine · 2 of 7 done" and the
-  chore streak flame, or "Whole family"), then Filter, 44px back and
+  the day as the page title with a subtitle ("2 of 7 done", the chore
+  streak flame and the star bank, or "Whole family"; mission-79 dropped
+  "Mine"), then Filter, 44px back and
   forward arrows around Today (a past day, up to 14 back, is view only:
   "Looking back. Past days are view only." under the bar, plain markers,
   no buttons), Manage, and a bar-chart icon for the Report. It wraps to two
@@ -417,7 +444,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   strip. `HabitFamilyColumn` is one card (avatar,
   name, "x of y done" with skipped rows in neither number) and holds
   `FamilyHabitRow`, the compact line: icon and title linking
-  to the stats page, streak label, 44px check. A row the viewer may not tick for
+  to the stats page, streak label, 30px check circle in a 44px tap. A row the viewer may not tick for
   shows its state in a plain marker that is not a button; a Together row's
   check does not name one person. The chore streak is a
   `--streak` flame and "N days" in Mine's subtitle and next to each
@@ -629,7 +656,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   because two rows can share a date
 - `ProgressBar` — the only way to show a fraction
 - `ToggleSwitch`: the only on/off switch (`DashboardItemPicker`, `HabitForm`, `GoalForm` and `HabitsChoresSettings` use it)
-- `LogButton` — the 44px round log/undo control for habits
+- `LogButton` — the round log/undo control for habits (a 30px circle in a 44px tap target, Bryce 2026-11-24); `CheckMarker` is its read-only twin
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)
 

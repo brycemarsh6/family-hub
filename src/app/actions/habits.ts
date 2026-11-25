@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canEditHabit } from "@/lib/habits/access";
+import { canSetStars } from "@/lib/rewards/access";
 import { INCLUDE_YOURSELF, checkHabitInput, type HabitInput } from "@/lib/habitInput";
 import {
   archiveHabit as archiveHabitRow,
@@ -63,12 +64,20 @@ function mayEditResult(user: VerifiedUser, isPrivate: boolean, participantIds: r
   return canEditHabit({ userId: user.userId, role: user.role }, { isPrivate, participantIds });
 }
 
+/** A kid's (or the tablet's) save never sets stars: the field is dropped, so a create has none and an update leaves them as they are. */
+function withoutStarsUnlessManager(user: VerifiedUser, input: HabitInput): HabitInput {
+  if (canSetStars(user.role) || typeof input !== "object" || input === null) return input;
+  const rest = { ...input };
+  delete rest.stars;
+  return rest;
+}
+
 /** Make a habit or chore. Guards: session, the tablet refused, fields, then you may edit what you'd make. */
 export async function createHabit(input: HabitInput): Promise<HabitActionResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: NOT_SIGNED_IN };
   if (user.isDevice) return { error: DEVICE_REFUSAL };
-  const checked = checkHabitInput(input, await householdParticipantIds());
+  const checked = checkHabitInput(withoutStarsUnlessManager(user, input), await householdParticipantIds());
   if ("error" in checked) return checked;
   if (!mayEditResult(user, checked.fields.isPrivate ?? false, checked.participantIds)) {
     return { error: INCLUDE_YOURSELF };
@@ -95,7 +104,7 @@ export async function updateHabit(habitId: string, input: HabitInput): Promise<H
   if (typeof habitId !== "string") return { error: NOT_FOUND };
   const habit = await loadHabitForAction(habitId);
   if (!habit || !mayEditResult(user, habit.isPrivate, habit.participantIds)) return { error: NOT_FOUND };
-  const checked = checkHabitInput(input, await householdParticipantIds(), habit.participantIds);
+  const checked = checkHabitInput(withoutStarsUnlessManager(user, input), await householdParticipantIds(), habit.participantIds);
   if ("error" in checked) return checked;
   if (!mayEditResult(user, checked.fields.isPrivate ?? false, checked.participantIds)) {
     return { error: INCLUDE_YOURSELF };

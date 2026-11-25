@@ -10,6 +10,7 @@ import type { FamilyPage } from "@/lib/habitsFamily";
 import { habitsHref } from "@/lib/habitsDay";
 import type { TodayPage } from "@/lib/habitsRead";
 import type { HabitRowView } from "@/lib/habitsToday";
+import type { LateStars } from "@/lib/rewardVocabulary";
 import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, stillHiddenPeople } from "@/lib/habitsReportScope";
 
 /**
@@ -30,6 +31,9 @@ export function HabitsDayView({
   canManage,
   showStreaks,
   focusPersonId,
+  viewerId,
+  banks,
+  lateStars,
 }: {
   /** Exactly one of these is set: the Mine page or the Whole family page. */
   mine: TodayPage | null;
@@ -46,6 +50,12 @@ export function HabitsDayView({
   /** The viewer's switch (always true on the tablet); the list hides streaks on a past day itself. */
   showStreaks: boolean;
   focusPersonId?: string;
+  /** The signed-in person: whose bank Mine shows. */
+  viewerId: string;
+  /** Each shown person's star bank as the server has it, by user id. */
+  banks: Record<string, number>;
+  /** The household's Late checks setting, so a tap on a carried row moves the bank by what the server will pay. */
+  lateStars: LateStars;
 }) {
   const [timeKey, setTimeKey] = useState(REPORT_FILTER_ALL);
   const [togetherOnly, setTogetherOnly] = useState(false);
@@ -91,6 +101,8 @@ export function HabitsDayView({
           keep={keep}
           hiddenPeople={hidden}
           readOnly={readOnly}
+          banks={banks}
+          lateStars={lateStars}
           bar={bar}
         />
       ) : (
@@ -110,6 +122,9 @@ export function HabitsDayView({
             todayKey={todayKey}
             keep={keep}
             readOnly={readOnly}
+            viewerId={viewerId}
+            bank={banks[viewerId] ?? 0}
+            lateStars={lateStars}
             bar={bar}
           />
         )

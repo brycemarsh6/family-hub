@@ -7,7 +7,7 @@
 // they are collapsed per row: the earliest `before` and the latest `after`.
 
 import { decodeChangeSummary, type RowCopy } from "./changeCopy";
-import { MODELS, REFERENCES, TIER, isParentModel, isVolatile, type ParentModel, type Reference, type UndoModel } from "./undoModels";
+import { LATE_COLUMNS, MODELS, REFERENCES, TIER, isParentModel, isVolatile, type ParentModel, type Reference, type UndoModel } from "./undoModels";
 
 export type { UndoModel } from "./undoModels";
 
@@ -80,7 +80,8 @@ function key(copy: RowCopy | undefined): string {
 }
 
 function hasAllColumns(model: UndoModel, copy: Record<string, unknown>, recordId: string): boolean {
-  return copy.id === recordId && MODELS[model].columns.every((c) => c in copy);
+  const late = LATE_COLUMNS[model] ?? [];
+  return copy.id === recordId && MODELS[model].columns.every((c) => late.includes(c) || c in copy);
 }
 
 type Link = { before: Record<string, unknown> | null; after: Record<string, unknown> | null };

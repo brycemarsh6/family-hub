@@ -12,6 +12,7 @@ import { HoursLogSheet } from "./HoursLogSheet";
 import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
 import { PlanDayCard } from "./PlanDayCard";
+import { StarBank } from "./StarBank";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import type { HabitRowView } from "@/lib/habitsToday";
@@ -22,10 +23,11 @@ import { HABITS_DAY_GRID_CLASSES } from "@/lib/gridClasses";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
+import type { LateStars } from "@/lib/rewardVocabulary";
+import { shownBanks, starDiff } from "@/lib/rewards/starDiff";
 import {
   ANYTIME_LABEL,
   CHORE_STREAK_SR,
-  HABITS_VIEW_LABELS,
   NOTHING_HERE_TODAY,
   PAST_DAY_NOTHING_DUE_HINT,
   PAST_DAY_NOTHING_DUE_TITLE,
@@ -54,6 +56,9 @@ export function HabitTodayList({
   prompts = [],
   keep,
   readOnly = false,
+  viewerId,
+  bank,
+  lateStars,
   bar,
 }: {
   rows: HabitRowView[];
@@ -79,6 +84,12 @@ export function HabitTodayList({
   keep: (row: HabitRowView) => boolean;
   /** A past day: markers instead of buttons, no swipe, no hours log, no confetti (mission 53). */
   readOnly?: boolean;
+  /** The signed-in person, whose bank the count line shows. */
+  viewerId: string;
+  /** The viewer's star bank as the server has it; the count line adds what the taps since have paid. */
+  bank: number;
+  /** The Late checks setting, so a tap on a carried row moves the bank by what the server will pay. */
+  lateStars: LateStars;
   /** Draws the page's bar with this list's subtitle, so its count follows the live rows. */
   bar: (subtitle: ReactNode) => ReactNode;
 }) {
@@ -107,15 +118,15 @@ export function HabitTodayList({
   const throughDay = vacationThrough ? parseDateParam(vacationThrough) : null;
   // How many cards the top strip holds, so two or more can sit side by side.
   const stripCards = Number(nudges.length > 0) + Number(throughDay !== null) + Number(shoutOut) + Number(prompts.length > 0);
-  // "Mine · 2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 259); none on a past day (the cached streak is as of a later day).
+  // "2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 259); none on a past day (the cached streak is as of a later day). "Mine" is not on this line (Bryce, 2026-11-24); the star bank sits at its right end.
   const streak = showStreaks && !readOnly ? streakLabel(choreStreak, "days") : null;
+  const shownBank = shownBanks({ [viewerId]: bank }, starDiff(rows, live, lateStars))[viewerId];
   const subtitle = (
     <>
-      {HABITS_VIEW_LABELS.mine}
-      {live.length > 0 && ` · ${doneCountLabel(live)}`}
+      {live.length > 0 && doneCountLabel(live)}
       {streak && (
         <>
-          {" · "}
+          {live.length > 0 && " · "}
           <span className="inline-flex items-center gap-0.5 font-semibold text-streak">
             <Flame aria-hidden="true" size={14} />
             <span className="sr-only">{CHORE_STREAK_SR}</span>
@@ -123,6 +134,7 @@ export function HabitTodayList({
           </span>
         </>
       )}
+      <StarBank stars={shownBank} className="ml-auto pl-3 md:ml-3 md:pl-0" />
     </>
   );
 
@@ -199,7 +211,7 @@ export function HabitTodayList({
                     <ul className="flex flex-col gap-2">
                       {column.items.map(({ row, tag }) => (
                         <li key={row.id}>
-                          <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} {...habitRowTaps(row, run, (hoursRow) => {
+                          <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} lateStars={lateStars} {...habitRowTaps(row, run, (hoursRow) => {
                             setError(null);
                             setLoggingId(hoursRow.id);
                           })} />

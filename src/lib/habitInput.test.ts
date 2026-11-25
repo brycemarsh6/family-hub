@@ -119,3 +119,23 @@ test("people: dedupes, Everyone takes the household, an existing member stays al
   assert.ok("error" in run({ participantIds: ["gone"] }));
   assert.ok(!("error" in run({ participantIds: ["gone"] }, HOUSEHOLD, ["gone"])));
 });
+
+test("stars: undefined and null pass through, a listed value is kept, anything else is refused", () => {
+  const stars = (over: Partial<HabitInput>) => {
+    const result = run(over);
+    return "error" in result ? result.error : result.fields.stars;
+  };
+  assert.equal("stars" in (run({}) as { fields: object }).fields, false);
+  assert.equal(stars({ stars: null }), null);
+  assert.equal(stars({ stars: 5 }), 5);
+  assert.equal(stars({ stars: 50 }), 50);
+  assert.equal(stars({ stars: 0 }), "Pick a star value from the list.");
+  assert.equal(stars({ stars: 6 }), "Pick a star value from the list.");
+  assert.equal(stars({ stars: "5" as unknown as number }), "Pick a star value from the list.");
+});
+
+test("an hours habit's stars come out null even when some were sent", () => {
+  const result = run({ track: "hours", weeklyHours: 5, paceDays: "monsat", stars: 10 });
+  assert.ok(!("error" in result));
+  assert.equal(result.fields.stars, null);
+});

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
 import { requireVerifiedUser } from "@/lib/dal";
+import { canSetStars } from "@/lib/rewards/access";
 import { householdToday } from "@/lib/assistant/today";
 import { loadHabitRoster } from "@/lib/habitsRead";
 import { addCalendarDays, formatCalendarDate, startOfWeek } from "@/lib/householdDate";
@@ -24,6 +25,7 @@ export default async function NewHabitPage() {
       <HabitForm
         people={people}
         viewerId={user.userId}
+        canSetStars={canSetStars(user.role)}
         thisSunday={formatCalendarDate(thisSunday)}
         nextSunday={formatCalendarDate(addCalendarDays(thisSunday, 7))}
       />

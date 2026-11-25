@@ -2,14 +2,18 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Check, Flame, Plane, Trophy } from "lucide-react";
+import { Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursLeftLine, HoursLogButton } from "./HoursHabitRow";
 import { TIME_ICONS } from "./HabitFilterChips";
 import { QUIT_TAG_CLASS } from "./HabitRow";
-import { LogButton } from "./LogButton";
+import { CheckMarker, LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
+import { StarBank } from "./StarBank";
+import { StarChip } from "./StarChip";
+import { rowStars } from "@/lib/rewards/stars";
+import type { LateStars } from "@/lib/rewardVocabulary";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
 import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
@@ -30,7 +34,7 @@ function TitleArea({ row, children }: { row: FamilyRow; children: ReactNode }) {
 
 /**
  * One line of the family view: the icon and title (a link to the habit's stats
- * page, decision 105), a streak when allowed (98) and the 44px check. A row the
+ * page, decision 105), a streak when allowed (98), a star chip when the habit carries stars (mission 79) and the 44px check. A row the
  * viewer may tick for gets the same round check as Today, named for the person
  * whose it is ("Mark Run done for Emily"); a row they may not
  * shows its state in a plain marker that is not a button. A skipped row shows
@@ -46,6 +50,7 @@ export function FamilyHabitRow({
   together = false,
   tag = null,
   layout = "row",
+  lateStars,
 }: {
   row: FamilyRow;
   showStreaks: boolean;
@@ -56,6 +61,8 @@ export function FamilyHabitRow({
   tag?: string | null;
   /** "card" (the wide columns): a tall card with the icon on top. "row" (the phone cards): one line. */
   layout?: "row" | "card";
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   const card = layout === "card";
   const finished = row.doneToday || isExcused(row);
@@ -100,6 +107,7 @@ export function FamilyHabitRow({
           {streak}
         </span>
       )}
+      {!row.hours && <StarChip stars={rowStars(row.stars, !!row.carriedFrom, lateStars)} />}
     </TitleArea>
   );
 
@@ -119,14 +127,7 @@ export function FamilyHabitRow({
         ) : row.canLog ? (
           <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
         ) : (
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-              row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
-            }`}
-          >
-            {row.doneToday && <Check aria-hidden="true" size={22} />}
-            <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`}</span>
-          </span>
+          <CheckMarker done={row.doneToday} srText={row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`} />
         )}
       </div>
     </div>
@@ -142,18 +143,24 @@ export function FamilyHabitRow({
  */
 export function HabitFamilyColumn({
   column,
+  bank,
   together,
   showStreaks,
   keep = () => true,
   onToggle,
+  lateStars,
 }: {
   column: FamilyColumn;
+  /** The person's star bank, drawn at the right of the header. */
+  bank: number;
   /** The Together strip's rows, so the count can include the ones this person is on. */
   together: FamilyRow[];
   showStreaks: boolean;
   /** The Filter sheet's test: whether a row shows. The count above is always the whole day. */
   keep?: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   const groups = groupColumnRows(column, together, keep);
   const streak = showStreaks ? streakLabel(column.choreStreak, "days") : null;
@@ -162,7 +169,7 @@ export function HabitFamilyColumn({
     <section aria-label={column.displayName} data-family-person={column.id} data-layout="stacked" className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
       <div className="flex items-center gap-2.5 pb-1.5">
         <AvatarBadge displayName={column.displayName} avatarColor={column.avatarColor} size={40} />
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
           <span className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
             {familyCountText(column, together)}
@@ -174,7 +181,8 @@ export function HabitFamilyColumn({
             )}
           </span>
         </div>
-        {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}
+        {column.onVacation && <Plane aria-hidden="true" size={18} className="shrink-0 text-muted" />}
+        <StarBank stars={bank} />
       </div>
       {column.shoutOut && (
         <p className="mb-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">
@@ -194,7 +202,7 @@ export function HabitFamilyColumn({
             <ul className="divide-y divide-line">
               {group.items.map(({ row, tag, together: isTogether }) => (
                 <li key={row.id}>
-                  <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} />
+                  <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} lateStars={lateStars} />
                 </li>
               ))}
             </ul>

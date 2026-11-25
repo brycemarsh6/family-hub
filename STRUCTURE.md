@@ -659,6 +659,12 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
+- **Rewards (mission-79, `.avengers/plans/rewards-v1.md`).** Star words in
+  `src/lib/rewardVocabulary.ts` (no imports), pure rules in
+  `src/lib/rewards/`, one reader per table (`rewardSettingsRead.ts`,
+  `starBankRead.ts`), one bank sum. (Rules: docs/structure/rewards.md,
+  "Stars and the star bank". Added 2026-11-24 on Captain's ruling; Bryce
+  approved.)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
@@ -911,7 +917,8 @@ amendment id.
   `layout.md` 262, `dashboard.md` 89, `calendar-sync.md` 75,
   `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `habits.md` 302, `layout.md` 315,
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
-  `calendar.md` 87, `plans-goals.md` 68. (Added
+  `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
+  `rewards.md` 113 (new), `habits.md` 309. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
@@ -948,7 +955,7 @@ amendment id.
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
   Forms trend (mission-54, A-L6-13): `GoalForm.tsx` 349 total / about 308
   code (was 334; the next goal field moves the Track a number block into
-  its own component), `HabitForm.tsx` 329 / about 281 code (was 350; the
+  its own component), `HabitForm.tsx` 339 / about 288 code (mission-79 added the Stars field, was 329; before that 350; the
   Edit actions moved to `HabitEditActions.tsx`, now 53), `FeedbackList.tsx`
   119 (holds both layouts; no action).
 - **Hard cap: 650 lines** — crossing it needs a written justification in the

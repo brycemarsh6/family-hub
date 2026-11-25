@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HabitFamilyWideColumn } from "./HabitFamilyWideColumn";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
+import type { LateStars } from "@/lib/rewardVocabulary";
 import { fitsEveryone } from "@/lib/habitsFamilyColumns";
 
 /**
@@ -16,15 +17,21 @@ import { fitsEveryone } from "@/lib/habitsFamilyColumns";
  */
 export function HabitFamilyWide({
   page,
+  banks,
   showStreaks,
   keep,
   onToggle,
+  lateStars,
 }: {
   page: FamilyPage;
+  /** Each person's star bank (already moved by taps), by user id. */
+  banks: Record<string, number>;
   showStreaks: boolean;
   /** The Filter sheet's test: whether a row shows. The count above each column is always the whole day. */
   keep: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   const root = useRef<HTMLDivElement>(null);
   // Until measured (and while hidden, width 0) the 330px swipe strip shows.
@@ -46,7 +53,7 @@ export function HabitFamilyWide({
       ) : (
         <div className={`flex min-h-0 flex-1 gap-3 pb-2 ${fits ? "" : "snap-x snap-mandatory overflow-x-auto"}`}>
           {page.columns.map((column) => (
-            <HabitFamilyWideColumn key={column.id} column={column} together={page.together} showStreaks={showStreaks} fits={fits} keep={keep} onToggle={onToggle} />
+            <HabitFamilyWideColumn key={column.id} column={column} bank={banks[column.id] ?? 0} together={page.together} showStreaks={showStreaks} fits={fits} keep={keep} onToggle={onToggle} lateStars={lateStars} />
           ))}
         </div>
       )}

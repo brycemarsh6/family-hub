@@ -27,6 +27,7 @@ import { DASHBOARD_WIDGETS, DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidget
 import { householdToday } from "@/lib/assistant/today";
 import { goalsTileFor, loadGoalsTile } from "@/lib/goalsRead";
 import { habitsTileFor, loadDashboardHabits } from "@/lib/habitsRead";
+import { loadLateStars } from "@/lib/rewardSettingsRead";
 
 // "force-dynamic" tells Next.js: never serve a cached copy of this page,
 // always rebuild it from the database. Without it, Next would happily show
@@ -78,7 +79,7 @@ export default async function DashboardPage() {
   // picker has its list even before a Goals widget is on the layout. Habits & Chores read the same rows Today does and have no widget on
   // the tablet; the cards above the tiles (nudges and the rest) need them
   // whenever the viewer is not a device, with or without a Habits widget.
-  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData, calendarData] = await Promise.all([
+  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData, calendarData, lateStars] = await Promise.all([
     kinds.has("todayMeals") ? loadMealPlans(serverNow) : null,
     kinds.has("inventory") ? loadInventorySummary(serverNow) : null,
     kinds.has("grocery") ? loadGrocerySummary() : null,
@@ -87,6 +88,7 @@ export default async function DashboardPage() {
     user && !user.isDevice ? loadDashboardHabits({ userId: user.userId, role: user.role }, goalsToday) : null,
     // Every Calendar widget shares this one padded read; the browser decides today (see loadCalendarWidget).
     user && kinds.has("calendar") ? loadCalendarWidget({ userId: user.userId, role: user.role }, goalsToday) : null,
+    loadLateStars(),
   ]);
 
   // One tile per widget, keyed by its uid. A widget whose data is missing
@@ -108,6 +110,7 @@ export default async function DashboardPage() {
             empty={tile.empty}
             showStreaks={user.showStreaks}
             limit={limit}
+            lateStars={lateStars}
           />
         );
       }
@@ -121,6 +124,7 @@ export default async function DashboardPage() {
             choreStreak={habitsData.choreStreak}
             showStreaks={user.showStreaks}
             limit={limit}
+            lateStars={lateStars}
           />
         );
       case "todayMeals":
@@ -230,7 +234,7 @@ export default async function DashboardPage() {
       <>
         <NudgeCards nudges={habitsData.nudges} />
         {habitsData.shoutOut && <ChoreShoutOutCard />}
-        <PlannedTodayCard rows={habitsData.plannedToday} showStreaks={user.showStreaks} />
+        <PlannedTodayCard rows={habitsData.plannedToday} showStreaks={user.showStreaks} lateStars={lateStars} />
         <PlanDayCard prompts={habitsData.prompts} />
       </>
     ) : null;

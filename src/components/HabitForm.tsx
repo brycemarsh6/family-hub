@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Field, LifeAreaField, Segmented, TimeOfDayField } from "./HabitFormFields";
 import { HabitEditActions } from "./HabitEditActions";
 import { HabitIconPicker } from "./HabitIconPicker";
+import { HabitStarsField } from "./HabitStarsField";
 import { HoursFields, TrackField, initialWeeklyHours, initialWho, type HoursInitial } from "./HabitHoursFields";
 import { IdeaChips } from "./IdeaChips";
 import { HabitScheduleField, type ScheduleValue } from "./HabitScheduleField";
@@ -14,6 +15,7 @@ import { createHabit, updateHabit, type HabitActionResult } from "@/app/actions/
 import { FORM_COLUMN_CLASSES, FORM_EYEBROW_CLASSES, FORM_GRID_CLASSES, FORM_SAVE_WIDE_CLASSES } from "@/lib/gridClasses";
 import type { HabitInput } from "@/lib/habitInput";
 import { toLifeArea } from "@/lib/goalVocabulary";
+import { toStarValue } from "@/lib/rewardVocabulary";
 import { toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
 import {
   HABIT_TITLE_MAX,
@@ -46,13 +48,14 @@ const BUTTON_PRIMARY =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-40";
 
 /** The habit being edited; its Track fields come from the loader and are left out for a habit that never had them. */
-type FormInitial = HabitManagerItem & HoursInitial;
+type FormInitial = HabitManagerItem & HoursInitial & { stars?: number | null };
 
 /**
  * The New and Edit form for a habit or chore (one component, so the two pages
  * cannot drift). `initial` is the habit being edited; without it the form is
  * blank. The order is the same on both (decisions 176, 178): kind, name, chore
- * ideas (New only), life area, habit ideas (New only), icon, then the rest.
+ * ideas (New only), life area, habit ideas (New only), icon, stars (parents and
+ * admins, not for hours habits), then the rest.
  * Saving goes through the habit actions and then returns to /habits/manage;
  * Archive and Delete live in HabitEditActions, under Save when editing.
  *
@@ -68,6 +71,7 @@ export function HabitForm({
   thisSunday,
   nextSunday,
   initial,
+  canSetStars,
 }: {
   people: Person[];
   viewerId: string;
@@ -75,6 +79,8 @@ export function HabitForm({
   thisSunday: string;
   nextSunday: string;
   initial?: FormInitial;
+  /** Parents and admins only (mission 79); for anyone else the field is hidden and a save leaves stars alone. */
+  canSetStars: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -91,6 +97,7 @@ export function HabitForm({
   const [lifeArea, setLifeArea] = useState<string | null>(initial ? toLifeArea(initial.lifeArea) : null);
   const [carryOver, setCarryOver] = useState(initial?.carryOver ?? false);
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
+  const [stars, setStars] = useState<number | null>(toStarValue(initial?.stars));
   const [track, setTrack] = useState<HabitTrack>(toHabitTrack(initial?.track));
   const [weeklyHours, setWeeklyHours] = useState(initialWeeklyHours(initial));
   const [paceDays, setPaceDays] = useState<PaceDays>(toPaceDays(initial?.paceDays));
@@ -149,6 +156,7 @@ export function HabitForm({
       track,
       weeklyHours: hours ? weeklyHours : null,
       paceDays: hours ? paceDays : null,
+      stars: canSetStars ? (hours ? null : stars) : undefined,
     };
   }
 
@@ -240,6 +248,8 @@ export function HabitForm({
           <Field label="Icon">
             <HabitIconPicker value={icon} kind={kind} onChange={setIcon} />
           </Field>
+
+          {canSetStars && !hours && <HabitStarsField value={stars} onChange={setStars} />}
         </div>
 
         <div className={FORM_COLUMN_CLASSES}>
