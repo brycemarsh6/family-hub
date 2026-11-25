@@ -607,7 +607,7 @@ across parallel contracts, contract written here first, real HEAD last,
 - **Shipped:** stars on habits and chores (None to 50), the star bank
   on Mine and Whole family, the optimistic bank, Late checks in Settings,
   carried rows' chips showing what the late tap pays, 30px check circles,
-  and `docs/structure/rewards.md`. PR: PR_PLACEHOLDER. Gauntlet at
+  and `docs/structure/rewards.md`. PR #124. Gauntlet at
   d0ccecc: tsc, eslint, build exit 0; npm test 2174/2174; TZ=UTC 2164
   pass, 10 skipped, 0 fail. Gates: Vision PASS (pass 3 on C1 to F1, then
   F2/F3), Captain PASS (pass 3), Strange PASS (pass 2).
