@@ -6,6 +6,19 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Rewards stars (mission 79, R1)**, about 4 minutes, on your iPhone and
+  the iPad, light and dark. Edit a chore: under Icon there is a Stars
+  field; tap + and it walks None, 1, 2, 3, 4, 5, 10, 15, 20, 25, 50. Give
+  it 5 and save. Switch it to an Hours habit: the Stars field goes away.
+  On Habits & Chores, Mine, the line reads "2 of 5 done" (no "Mine") with
+  a gold star and your bank on the right (on the iPad it sits just after
+  the count). The chore shows a small gold 5. Tap it: the bank goes up 5
+  at once and is still right after a refresh. Un-check it: back down 5.
+  Whole family: each person's header shows their bank. Settings, after
+  Vacation mode: a Rewards section with Late checks (Full, Half, None).
+  Pick Half; a carried-over starred chore now shows half its stars,
+  rounded up, and pays that. Set it back to Full. Check circles are a
+  little smaller but just as easy to tap.
 - **Calendar filter (mission 78)**, about 3 minutes, on your iPhone and the
   iPad, light and dark. Top right of the Calendar there are now four
   circles: Today, View, Search and Filter, and the month reads "Nov" on
@@ -345,6 +358,15 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Rewards follow-ups (mission 79 Delivery): checking a carried row on
+  Today makes it vanish with no on-screen Undo (the habit's stats page
+  can still undo it for 7 days); a past day shows today's star bank; a
+  done chip shows the habit's current value, not what was paid; the chip
+  sits in three different spots (Mine subtitle, family title line, wide
+  card); Captain proposes a STRUCTURE.md line that split test files name
+  their siblings whatever forced the split (needs Bryce's yes);
+  `habitsToday.ts` is 361 lines, split it before the next stars field;
+  dashboard reads Late checks even for the Tablet login.
 - Calendar Search keyboard (mission 75 phone test, 2026-11-12). Bryce:
   "The keyboard doesn't automatically appear I have to click into the
   box." Everything else in the PR 9 test passed ("2 is good. 3 is good.

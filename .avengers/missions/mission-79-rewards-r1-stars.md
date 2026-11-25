@@ -1,7 +1,7 @@
 # Mission: Rewards R1, stars on habits and the star bank
 
 **Project:** family-hub (Marshee)
-**Status:** GATING (C1 to C4 and F1 built; re-gate pending)
+**Status:** DELIVERED (all gates PASS; PR and deploy in Delivery)
 **Started:** 2026-11-24 · **Updated:** 2026-11-24
 **Branch:** R1's own session and branch, cut from the Rewards planning
 branch `claude/marshee-rewards-feature-87a687` (Bryce, 2026-11-24: the
@@ -583,6 +583,9 @@ across parallel contracts, contract written here first, real HEAD last,
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Strange (running app, HEAD d0ccecc) | PASS | none (carried chip right under Full, Half, None on Mine, family narrow and wide, dashboard Chores tile; bank moves by the chip's number; Settings order; round focus rings; iPad bank after the count) | a checked carried row vanishes from Today with no Undo (stats page can undo for 7 days); PlannedTodayCard not seen (same path); stats calendar draws late like on time |
+| F2/F3 | Vision (new fix contracts only, HEAD d0ccecc; his 3-pass budget covered C1 to F1, so Fury gated F2 and F3 as new contracts) | PASS | none (chip matches pay on Mine, family narrow and wide, dashboard tiles; boundaries clean; moved tests identical) | dashboard reads loadLateStars even for the Tablet login; redundant parens stars.ts:25; past day chip shows today's setting |
+| 3 | Captain (F2, F3, docs; HEAD d0ccecc) | PASS | none (pass-2 blocker fixed; docs match code) | sibling headers between starDiff.test.ts and starDiffReducer.test.ts (amendment proposed for Bryce); habitsToday.ts 361 not yet in STRUCTURE.md's size record; habitWrites.ts 329, undoModels.ts 302; redundant parens stars.ts:25; hours-no-stars and habitInput.ts:82 left for R2 |
 | 1 | Strange (running app, phone + iPad, light + dark) | FAIL | carried row shows no star chip (HabitRow and FamilyHabitRow carried branch); Rewards heading now sits over Vacation mode in Settings; LogButton focus ring square (rounded-full only on the inner span); Mine bank from md up floats under the date, not at the end of the count line | DESIGN.md:419 still quotes "Mine · 2 of 7 done"; past day shows today's bank; done chip shows current value not saved pay; three chip placements; one dev-branch late log (Bryce, zz m31 days, 2026-11-23, 2 stars) could not be undone through the app |
 | 3 | Vision (F1 + whole branch, HEAD 2e338a6) | PASS | none (pass-2 blocker fixed; new tests fail 5 of 18 on 8e48e79, pass 18 of 18 now) | plan rewards-v1.md:192 says `prisma migrate dev --create-only`, against the danger register; HabitFamilyWide.tsx:52 has no `?? 0` fallback; earlier notes stand; build's container-query warning is from main |
 | 2 | Captain (amendments + branch, HEAD 2e338a6) | FAIL | `rewards/starDiff.test.ts:6` imports `applyHabitChange` from `../habitChanges`, against rewards.md's dependency rule; move the reducer tests to `src/lib/starDiffReducer.test.ts` (F2.1) | garbled wording habits.md:48 and rewards.md:55; record habits.md 309 at STRUCTURE.md:920; name `sumStars` in rewards.md; hours-no-stars written in four places; habitInput.ts:82 could use toStarValue; habitsToday.ts 361 trend |
@@ -601,7 +604,17 @@ across parallel contracts, contract written here first, real HEAD last,
 
 ## Delivery
 
-- **Shipped:** (pending)
-- **Shipped check:** (pending)
+- **Shipped:** stars on habits and chores (None to 50), the star bank
+  on Mine and Whole family, the optimistic bank, Late checks in Settings,
+  carried rows' chips showing what the late tap pays, 30px check circles,
+  and `docs/structure/rewards.md`. PR: PR_PLACEHOLDER. Gauntlet at
+  d0ccecc: tsc, eslint, build exit 0; npm test 2174/2174; TZ=UTC 2164
+  pass, 10 skipped, 0 fail. Gates: Vision PASS (pass 3 on C1 to F1, then
+  F2/F3), Captain PASS (pass 3), Strange PASS (pass 2).
+- **Shipped check:** run at merge; reported in the R1 chat (the mission
+  file cannot record its own merge commit).
 - **Deliberate leftovers:** Assistant API does not read or set stars yet
-  (later rung). A kid's edit leaves stars as they were.
+  (later rung). A kid's edit leaves stars as they were. One dev-branch late
+  log left in place with Bryce's OK (zz m31 days, 2026-11-23, 2 stars;
+  its stats page can undo it until 2026-11-30). Gate NOTEs moved to
+  `.avengers/status.md` "Open, not scheduled".
