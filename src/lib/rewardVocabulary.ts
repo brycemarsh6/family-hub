@@ -49,3 +49,12 @@ export const LATE_STARS_TITLE = "Late checks";
 export const LATE_STARS_HELP = "A late check is a carried-over item checked off the next day. Half rounds up.";
 export const LATE_STARS_REFUSAL = "Only parents and admins can change this.";
 export const LATE_STARS_OFF_LIST = "That choice isn't on the list.";
+
+/** The Celebrations switch (mission 80): on a login's Settings and on the Wall tablet page. */
+export const CELEBRATIONS_WORDS = {
+  title: "Celebrations",
+  sub: "Flying stars and the all-done confetti",
+  saveError: "Couldn't save your celebrations setting. Check your connection and try again.",
+  notAllowed: "Only parents, admins and the wall tablet can change this.",
+  deviceRefused: "A shared device changes this on Wall tablet settings.",
+} as const;

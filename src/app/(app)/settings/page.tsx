@@ -191,7 +191,7 @@ export default async function SettingsPage() {
             {!user.isDevice && (
               <>
                 <div className="order-5">
-                  <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
+                  <HabitsChoresSettings showStreaks={user.showStreaks} celebrations={user.celebrations} isAdmin={user.role === "admin"} />
                 </div>
                 <div className="order-6">
                   <VacationCard vacations={vacations} today={formatCalendarDate(today)} />

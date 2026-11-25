@@ -1,0 +1,261 @@
+# Mission: Rewards R2, the star flight, its switch and the all-done words
+
+**Project:** family-hub (Marshee)
+**Status:** INTERROGATING (mock and questions with Bryce)
+**Started:** 2026-11-24 · **Updated:** 2026-11-24
+**Branch:** `claude/rewards-r2-earn-animation-991ed6`, cut from main after
+PR brycemarsh6/family-hub#124 (R1) merged. R3 (mission 81) runs at the same
+time in its own session.
+
+## Brief
+
+- **Goal:** Second PR of `.avengers/plans/rewards-v1.md` (R2 entry). When a
+  check pays stars, a ring of gold stars appears at the check, slides and
+  shrinks into that person's star bank, and the number counts up. A
+  per-login switch turns it off; Reduce Motion always wins. The daily
+  confetti gains a short line of words.
+- **Done means:**
+  1. On the iPad family view the stars land on the bank of the person whose
+     check it was (every participant for a Together habit).
+  2. On Mine the stars land on the bank in the count line; on a dashboard
+     tile (no bank on screen) the ring pops in place.
+  3. Fast taps are never blocked: the layer never takes taps, and a second
+     tap mid-flight works.
+  4. Switch off, or Reduce Motion on, means no flight and no count-up (the
+     number changes at once, as in R1).
+  5. Un-checking never flies stars; the number drops at once.
+  6. The tablet's switch on `/settings/wall-tablet` works for parents,
+     admins and the tablet.
+  7. The daily confetti shows the approved words.
+  8. Gauntlet green in both timezones; Vision, Strange and Captain PASS;
+     merged; production deploy checked.
+- **Out of scope:** the Rewards page and redeem rain (R3); PIN (R4); bonus
+  stars and history (R5); sound; stars for hours habits; a Stars dashboard
+  widget; the R1 follow-ups listed in `.avengers/status.md`.
+
+## Danger register
+
+Same as AGENTS.md, plus:
+- `.env` is a symlink to the main checkout's `.env`; its `DATABASE_URL`
+  host was checked as the Neon dev branch
+  (`ep-hidden-pine-a6ajzk11-pooler`) on 2026-11-24. Never print `.env`
+  beyond the hostname.
+- **The plan says "no migration", but `UserPreferences.starAnimations` is a
+  new column, so R2 needs one small additive migration** (one Boolean
+  column with a default). SQL is shown before it is applied, applied with
+  `npx prisma migrate deploy` only. Never `prisma migrate dev`, never
+  `db:seed` / `db:reset`.
+- Stage by explicit path; `git show --stat HEAD` after each commit. No
+  direct pushes to `main`. Leave the untracked `.agents/` and `.codex/` out.
+- Shared files (CLAUDE.md, STRUCTURE.md, `docs/structure/rewards.md`,
+  `src/lib/rewardVocabulary.ts`, `prisma/schema.prisma`, `package.json`):
+  small edits only; sync with main right before merging (R3 edits them
+  too).
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npx eslint .`
+- `npm test` (count goes up)
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts src/lib/rewards/*.test.ts`
+- `npm run build`
+
+## Assembled
+
+- Stark + Vision (always).
+- Strange: the flight, the words and two switches are all visible.
+- Captain: new files (`StarFlightLayer.tsx`, `useCountUp.ts`,
+  `rewards/starMotion.ts`) and a migration.
+- Banner: out. Fury read the touched files inline (they are small).
+
+## Bryce's answers (2026-11-24, from the mock)
+
+1. **All-done words:** "You did it! All done today." (his pick over Fury's
+   "All done for today!"). A pill in the middle of the screen while the
+   confetti falls, gone after 3 seconds, never takes taps. This replaces
+   habits-plan decision 99 ("Confetti has no words").
+2. **One switch, "Celebrations"** ("Flying stars and the all-done
+   confetti"): off means no star flight and no daily confetti. Fury's
+   reading, for Bryce to overturn: off also means no all-done words (the
+   switch is named Celebrations). Because the switch now covers more than
+   stars, the column is named `celebrations`, not the plan's
+   `starAnimations` (structure call, Fury).
+3. **The flight as mocked:** 8 filled gold stars pop out in a ring round
+   the check, fly to that person's bank and shrink, then the number counts
+   up. About 1 second.
+4. **Reduce Motion:** no flight, no count-up, no confetti, but the words
+   still show (they do not move).
+
+## Contracts
+
+C1 then C2, in order (C2 builds on C1's exports). Docs (DESIGN.md,
+`docs/structure/rewards.md`, the habits plan's decision 99, CLAUDE.md) are
+Fury's, after C2.
+
+### C1 — The Celebrations switch end to end, and the pure motion and pay rules
+- **Status:** PENDING
+- **Objective:** Add `UserPreferences.celebrations`, its per-login and
+  tablet switches, and the two pure, tested rule files C2 will animate with.
+- **Boundaries:** may touch: `prisma/schema.prisma` (one column on
+  `UserPreferences`, with a `///` comment), new
+  `prisma/migrations/20261124100000_celebrations_switch/migration.sql`,
+  `src/lib/dal.ts`, `src/app/actions/preferences.ts`, new
+  `src/lib/tabletCelebrationsRead.ts`, `src/components/HabitsChoresSettings.tsx`,
+  `src/app/(app)/settings/page.tsx` (pass the value only),
+  new `src/components/TabletCelebrationsSetting.tsx`,
+  `src/app/(app)/settings/wall-tablet/page.tsx`, `src/lib/rewardVocabulary.ts`
+  (switch words only), `src/lib/habitVocabulary.ts` (the all-done line
+  only), new `src/lib/rewards/starMotion.ts`, new
+  `src/lib/rewards/starMotion.test.ts`, new `src/lib/starFlights.ts`, new
+  `src/lib/starFlights.test.ts` (top of `src/lib/` because it imports
+  `habitChanges.ts`, the `starDiffReducer.test.ts` precedent). The schema
+  is exempt from the size cap (STRUCTURE.md, the `prisma/schema.prisma`
+  exception). · must not
+  touch: every component C2 names, `src/lib/rewards/starDiff.ts`,
+  `src/lib/rewards/stars.ts`, `src/lib/habitChanges.ts`, `package.json`,
+  any other migration, `.env`.
+- **Details:**
+  - Migration SQL is exactly one additive statement:
+    `ALTER TABLE "UserPreferences" ADD COLUMN "celebrations" BOOLEAN NOT NULL DEFAULT true;`
+    Write it by hand. **Do not apply it** (Fury applies it with
+    `npx prisma migrate deploy` after reading it). Run `npx prisma generate`.
+  - `dal.ts`: `VerifiedUser.celebrations: boolean`, selected beside
+    `showStreaks`, `?? true`.
+  - `actions/preferences.ts`: `saveCelebrations(input: unknown)` (the
+    `saveShowStreaks` shape: device refused, real boolean only) and
+    `saveTabletCelebrations(input: unknown)` (the `saveTabletStartPage`
+    shape: managers or `tabletMayChangeWallTablet`, writes every active
+    device login in one transaction).
+  - `tabletCelebrationsRead.ts` (`server-only`, no auth, the
+    `loadTabletStartPage` precedent): `loadTabletCelebrations()` reads the
+    oldest active device login's value; null when there is no device login.
+  - `HabitsChoresSettings.tsx`: a second switch row under Show streaks,
+    icon Lucide `Sparkles`, title "Celebrations", a muted second line
+    "Flying stars and the all-done confetti", same optimistic save shape.
+    `TabletCelebrationsSetting.tsx`: the same row for the tablet, shown on
+    `/settings/wall-tablet` when `loadTabletCelebrations()` is not null.
+  - Words: `CELEBRATIONS_WORDS` (title, sub, save error, not allowed) in
+    `rewardVocabulary.ts` (keep it import-free); `ALL_DONE_LINE = "You did
+    it! All done today."` in `habitVocabulary.ts`.
+  - `rewards/starMotion.ts` (pure, imports nothing outside `src/lib/rewards/`
+    and `rewardVocabulary.ts`): `RING_STARS = 8`, `FLIGHT_MS`, `STAGGER_MS`,
+    `COUNT_MS`, `ringOffsets(count, radius)`, `flightKeyframes(from, to |
+    null, ringOffset)` returning plain keyframe objects (with a target: pop
+    out to the ring by ~30%, fly and shrink to the target, fade at the end;
+    with null: pop out to the ring and fade in place), `landsAfterMs(index)`
+    (when the count-up should start), `countUpValue(from, to, elapsedMs,
+    durationMs)` (integer, clamped, never past `to`). Tests cover each,
+    including a 0 or negative elapsed, an elapsed past the duration, and
+    from greater than to.
+  - `starFlights.ts`: `starPayments(rows, change, lateStars)` returns
+    `starDiff(rows, applyHabitChange(rows, change), lateStars)` (the one
+    pay rule, no second one). Tests: a check pays the value, an uncheck is
+    negative, a Together habit pays every participant who flips, a carried
+    row under Half pays half rounded up, a skip pays nothing, a 0-star
+    habit pays nothing.
+- **Verification:** `npx tsc --noEmit` clean; `npx eslint .` clean;
+  `npm test` passes with the count up by the new tests; the UTC command
+  passes; `npx prisma validate` passes.
+- **Evidence required:** the migration file's full text; the test counts
+  before and after; the output of each command; `git diff --stat`.
+- **Done criteria:** Fury reads the SQL (one ADD COLUMN, nothing else),
+  re-runs the commands, and the new tests fail if `starPayments` stops
+  using `starDiff` or `countUpValue` overshoots.
+- **Report:** (pending)
+
+### C2 — The star flight layer, the count-up and the all-done pill
+- **Status:** PENDING
+- **Objective:** Make a paying check send a ring of stars from the tapped
+  button to the right person's visible star bank (or pop in place), count
+  the bank up, and show "You did it! All done today." with the confetti.
+- **Boundaries:** may touch: new `src/components/StarFlightLayer.tsx`, new
+  `src/lib/useCountUp.ts`, `src/components/StarBank.tsx`,
+  `src/components/LogButton.tsx`, `src/components/HabitRow.tsx`,
+  `src/components/HabitFamilyColumn.tsx`,
+  `src/components/HabitFamilyWideColumn.tsx`,
+  `src/components/HabitFamilyWide.tsx`, `src/components/HabitFamilyView.tsx`,
+  `src/components/HabitsTile.tsx`, `src/components/HabitTodayList.tsx`,
+  `src/components/HabitConfetti.tsx`, `src/app/(app)/layout.tsx` (mount the
+  layer round `children` only). · must not touch: C1's files (read them),
+  `src/lib/rewards/starDiff.ts`, `src/lib/habitChanges.ts`, `prisma/`,
+  `package.json`, any action file.
+- **Details:**
+  - `StarFlightLayer({ enabled, children })` (client): a provider plus one
+    `aria-hidden` `pointer-events-none fixed inset-0` layer above the page.
+    Context: `useCelebrations()` (the switch), `useStarFlight()` returning
+    `fly(from: HTMLElement | null, payments: Record<string, number>)`, and
+    `useStarLanding(userId)` (when that person's count-up starts, or null).
+    A safe no-op default outside the provider.
+  - `fly`: does nothing when the switch is off or `usePrefersReducedMotion`
+    is true. For each person paid a positive amount: find a
+    `[data-star-bank="<id>"]` element that has a box and is on screen (both
+    family layouts are in the page; the hidden one has no box). Found: a
+    ring of `RING_STARS` filled `text-star` Lucide stars flies there with
+    `element.animate(...)` using `flightKeyframes`, and that person's
+    landing is set. Not found: one ring pops in place at the button.
+    Negative amounts cancel that person's flights in the air and clear
+    the landing (an un-check never flies, and a ring never lands on a bank
+    that went down). Every flight removes itself when done and on unmount.
+    No new library.
+  - `useCountUp(target, startAt)`: with no landing pending it returns
+    `target` in the same render (no frame of an old number; under Reduce
+    Motion or the switch off the bank behaves exactly as in R1). An
+    increase with a landing holds the old number until `startAt`, then
+    steps by `countUpValue` over `COUNT_MS` with `requestAnimationFrame`. A
+    decrease shows at once and stops any count. The number read is always
+    the `stars` prop, which callers pass from `shownBanks` (unchanged).
+  - `StarBank`: becomes a client component with a required `userId`; puts
+    `data-star-bank={userId}` on its element; the visible number is the
+    count-up, the `aria-label` stays the real `stars`.
+  - `LogButton.onClick` receives the button (`event.currentTarget`); row
+    `onToggle` props pass it up (`(from?: HTMLElement) => void`, family
+    `(row, from?)`). `habitRowTaps` takes the flight and `lateStars` and,
+    on a check or uncheck, calls `fly(from, starPayments([row], change,
+    lateStars))` **before** `run(...)`. `HabitFamilyView.toggle` does the
+    same with the family change. Fast taps are never blocked or delayed:
+    `run` is called exactly as today, on every tap.
+  - `HabitConfetti`: with the switch off nothing fires and no marker is
+    set. Under Reduce Motion: no confetti, but the words show and the
+    marker is set. Otherwise confetti plus the words. The words: one pill
+    (`role="status"`), centred, `pointer-events-none`, `ALL_DONE_LINE`,
+    gone after 3 seconds; DESIGN.md tokens only (`bg-surface`,
+    `border-line`, `text-fg`), rem sizes.
+  - Layout: `<StarFlightLayer enabled={user?.celebrations ?? true}>` round
+    `{children}` inside `AppChrome`.
+- **Verification:** the C1 commands plus `npm run build`. In the dev server
+  (dev database only, existing test-data scripts only): on the iPad size
+  (1024x768) family view a check on Emily's column flies to Emily's bank,
+  not the other column's; Mine flies to the count line bank; a dashboard
+  tile pops in place; two checks tapped fast both save; the switch off and
+  an emulated Reduce Motion both give no flight.
+- **Evidence required:** command outputs; for the browser checks, the
+  measured rects (button, chosen bank) from `document.getAnimations()` or
+  equivalent, and which steps could not be checked.
+- **Done criteria:** Fury and Vision re-run it; Strange watches it.
+- **Report:** (pending)
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+
+## Handoff log
+
+- 2026-11-24 — Mission opened. Setup done (`.env` linked and ignored, dev
+  branch host confirmed, `npm ci`). Mock and questions sent to Bryce.
+- 2026-11-24 — Bryce answered (see "Bryce's answers"). C1 and C2 written;
+  preflight's only failure is the schema cap, which STRUCTURE.md exempts.
+  Baseline `npm test` 2174. C1 dispatched to Stark at 7721a1a. Fury wrote
+  the DESIGN.md flight rules, the `docs/structure/rewards.md` homes and the
+  decision-99 replacement (outside both contracts' boundaries).
+  `HabitConfetti.tsx`'s comment still cites decision 99: C2 fixes it.
+- 2026-11-24 — Bryce went to bed and said in chat that Hill steps in for
+  him, **on Opus 5.5 for this session** (dispatch Hill with the `opus`
+  model override). Content and design calls go to Hill and are recorded as
+  "decided by Hill"; logins, real-device tests, money and the danger
+  register still wait for Bryce. Merge does not wait for him (standing
+  rule); his phone test goes in `.avengers/status.md`.
+
+## Delivery
+
+(Pending.)

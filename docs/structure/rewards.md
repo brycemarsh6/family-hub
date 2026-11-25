@@ -47,8 +47,12 @@ code lines; past that a concern gets its own
   the server bank plus this delta, added by the one helper beside it
   (`shownBanks`); a component adding the two itself is a BLOCKER (R2's
   count-up reads the helper). `habitChanges.ts` never learns stars.
-- R2 to R5 add `starMotion.ts`, `rewardRules.ts`, `rewardEmoji.ts`,
-  `pinPolicy.ts` and `starHistory.ts` here, each pure with its own test.
+- `starMotion.ts` (mission 80): the star flight's numbers and shapes
+  (`RING_STARS`, the timings, `ringOffsets`, `flightKeyframes`,
+  `landsAfterMs`) and `countUpValue`, the only count-up step. A flight
+  timing or ring shape typed in a component is a BLOCKER.
+- R3 to R5 add `rewardRules.ts`, `rewardEmoji.ts`, `pinPolicy.ts` and
+  `starHistory.ts` here, each pure with its own test.
 
 **Dependency direction.** `src/lib/rewards/` imports only
 `rewardVocabulary.ts`, `constants.ts`, its own files and types. It never
@@ -105,9 +109,31 @@ outline icons). Whether a chip shows is `StarChip`'s own rule (it draws
 nothing below 1); rows pass `rowStars(...)` and never test the number
 themselves.
 `HabitStarsField.tsx` is the only stars stepper (a `LadderStepper`);
-`RewardsSettings.tsx` is the Settings section. R2's
-`StarFlightLayer.tsx` and R3's page components follow the flat
-`src/components/` rule.
+`RewardsSettings.tsx` is the Settings section. R3's page components
+follow the flat `src/components/` rule.
+
+**The star flight (mission 80).** `src/lib/starFlights.ts`
+(`starPayments`) is the only "who gains what from this tap" answer: it is
+`starDiff` over the row before and after `applyHabitChange`, so a tap's
+flight and the bank's optimistic number come from the one pay rule. It
+sits at the top of `src/lib/` because it imports `habitChanges.ts`, which
+`src/lib/rewards/` may not. `StarFlightLayer.tsx` is the only animator: a
+provider mounted once in the `(app)` layout, with one tap-proof layer.
+Taps reach it only through `useStarFlight().fly(button, starPayments(...))`,
+called before `run(...)`; a component animating stars itself is a BLOCKER.
+`useCountUp.ts` is the only count-up and `StarBank` its only caller; it
+reads the `stars` prop, which callers pass from `shownBanks`. A bank is
+found by `data-star-bank={userId}`, which only `StarBank` writes.
+
+**The Celebrations switch (mission 80).** `UserPreferences.celebrations`
+is a per-login preference (not a `RewardSettings` column): read in
+`dal.ts`, saved by `saveCelebrations` (people) and
+`saveTabletCelebrations` (every active device login, the tablet start
+page precedent), and the tablet's value is read only by
+`loadTabletCelebrations` in `src/lib/tabletCelebrationsRead.ts`. Only
+`StarFlightLayer` reads the switch (`useCelebrations()`); the flight, the
+count-up and `HabitConfetti` take it from there. Reduce Motion is read with
+`usePrefersReducedMotion` and always wins over the switch.
 
 **Tests.** `src/lib/rewards/*.test.ts` is in `package.json`'s test
 script, both CI timezone steps and the AGENTS.md command (mission-79/C1).
