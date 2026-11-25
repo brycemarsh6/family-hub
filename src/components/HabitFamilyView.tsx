@@ -10,6 +10,8 @@ import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { shownColumns } from "@/lib/habitsReportScope";
 import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
+import type { LateStars } from "@/lib/rewardVocabulary";
+import { starDiff } from "@/lib/rewards/starDiff";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /** A tap applied to every place the habit shows: each Together row and each column (an Each habit's `userId` keeps it to one person's own flags). */
@@ -46,6 +48,8 @@ export function HabitFamilyView({
   keep,
   hiddenPeople,
   readOnly = false,
+  banks,
+  lateStars,
   bar,
 }: {
   page: FamilyPage;
@@ -58,6 +62,10 @@ export function HabitFamilyView({
   hiddenPeople: string[];
   /** A past day: plain markers, no checks, no hours log. */
   readOnly?: boolean;
+  /** Each person's star bank as the server has it, by user id. */
+  banks: Record<string, number>;
+  /** The Late checks setting, so a tap on a carried row moves a bank by what the server will pay. */
+  lateStars: LateStars;
   /** Draws the page's bar with this view's subtitle. */
   bar: (subtitle: ReactNode) => ReactNode;
 }) {
@@ -65,6 +73,10 @@ export function HabitFamilyView({
   const [state, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const live = readOnly ? lockPage(state) : state;
+  // Each bank moves the instant a tap does: the server's number plus what the tapped rows have paid since (one diff for both layouts).
+  const pageRows = (p: FamilyPage) => [...p.together, ...p.columns.flatMap((column) => column.rows)];
+  const diff = starDiff(pageRows(page), pageRows(state), lateStars);
+  const shownBanks = Object.fromEntries(page.columns.map((column) => [column.id, (banks[column.id] ?? 0) + (diff[column.id] ?? 0)]));
   // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
   const columns = shownColumns(live.columns, hiddenPeople);
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
@@ -106,12 +118,12 @@ export function HabitFamilyView({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
               {columns.map((column) => (
-                <HabitFamilyColumn key={column.id} column={column} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+                <HabitFamilyColumn key={column.id} column={column} bank={shownBanks[column.id]} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
               ))}
             </div>
           )}
         </div>
-        <HabitFamilyWide page={{ ...live, columns }} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+        <HabitFamilyWide page={{ ...live, columns }} banks={shownBanks} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
       </div>
       {loggingRow?.hours && (
         <HoursLogSheet

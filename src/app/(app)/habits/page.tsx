@@ -7,6 +7,8 @@ import { loadTodayPage } from "@/lib/habitsRead";
 import { loadFamilyPage } from "@/lib/habitsStatsRead";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { formatDayLabel } from "@/lib/mealPlanDates";
+import { loadLateStars } from "@/lib/rewardSettingsRead";
+import { loadStarBanks } from "@/lib/starBankRead";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -23,6 +25,8 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
   // The loaders work out every window from the day they are given, so the shown day goes in as their "today".
   const familyPage = family ? await loadFamilyPage(viewer, day) : null;
   const todayPage = family ? null : await loadTodayPage(viewer, day);
+  // The star bank of each person shown, and the Late checks setting the tap's optimistic number pays by.
+  const [banks, lateStars] = await Promise.all([loadStarBanks(familyPage ? familyPage.columns.map((column) => column.id) : [user.userId]), loadLateStars()]);
   // A shared device (the wall tablet) can tick things off but never edit.
   const canManage = !user.isDevice;
 
@@ -42,6 +46,9 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
         // The tablet shows everyone's streaks; a person's switch hides theirs (decision 98).
         showStreaks={user.isDevice || user.showStreaks}
         focusPersonId={person}
+        viewerId={user.userId}
+        banks={banks}
+        lateStars={lateStars}
       />
       {canManage && <FloatingAddButton href="/habits/new" label="New habit or chore" />}
     </div>

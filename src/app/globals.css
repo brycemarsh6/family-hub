@@ -39,6 +39,7 @@
   --danger-soft: #f9e1d6; /* Peach lightened — the "eat now" badge on the Expiring page */
   --streak: #8a4b1f; /* mission-32/F1 — a burnt Peach for the streak flame and its count, so a streak no longer shares amber with warnings (Missed days, errors). Derived from Peach (#f3b99e), which is far too light for text; 6.76:1 on white / 5.97:1 on cream / 5.42:1 on --streak-soft */
   --streak-soft: #f6e3d3; /* Peach lightened, warmer than --danger-soft — the nudge card's background; --fg is 6.32:1 on it */
+  --star: #a87500; /* mission-79/C3 — the filled gold star on a habit row and the star bank, from the Butter family (raw Butter #f4d26b is only ~1.5:1 on white). A graphic, not text (the number beside it stays --fg), so the floor is 3:1: 4.03:1 on white / 3.56:1 on cream / 3.25:1 on --surface-2 (measured) */
 
   /* --- brand artwork colour, NOT a job token -------------------------------
      Brand Sage exactly as the blueprint specifies it. This is deliberately
@@ -80,6 +81,7 @@
     --danger-soft: #472018;
     --streak: #e8a77f; /* a light Peach for dark surfaces — 7.57:1 on --surface, 8.43:1 on --bg, 6.63:1 on --streak-soft (measured) */
     --streak-soft: #3d2a1e; /* --fg is 11.98:1 on it */
+    --star: #f4d26b; /* Butter, brand-exact, on dark surfaces — 10.53:1 on --surface, 11.72:1 on --bg, 9.33:1 on --surface-2 (measured) */
   }
 }
 
@@ -104,6 +106,7 @@
   --color-danger-soft: var(--danger-soft);
   --color-streak: var(--streak);
   --color-streak-soft: var(--streak-soft);
+  --color-star: var(--star);
   --color-brand-sage: var(--brand-sage);
 
   /* Named --font-inter/--font-manrope/--font-accent-serif (not --font-sans

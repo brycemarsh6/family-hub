@@ -182,6 +182,10 @@ tell when a rule's reason has expired.
   **brand artwork**, not members of the icon system, so they aren't Lucide
   outlines either. (Decorative one-off emoji in empty states are outside the
   icon system and tolerated.)
+  A third exception (mission 79, Bryce 2026-11-24): the **star** is one
+  filled Lucide `Star` (`fill="currentColor"`) in `--star`, used only for
+  stars: the row chip (`StarChip`) and the star bank (`StarBank`). No other
+  icon is filled.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -316,6 +320,23 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   `--streak-soft` is 4.72:1 light / 6.43:1 dark (measured, mission-32
   Strange pass 2). Plain `--muted` fails on it in light (4.31:1); never
   use it there.
+- **`--star` is the star's own colour** (mission-79/C3): the filled gold star
+  on a habit row's chip and in the star bank, from the Butter family. It is a
+  graphic, so the floor is 3:1; the number beside it stays `--fg`. Light
+  `#a87500` is 4.03:1 on `--surface`, 3.56:1 on `--bg`, 3.25:1 on
+  `--surface-2`; dark `#f4d26b` (brand Butter) is 10.53:1 on `--surface`,
+  11.72:1 on `--bg`, 9.33:1 on `--surface-2` (measured). Never use it for
+  text, and never for anything but stars.
+- **Stars show in three places** (Bryce, 2026-11-24, from the "star bank on
+  Mine" mock). A row with stars carries a small chip beside the streak,
+  "star 10" (no chip without stars; hours rows never). On Mine the star bank
+  sits at the right end of the count line, and the word "Mine" is **not** on
+  that line any more: it reads "2 of 5 done" (then the streak, if shown) with
+  the bank at the right (this overrides the earlier "Mine · 2 of 7 done"
+  wording). On Whole family, phone and iPad, the bank sits at the right of
+  each person's header. The bank moves the instant a check is tapped
+  (`starDiff` over the server's rows and the optimistic ones) and matches the
+  server after refresh. A negative bank shows its minus.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

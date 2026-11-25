@@ -7,6 +7,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursHabitRow } from "./HoursHabitRow";
 import { LogButton } from "./LogButton";
+import { StarChip } from "./StarChip";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, ON_VACATION_LABEL, PLANNED_FOR_TODAY_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
@@ -26,7 +27,7 @@ const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold t
  * switched off, because a skipped day is left alone until the skip is undone).
  * The icon and title are a link to the habit's stats page (105); the check and
  * the swipe keep their own taps (SwipeActions swallows the click after a swipe).
- * A skipped row's line reads "Skipped today" (101); a streak shows from 2 (98).
+ * A skipped row's line reads "Skipped today" (101); a streak shows from 2 (98); a row with stars shows its star chip beside it.
  */
 export function HabitRow({
   row,
@@ -77,6 +78,8 @@ export function HabitRow({
       {row.streakLabel}
     </span>
   ) : null;
+  // A row with stars carries a small chip beside the streak (mission 79); never without stars.
+  const starChip = row.stars ? <StarChip stars={row.stars} /> : null;
   const shownPeople = row.sharing === "together" ? row.participants : othersDone;
 
   let actions: SwipeAction[] = [];
@@ -135,6 +138,7 @@ export function HabitRow({
               <>
                 <span>{SKIPPED_TODAY_LABEL}</span>
                 {streak}
+                {starChip}
               </>
             ) : row.onVacation && !row.doneToday ? (
               <span className="text-muted-strong">{ON_VACATION_LABEL}</span>
@@ -170,6 +174,7 @@ export function HabitRow({
                   </>
                 )}
                 {streak}
+                {starChip}
               </>
             )}
           </div>

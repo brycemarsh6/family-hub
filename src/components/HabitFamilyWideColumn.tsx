@@ -4,6 +4,7 @@ import { Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { FamilyHabitRow } from "./HabitFamilyColumn";
 import { TIME_ICONS } from "./HabitFilterChips";
+import { StarBank } from "./StarBank";
 import { avatarColorHex } from "@/lib/constants";
 import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
 import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
@@ -12,13 +13,14 @@ import { emptyColumnText, familyCountText, groupColumnRows } from "@/lib/habitsF
 /**
  * One person's column on the iPad: 330px wide (or an equal share when everyone fits), tinted
  * with the person's colour and scrolling on its own. The header
- * (avatar, name, "3 of 7 done", the chore streak flame, the Sunday shout-out)
+ * (avatar, name, "3 of 7 done", the chore streak flame, the star bank, the Sunday shout-out)
  * stays put; below it the rows sit under Morning, Afternoon, Evening and
  * Anytime. Together rows the person is on sit in their group with a tag, and a
  * tap on one checks it for the family (decision 1, mission 41).
  */
 export function HabitFamilyWideColumn({
   column,
+  bank,
   together,
   showStreaks,
   fits = false,
@@ -26,6 +28,8 @@ export function HabitFamilyWideColumn({
   onToggle,
 }: {
   column: FamilyColumn;
+  /** The person's star bank, drawn at the right of the header. */
+  bank: number;
   /** The Together habits, so the count and the groups can include the ones this person is on. */
   together: FamilyRow[];
   showStreaks: boolean;
@@ -63,6 +67,7 @@ export function HabitFamilyWideColumn({
             </span>
           </div>
           {column.onVacation && <Plane aria-hidden="true" size={18} className="shrink-0 text-muted-strong" />}
+          <StarBank stars={bank} />
         </div>
         {column.shoutOut && (
           <p className="mt-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">

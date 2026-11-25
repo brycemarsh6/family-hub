@@ -10,6 +10,8 @@ import { TIME_ICONS } from "./HabitFilterChips";
 import { QUIT_TAG_CLASS } from "./HabitRow";
 import { LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
+import { StarBank } from "./StarBank";
+import { StarChip } from "./StarChip";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
 import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
@@ -30,7 +32,7 @@ function TitleArea({ row, children }: { row: FamilyRow; children: ReactNode }) {
 
 /**
  * One line of the family view: the icon and title (a link to the habit's stats
- * page, decision 105), a streak when allowed (98) and the 44px check. A row the
+ * page, decision 105), a streak when allowed (98), a star chip when the habit carries stars (mission 79) and the 44px check. A row the
  * viewer may tick for gets the same round check as Today, named for the person
  * whose it is ("Mark Run done for Emily"); a row they may not
  * shows its state in a plain marker that is not a button. A skipped row shows
@@ -70,6 +72,7 @@ export function FamilyHabitRow({
     (row.carriedFrom && !row.doneToday ? "Carried over" : null) ??
     progressLabel;
   const streak = showStreaks && row.streakLabel;
+  const stars = row.stars ?? 0;
   // The check names whose it is, because a card holds several people's rows (and a parent or the tablet taps for others).
   const who = row.participants.find((p) => p.userId === row.logForId)?.displayName ?? "them";
 
@@ -100,6 +103,7 @@ export function FamilyHabitRow({
           {streak}
         </span>
       )}
+      {stars > 0 && !row.hours && <StarChip stars={stars} />}
     </TitleArea>
   );
 
@@ -142,12 +146,15 @@ export function FamilyHabitRow({
  */
 export function HabitFamilyColumn({
   column,
+  bank,
   together,
   showStreaks,
   keep = () => true,
   onToggle,
 }: {
   column: FamilyColumn;
+  /** The person's star bank, drawn at the right of the header. */
+  bank: number;
   /** The Together strip's rows, so the count can include the ones this person is on. */
   together: FamilyRow[];
   showStreaks: boolean;
@@ -162,7 +169,7 @@ export function HabitFamilyColumn({
     <section aria-label={column.displayName} data-family-person={column.id} data-layout="stacked" className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
       <div className="flex items-center gap-2.5 pb-1.5">
         <AvatarBadge displayName={column.displayName} avatarColor={column.avatarColor} size={40} />
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
           <span className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
             {familyCountText(column, together)}
@@ -174,7 +181,8 @@ export function HabitFamilyColumn({
             )}
           </span>
         </div>
-        {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}
+        {column.onVacation && <Plane aria-hidden="true" size={18} className="shrink-0 text-muted" />}
+        <StarBank stars={bank} />
       </div>
       {column.shoutOut && (
         <p className="mb-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">
