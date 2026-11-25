@@ -45,7 +45,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `rewardVocabulary.ts` and
   `rewards/stars.ts` (mission-79), `householdDate.ts`,
   `constants.ts`, `householdPeople.ts` and `rewardSettingsRead.ts` (the
-  write files only; the second mission-79), `db.ts` and the generated
+  write files only; also mission-79), `db.ts` and the generated
   client (types). Its writers take `today` from their caller and never
   compute it. It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`

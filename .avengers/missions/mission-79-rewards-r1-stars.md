@@ -468,10 +468,124 @@ across parallel contracts, contract written here first, real HEAD last,
   headline, Forms trend, companion sizes), new
   `docs/structure/rewards.md` (108 lines).
 
+### F2 - Gate fixes round 2 (Captain pass 2, Strange pass 1)
+- **Status:** DONE, commit 7940a7c (see Report)
+- **Bryce's answers (2026-11-24):** a carried row's chip shows what the
+  late tap pays (Half: 3 shows 2; None: no chip); Rewards moves after
+  Vacation mode in Settings; on iPad (md up) the Mine bank follows the
+  count with a small gap, the phone keeps it at the far right; the one
+  dev-branch late log Strange could not undo is left as is.
+- **Objective:** the five gate blockers are fixed with no change to pay
+  rules.
+- **Boundaries:** may touch: `src/lib/rewards/stars.ts`,
+  `src/lib/rewards/stars.test.ts`, `src/lib/rewards/starDiff.test.ts`,
+  new `src/lib/starDiffReducer.test.ts`, `src/components/HabitRow.tsx`,
+  `src/components/HabitFamilyColumn.tsx`,
+  `src/components/HabitFamilyWideColumn.tsx`,
+  `src/components/HabitFamilyWide.tsx`, `src/components/HabitFamilyView.tsx`,
+  `src/components/HabitTodayList.tsx`, `src/components/LogButton.tsx`,
+  `src/app/(app)/settings/page.tsx` · must not touch anything else (Fury
+  writes DESIGN.md, STRUCTURE.md, docs/structure and the plan).
+- **What to fix:**
+  1. **BLOCKER (Captain).** `src/lib/rewards/starDiff.test.ts:6` imports
+     `applyHabitChange` from `../habitChanges`, against rewards.md
+     "Dependency direction". Move every test that uses the real reducer
+     (the "fits the real reducer" test, the `CARRIED` / `members` /
+     `eachCopy` / `tapKid` helpers and the carried-copy tests from F1)
+     into new `src/lib/starDiffReducer.test.ts` (top-level lib may import
+     both; `src/lib/*.test.ts` is already in every glob). Drop the
+     `habitChanges` import from `starDiff.test.ts`. Total test count
+     unchanged by the move.
+  2. **BLOCKER (Strange) + Bryce's pick.** A carried row's chip shows what
+     the late tap pays. Add one pure helper to `rewards/stars.ts`, for
+     example `rowStars(stars, carried, lateStars)`: when `carried` is true
+     it returns `starsForLog(stars, "late", lateStars)`, otherwise `stars`
+     (tests: Full, Half rounded up, None, null stars, not carried). A row
+     counts as carried when `row.carriedFrom` is set (done or not, so the
+     optimistic done row keeps showing what it paid). Thread `lateStars`
+     down to `HabitRow` (from `HabitTodayList`) and `FamilyHabitRow` (from
+     `HabitFamilyColumn` and `HabitFamilyWideColumn`, fed by
+     `HabitFamilyView` / `HabitFamilyWide`) and pass
+     `rowStars(row.stars, !!row.carriedFrom, lateStars)` to `StarChip`.
+     `HabitRow`'s carried branch (`row.carriedFrom && !row.doneToday`,
+     about line 131) must render `{starChip}` after "counts as done late".
+     `StarChip` still owns the below-1 rule (None shows no chip).
+  3. **BLOCKER (Strange) + Bryce's pick.** Settings: render
+     `{canSetRewards && <RewardsSettings .../>}` after `<VacationCard>`
+     inside the order-6 div, not in order-5; update the header comment's
+     order (5 Habits & Chores, 6 Vacation then Rewards).
+  4. **BLOCKER (Strange).** `LogButton.tsx:76`: add `rounded-full` to the
+     `<button>` so its focus ring is round, like `HoursLogButton`.
+  5. **BLOCKER (Strange) + Bryce's pick.** `HabitTodayList.tsx:137`: the
+     bank's class becomes `ml-auto pl-3 md:ml-3 md:pl-0` (phone: far
+     right; md up: follows the count with a gap).
+  6. NOTE (Vision): `HabitFamilyWide.tsx:52` passes `banks[column.id]`
+     with no `?? 0`; match the narrow layout.
+- **Verification:** full gauntlet (tsc, eslint, `npm test`, the UTC
+  command from AGENTS.md, `npm run build`); `grep -rn "habitChanges"
+  src/lib/rewards/` gives nothing; test count = 2171 + the new
+  `rowStars` tests.
+- **Evidence required:** test names and counts, gauntlet tails, the grep,
+  `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE. One commit, 12 boundary files (+114 / -65).
+  `rowStars` in `stars.ts` (3 tests), reducer tests moved to
+  `src/lib/starDiffReducer.test.ts` (no `habitChanges` in
+  `src/lib/rewards/`), carried branch renders the chip, `lateStars`
+  threaded through the family views, `?? 0` on the wide bank, Rewards
+  after Vacation, `rounded-full` on LogButton, bank `md:ml-3`. tsc and
+  eslint exit 0; `npm test` 2174 pass; UTC 2164 pass, 10 skipped; build
+  printed its route table (exit code not captured). Stark's deviation:
+  `lateStars` defaults to "full", so `HabitsTile` and `PlannedTodayCard`
+  (the dashboard) still show a carried row's full value. F3 closes it.
+
+### F3 - Late pay on the dashboard's habit rows
+- **Status:** DONE, commit 8d3ea2b (see Report)
+- **Objective:** every carried row with stars, on every screen, shows what
+  the late tap pays (Bryce's rule, F2.2).
+- **Boundaries:** may touch: `src/components/HabitRow.tsx`,
+  `src/components/HabitFamilyColumn.tsx`,
+  `src/components/HabitFamilyWideColumn.tsx` (the `lateStars` prop
+  only), `src/components/HabitsTile.tsx` (`HabitsTile` and
+  `HabitTileRows`), `src/components/ChoresTile.tsx` (added after Stark's
+  BLOCKED-ON-CONTRACT: it renders `HabitTileRows` too),
+  `src/components/PlannedTodayCard.tsx`, `src/app/(app)/(home)/page.tsx`
+  · must not touch anything else.
+- **What to do:** make `lateStars: LateStars` required (no default) on
+  `HabitRow`, `FamilyHabitRow`, `HabitFamilyColumn` and
+  `HabitFamilyWideColumn`, so the type checker names every caller. The
+  dashboard page reads `loadLateStars()` (from
+  `@/lib/rewardSettingsRead`, the only reader) alongside its other loads
+  (in the same `Promise.all` if there is one) and passes it to
+  `HabitsTile`, `ChoresTile` and `PlannedTodayCard`, which pass it
+  (through `HabitTileRows`) to `HabitRow`.
+- **Verification:** full gauntlet; `grep -n 'lateStars = "full"'
+  src/components/*.tsx` gives nothing; test count 2174.
+- **Evidence required:** gauntlet tails with the build's exit code, the
+  grep, `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE after one BLOCKED-ON-CONTRACT (Fury's boundary missed
+  `ChoresTile`, which also renders `HabitTileRows`; boundary widened).
+  One commit, 7 files (+31 / -15). `lateStars` required on `HabitRow`,
+  `FamilyHabitRow`, `HabitFamilyColumn`, `HabitFamilyWideColumn`,
+  `HabitTileRows`, `HabitsTile`, `ChoresTile`, `PlannedTodayCard`; the
+  dashboard adds `loadLateStars()` to its `Promise.all`. tsc exit 0 with
+  the props required (every caller covered); eslint exit 0; `npm test`
+  2174 pass; UTC 2164 pass, 10 skipped; build EXIT=0; the grep for a
+  "full" default gives nothing.
+- **Docs (Fury, gate NOTEs):** DESIGN.md (carried chip and iPad bank
+  decisions, the `HabitsBar` subtitle wording), rewards.md (`rowStars`,
+  `sumStars`, the test-file rule, wording), habits.md wording,
+  STRUCTURE.md companion sizes, plan's migration line no longer says
+  `prisma migrate dev`.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Strange (running app, phone + iPad, light + dark) | FAIL | carried row shows no star chip (HabitRow and FamilyHabitRow carried branch); Rewards heading now sits over Vacation mode in Settings; LogButton focus ring square (rounded-full only on the inner span); Mine bank from md up floats under the date, not at the end of the count line | DESIGN.md:419 still quotes "Mine · 2 of 7 done"; past day shows today's bank; done chip shows current value not saved pay; three chip placements; one dev-branch late log (Bryce, zz m31 days, 2026-11-23, 2 stars) could not be undone through the app |
+| 3 | Vision (F1 + whole branch, HEAD 2e338a6) | PASS | none (pass-2 blocker fixed; new tests fail 5 of 18 on 8e48e79, pass 18 of 18 now) | plan rewards-v1.md:192 says `prisma migrate dev --create-only`, against the danger register; HabitFamilyWide.tsx:52 has no `?? 0` fallback; earlier notes stand; build's container-query warning is from main |
+| 2 | Captain (amendments + branch, HEAD 2e338a6) | FAIL | `rewards/starDiff.test.ts:6` imports `applyHabitChange` from `../habitChanges`, against rewards.md's dependency rule; move the reducer tests to `src/lib/starDiffReducer.test.ts` (F2.1) | garbled wording habits.md:48 and rewards.md:55; record habits.md 309 at STRUCTURE.md:920; name `sumStars` in rewards.md; hours-no-stars written in four places; habitInput.ts:82 could use toStarValue; habitsToday.ts 361 trend |
 | 2 | Vision (C3, C4) | FAIL | starDiff late pay from the first copy, not the tapped person (F1.1) | un-check takes back current value, corrects on refresh; past day shows today's bank; iPad tint contrast 3.30:1 min, passes; HoursLogButton square focus ring (F1.4) |
 | 1 | Captain (whole branch) | FAIL | habit engine imports rewards files; starBankRead is a third HabitLog reader. Both fixed by amendment (Bryce approved 2026-11-24: update the rules) | habitsToday 361, HabitForm 339; redundant device test (F1.5); two chip guards (F1.3); two shown-bank additions (F1.2); 30px typed four times (F1.4); plan names rewardsRead.ts for R3 |
 | 1 | Vision (C1, C1b, C2) | PASS | none | habitsToday.ts 361 lines (soft cap); C1b's import-line change needed by its one line; loadLateStars runs on every check even with no stars; signed-out saveLateStars wording |

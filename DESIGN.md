@@ -329,8 +329,13 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   text, and never for anything but stars.
 - **Stars show in three places** (Bryce, 2026-11-24, from the "star bank on
   Mine" mock). A row with stars carries a small chip beside the streak,
-  "star 10" (no chip without stars; hours rows never). On Mine the star bank
-  sits at the right end of the count line, and the word "Mine" is **not** on
+  "star 10" (no chip without stars; hours rows never). A carried-over row's
+  chip shows what the late tap pays under Late checks (Half: a 3 shows 2;
+  None: no chip), so the chip never promises more than the bank gets
+  (Bryce, 2026-11-24, Strange's pass 1). On Mine the star bank sits at the
+  right end of the count line on a phone; on an iPad (md up) it follows the
+  count with a small gap, because the title block there is only as wide as
+  the date (Bryce, 2026-11-24). The word "Mine" is **not** on
   that line any more: it reads "2 of 5 done" (then the streak, if shown) with
   the bank at the right (this overrides the earlier "Mine · 2 of 7 done"
   wording). On Whole family, phone and iPad, the bank sits at the right of
@@ -414,8 +419,9 @@ A new one-off that duplicates one of these jobs is a design violation:
   it, never in a second form
 - `HabitsBar` / `HabitFilterSheet`: the one thin bar at the top of Habits &
   Chores, on both views and every screen (decisions 255, 258; mission-53):
-  the day as the page title with a subtitle ("Mine · 2 of 7 done" and the
-  chore streak flame, or "Whole family"), then Filter, 44px back and
+  the day as the page title with a subtitle ("2 of 7 done", the chore
+  streak flame and the star bank, or "Whole family"; mission-79 dropped
+  "Mine"), then Filter, 44px back and
   forward arrows around Today (a past day, up to 14 back, is view only:
   "Looking back. Past days are view only." under the bar, plain markers,
   no buttons), Manage, and a bar-chart icon for the Report. It wraps to two

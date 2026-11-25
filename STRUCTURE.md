@@ -918,7 +918,7 @@ amendment id.
   `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `habits.md` 302, `layout.md` 315,
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
-  `rewards.md` 108 (new). (Added
+  `rewards.md` 113 (new), `habits.md` 309. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

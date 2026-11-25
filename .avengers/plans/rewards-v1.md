@@ -189,8 +189,10 @@ endpoints for rewards, stars for hours habits and Calendar tasks.
   went up), `npm run build`.
 - Both timezones, with the new folder:
   `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts src/lib/rewards/*.test.ts`
-- Review migration SQL before applying (`prisma migrate dev --create-only`);
-  additive only. Stage files by explicit path; `git show --stat HEAD` after
+- Review migration SQL before applying: write the migration file by hand
+  (or `prisma migrate diff` to print it), read it, then apply with
+  `npx prisma migrate deploy`. Never `prisma migrate dev` (on drift it offers
+  to reset the dev branch); additive only. Stage files by explicit path; `git show --stat HEAD` after
   each commit.
 - Avengers gates: Vision (correctness), Strange (design, with screenshots on
   phone and iPad sizes), Captain (structure).

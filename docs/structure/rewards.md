@@ -27,8 +27,11 @@ code lines; past that a concern gets its own
 - `stars.ts`: `starsForLog(habitStars, status, lateStars)` is the only
   "what does one check pay" rule (done pays the value; late pays full,
   half rounded up, or nothing; any other status or a null value pays
-  null). `nextStarStep` is the only stepper walk. Halving stars or
-  testing a log status to decide pay anywhere else is a BLOCKER.
+  null). `nextStarStep` is the only stepper walk. `rowStars` is the only
+  "what does this row's chip show" rule (a carried row shows what the
+  late tap pays, through `starsForLog`). `sumStars` is the bank's adder,
+  called only by `loadStarBanks`. Halving stars or testing a log status
+  to decide pay anywhere else is a BLOCKER.
 - `access.ts`: `canSetStars(role)` (built on `MANAGER_ROLES`, so it
   already refuses the device role) is the only "who may set a star value
   or the Late checks setting" rule. Pages pass its answer to components as
@@ -52,9 +55,10 @@ code lines; past that a concern gets its own
 imports `src/lib/habits/`, a `habits*.ts` module or a `goals*.ts` module;
 row shapes it reads are structural (`StarDiffRow` fits `HabitRowView`
 and `FamilyRow` without importing them). The habit engine may import
-`rewardVocabulary.ts` and `rewards/stars.ts`, and its write files
-`rewardSettingsRead.ts` (habits.md, "The habit engine"); never the
-reverse.
+`rewardVocabulary.ts` and `rewards/stars.ts`, and, in its write files
+only, `rewardSettingsRead.ts` (habits.md, "The habit engine"); never the
+reverse. Test files obey the same rule: a test that needs the real habit
+reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
 
 **Tables: one reader and one writer each.**
 - `RewardSettings` (one row, id "household", the `ScreensaverSettings`
@@ -98,7 +102,8 @@ undo model goes in this list in the same commit.
 person's total) are the only drawings of a star amount, and the filled
 `text-star` star appears nowhere else (DESIGN.md's one exception to
 outline icons). Whether a chip shows is `StarChip`'s own rule (it draws
-nothing below 1); rows pass `row.stars` and never test it themselves.
+nothing below 1); rows pass `rowStars(...)` and never test the number
+themselves.
 `HabitStarsField.tsx` is the only stars stepper (a `LadderStepper`);
 `RewardsSettings.tsx` is the Settings section. R2's
 `StarFlightLayer.tsx` and R3's page components follow the flat
