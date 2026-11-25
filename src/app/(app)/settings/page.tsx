@@ -32,15 +32,15 @@ export const dynamic = "force-dynamic";
  * (accounts only: the tablet sets its own on the Wall tablet page), the
  * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
  * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), and last the "Habits & Chores" section
- * (with the parent and admin "Rewards" section right under it) and the Vacation mode card (accounts only: a device login never sees them), then
+ * and the Vacation mode card with the parent and admin "Rewards" section right under it (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
  * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
- * Habits & Chores (and Rewards), Vacation, Winnie. A phone keeps one column in this order:
+ * Habits & Chores, Vacation then Rewards, Winnie. A phone keeps one column in this order:
  * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
- * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores then Rewards (they share order-5, so source order decides), 6 Vacation,
+ * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
  * 7 Winnie, 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
  * the tablet's Sign out) portal to the body, so the container holds none.
@@ -192,10 +192,10 @@ export default async function SettingsPage() {
               <>
                 <div className="order-5">
                   <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
-                  {canSetRewards && <RewardsSettings lateStars={lateStars} />}
                 </div>
                 <div className="order-6">
                   <VacationCard vacations={vacations} today={formatCalendarDate(today)} />
+                  {canSetRewards && <RewardsSettings lateStars={lateStars} />}
                 </div>
               </>
             )}

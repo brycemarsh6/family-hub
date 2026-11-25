@@ -134,7 +134,7 @@ export function HabitTodayList({
           </span>
         </>
       )}
-      <StarBank stars={shownBank} className="ml-auto pl-3" />
+      <StarBank stars={shownBank} className="ml-auto pl-3 md:ml-3 md:pl-0" />
     </>
   );
 
@@ -211,7 +211,7 @@ export function HabitTodayList({
                     <ul className="flex flex-col gap-2">
                       {column.items.map(({ row, tag }) => (
                         <li key={row.id}>
-                          <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} {...habitRowTaps(row, run, (hoursRow) => {
+                          <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} lateStars={lateStars} {...habitRowTaps(row, run, (hoursRow) => {
                             setError(null);
                             setLoggingId(hoursRow.id);
                           })} />

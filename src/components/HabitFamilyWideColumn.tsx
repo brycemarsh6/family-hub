@@ -5,6 +5,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { FamilyHabitRow } from "./HabitFamilyColumn";
 import { TIME_ICONS } from "./HabitFilterChips";
 import { StarBank } from "./StarBank";
+import type { LateStars } from "@/lib/rewardVocabulary";
 import { avatarColorHex } from "@/lib/constants";
 import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
 import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
@@ -26,6 +27,7 @@ export function HabitFamilyWideColumn({
   fits = false,
   keep,
   onToggle,
+  lateStars = "full",
 }: {
   column: FamilyColumn;
   /** The person's star bank, drawn at the right of the header. */
@@ -38,6 +40,8 @@ export function HabitFamilyWideColumn({
   /** The lit filter chip: whether a row shows. The count above is always the whole day. */
   keep: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars?: LateStars;
 }) {
   const groups = groupColumnRows(column, together, keep);
   const streak = showStreaks ? streakLabel(column.choreStreak, "days") : null;
@@ -90,7 +94,7 @@ export function HabitFamilyWideColumn({
               <ul className="mt-2 flex flex-col gap-2">
                 {group.items.map(({ row, tag, together: isTogether }) => (
                   <li key={row.id}>
-                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} layout="card" />
+                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} layout="card" lateStars={lateStars} />
                   </li>
                 ))}
               </ul>

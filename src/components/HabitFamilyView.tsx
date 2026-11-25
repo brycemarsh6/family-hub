@@ -117,12 +117,12 @@ export function HabitFamilyView({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
               {columns.map((column) => (
-                <HabitFamilyColumn key={column.id} column={column} bank={bankNow[column.id] ?? 0} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+                <HabitFamilyColumn key={column.id} column={column} bank={bankNow[column.id] ?? 0} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} lateStars={lateStars} />
               ))}
             </div>
           )}
         </div>
-        <HabitFamilyWide page={{ ...live, columns }} banks={bankNow} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+        <HabitFamilyWide page={{ ...live, columns }} banks={bankNow} showStreaks={showStreaks} keep={keep} onToggle={toggle} lateStars={lateStars} />
       </div>
       {loggingRow?.hours && (
         <HoursLogSheet

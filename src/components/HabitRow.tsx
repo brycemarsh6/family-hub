@@ -12,6 +12,8 @@ import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, ON_VACATION_LABEL, PLANNED_FOR_TODAY_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import type { HabitRowView } from "@/lib/habitsRead";
+import { rowStars } from "@/lib/rewards/stars";
+import type { LateStars } from "@/lib/rewardVocabulary";
 import { dayOfWeek } from "@/lib/householdDate";
 import { FULL_DAY_NAMES, formatDayLabel } from "@/lib/mealPlanDates";
 
@@ -38,6 +40,7 @@ export function HabitRow({
   readOnly = false,
   layout = "row",
   tag = null,
+  lateStars = "full",
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
@@ -53,6 +56,8 @@ export function HabitRow({
   layout?: "row" | "auto";
   /** "Chore" (`familyRowTag`): drawn as a small tag under the title. Only the "auto" layout shows it. */
   tag?: string | null;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars?: LateStars;
 }) {
   if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} readOnly={readOnly} layout={layout} />;
   const card = layout === "auto";
@@ -79,7 +84,7 @@ export function HabitRow({
     </span>
   ) : null;
   // A row with stars carries a small chip beside the streak (mission 79); never without stars.
-  const starChip = <StarChip stars={row.stars} />;
+  const starChip = <StarChip stars={rowStars(row.stars, !!row.carriedFrom, lateStars)} />;
   const shownPeople = row.sharing === "together" ? row.participants : othersDone;
 
   let actions: SwipeAction[] = [];
@@ -133,6 +138,7 @@ export function HabitRow({
                 <span>From {formatDayLabel(new Date(row.carriedFrom.year, row.carriedFrom.month - 1, row.carriedFrom.day)).split(",")[0]}</span>
                 <span aria-hidden="true">·</span>
                 <span>counts as done late</span>
+                {starChip}
               </>
             ) : row.skippedToday ? (
               <>

@@ -73,7 +73,7 @@ export function LogButton({
       disabled={disabled}
       aria-pressed={done}
       aria-label={`${done ? `Undo ${label}` : open}${suffix}`}
-      className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-40"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
     >
       <span
         className={`${CHECK_CIRCLE_CLASS} transition-colors ${

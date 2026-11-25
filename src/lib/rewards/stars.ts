@@ -20,6 +20,11 @@ export function starsForLog(habitStars: number | null | undefined, status: strin
   return null;
 }
 
+/** The stars a row's chip shows: a carried row (a missed day, counted late) shows what the late tap pays, any other row its own value. */
+export function rowStars(habitStars: number | null | undefined, carried: boolean, lateStars: LateStars): number | null {
+  return carried ? starsForLog(habitStars, "late", lateStars) : (toStarValue(habitStars));
+}
+
 /** One stepper tap: null (None) below 1, up through `STAR_STEPS`, stopping at the last. A value off the list counts as None. */
 export function nextStarStep(value: number | null, dir: "up" | "down"): number | null {
   const at = toStarValue(value);

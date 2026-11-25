@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nextStarStep, starsForLog, sumStars } from "./stars";
+import { nextStarStep, rowStars, starsForLog, sumStars } from "./stars";
 
 test("a done check pays the habit's value whatever the late setting", () => {
   for (const late of ["full", "half", "none"] as const) assert.equal(starsForLog(5, "done", late), 5);
@@ -50,4 +50,20 @@ test("the stepper treats an off-list value as None", () => {
 test("sumStars adds the numbers and ignores nulls", () => {
   assert.equal(sumStars([]), 0);
   assert.equal(sumStars([5, null, 10, undefined, 1]), 16);
+});
+
+test("rowStars: a row that is not carried shows its own value", () => {
+  for (const late of ["full", "half", "none"] as const) assert.equal(rowStars(3, false, late), 3);
+});
+
+test("rowStars: a carried row shows what the late tap pays", () => {
+  assert.equal(rowStars(3, true, "full"), 3);
+  assert.equal(rowStars(3, true, "half"), 2);
+  assert.equal(rowStars(3, true, "none"), null);
+});
+
+test("rowStars: a habit with no stars shows none, carried or not", () => {
+  assert.equal(rowStars(null, false, "full"), null);
+  assert.equal(rowStars(null, true, "full"), null);
+  assert.equal(rowStars(undefined, true, "half"), null);
 });
