@@ -1,7 +1,7 @@
 # Mission: Rewards R2, the star flight, its switch and the all-done words
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATING (mock and questions with Bryce)
+**Status:** AT-THE-GATES
 **Started:** 2026-11-24 · **Updated:** 2026-11-24
 **Branch:** `claude/rewards-r2-earn-animation-991ed6`, cut from main after
 PR brycemarsh6/family-hub#124 (R1) merged. R3 (mission 81) runs at the same
@@ -93,7 +93,7 @@ C1 then C2, in order (C2 builds on C1's exports). Docs (DESIGN.md,
 Fury's, after C2.
 
 ### C1 — The Celebrations switch end to end, and the pure motion and pay rules
-- **Status:** PENDING
+- **Status:** DONE (commit 95dfce0)
 - **Objective:** Add `UserPreferences.celebrations`, its per-login and
   tablet switches, and the two pure, tested rule files C2 will animate with.
 - **Boundaries:** may touch: `prisma/schema.prisma` (one column on
@@ -161,10 +161,17 @@ Fury's, after C2.
 - **Done criteria:** Fury reads the SQL (one ADD COLUMN, nothing else),
   re-runs the commands, and the new tests fail if `starPayments` stops
   using `starDiff` or `countUpValue` overshoots.
-- **Report:** (pending)
+- **Report:** DONE. Tests 2174 to 2193 (+11 starMotion, +8 starFlights);
+  UTC 2193, 10 skipped (existing). tsc, eslint, prisma validate clean.
+  Mutations (`starPayments` returning {}, `countUpValue` overshooting)
+  each failed tests. Timings chosen: FLIGHT_MS 800, STAGGER_MS 30,
+  COUNT_MS 400. Fury re-ran tsc and tests (2193 pass), read the SQL (one
+  ADD COLUMN), split a device-refusal line (`deviceRefused`) from
+  `notAllowed` at Stark's note, and applied the migration to the dev
+  branch with `npx prisma migrate deploy`.
 
 ### C2 — The star flight layer, the count-up and the all-done pill
-- **Status:** PENDING
+- **Status:** DONE (see Report)
 - **Objective:** Make a paying check send a ring of stars from the tapped
   button to the right person's visible star bank (or pop in place), count
   the bank up, and show "You did it! All done today." with the confetti.
@@ -232,7 +239,15 @@ Fury's, after C2.
   measured rects (button, chosen bank) from `document.getAnimations()` or
   equivalent, and which steps could not be checked.
 - **Done criteria:** Fury and Vision re-run it; Strange watches it.
-- **Report:** (pending)
+- **Report:** DONE for code; tsc, eslint, 2193 tests, UTC (10 existing
+  skips) and build green. In-browser checks not done (no sign-in): Strange
+  runs them. Notes: count-up starts at `landsAfterMs(0)` (800ms) and runs
+  400ms; `HabitConfetti` reads `matchMedia` in its effect (the hook is
+  false on hydration); a transformed ancestor of `main` would offset the
+  fixed layer (unchecked). Stark flagged `PlannedTodayCard.tsx` (outside
+  the boundary) still calling `habitRowTaps(row, run)`, so its checks would
+  not fly. Fury's one-line fix: `habitRowTaps`' star argument is now
+  required and `PlannedTodayCard` passes `{ fly, lateStars }`.
 
 ## Gate ledger
 
@@ -255,6 +270,11 @@ Fury's, after C2.
   "decided by Hill"; logins, real-device tests, money and the danger
   register still wait for Bryce. Merge does not wait for him (standing
   rule); his phone test goes in `.avengers/status.md`.
+- 2026-11-24 — C1 committed (95dfce0), migration applied to dev. C2
+  dispatched to Stark at 95dfce0.
+- 2026-11-24 — C2 done; Fury wired `PlannedTodayCard` and made the star
+  argument required. Committed; Vision, Captain and Strange dispatched in
+  parallel (all read-only).
 
 ## Delivery
 

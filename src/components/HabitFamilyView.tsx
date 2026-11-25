@@ -13,6 +13,8 @@ import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import type { LateStars } from "@/lib/rewardVocabulary";
 import { shownBanks, starDiff } from "@/lib/rewards/starDiff";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { starPayments } from "@/lib/starFlights";
+import { useStarFlight } from "./StarFlightLayer";
 
 /** A tap applied to every place the habit shows: each Together row and each column (an Each habit's `userId` keeps it to one person's own flags). */
 function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
@@ -72,6 +74,7 @@ export function HabitFamilyView({
   const root = useRef<HTMLDivElement>(null);
   const [state, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
+  const fly = useStarFlight();
   const live = readOnly ? lockPage(state) : state;
   // Each bank moves the instant a tap does: the server's number plus what the tapped rows have paid since (one diff for both layouts).
   const pageRows = (p: FamilyPage) => [...p.together, ...p.columns.flatMap((column) => column.rows)];
@@ -90,13 +93,15 @@ export function HabitFamilyView({
     }
   }, [focusPersonId]);
 
-  function toggle(row: FamilyRow) {
+  function toggle(row: FamilyRow, from?: HTMLElement) {
     if (readOnly) return;
     if (row.hours) {
       setError(null);
       return setLogging({ habitId: row.id, userId: row.logForId });
     }
     const change = { habitId: row.id, userId: row.logForId };
+    // The flight first (who the tap pays, over every row it reaches), then the save exactly as before.
+    fly(from ?? null, starPayments(pageRows(state), { ...change, type: row.doneToday ? "uncheck" : "check" }, lateStars));
     if (row.doneToday) run({ ...change, type: "uncheck" }, () => uncheckHabit(row.id, row.logForId, dayOf(row)));
     else run({ ...change, type: "check" }, () => checkHabit(row.id, row.logForId, dayOf(row)));
   }

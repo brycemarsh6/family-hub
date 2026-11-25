@@ -29,7 +29,7 @@ export function HabitFamilyWide({
   showStreaks: boolean;
   /** The Filter sheet's test: whether a row shows. The count above each column is always the whole day. */
   keep: (row: FamilyRow) => boolean;
-  onToggle: (row: FamilyRow) => void;
+  onToggle: (row: FamilyRow, from?: HTMLElement) => void;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
   lateStars: LateStars;
 }) {

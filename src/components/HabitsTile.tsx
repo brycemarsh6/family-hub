@@ -3,6 +3,7 @@
 import { useOptimistic, useState } from "react";
 import { ListChecks } from "lucide-react";
 import DashboardTile from "./DashboardTile";
+import { useStarFlight, type StarFlight } from "./StarFlightLayer";
 import { HabitRow } from "./HabitRow";
 import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
@@ -12,6 +13,7 @@ import { keepShownRows } from "@/lib/habitsDashboard";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { starPayments } from "@/lib/starFlights";
 import type { LateStars } from "@/lib/rewardVocabulary";
 
 /**
@@ -19,19 +21,23 @@ import type { LateStars } from "@/lib/rewardVocabulary";
  * tiles: check or uncheck, skip (the missed day for a carried row, decision 89)
  * and undo a skip. A carried row's tap is for the missed day, not today. An
  * hours row has no check: its tap calls `openLog` for the log sheet (decision
- * 189) and never writes one.
+ * 189) and never writes one. Every check or uncheck first sends the
+ * star flight what it pays (mission 80), then runs exactly as before.
  */
 export function habitRowTaps(
   row: HabitRowView,
   run: (change: HabitChange, action: () => Promise<{ error?: string }>) => void,
-  openLog?: (row: HabitRowView) => void,
+  openLog: ((row: HabitRowView) => void) | undefined,
+  stars: { fly: StarFlight; lateStars: LateStars },
 ) {
   const day = row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined;
   return {
-    onToggle: () => {
+    onToggle: (from?: HTMLElement) => {
       if (row.hours) return openLog?.(row);
-      if (row.doneToday) return run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, day));
-      run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, day));
+      const change: HabitChange = { type: row.doneToday ? "uncheck" : "check", habitId: row.id };
+      stars.fly(from ?? null, starPayments([row], change, stars.lateStars));
+      if (row.doneToday) return run(change, () => uncheckHabit(row.id, undefined, day));
+      run(change, () => checkHabit(row.id, undefined, day));
     },
     onSkip: () =>
       run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, day)),
@@ -75,6 +81,7 @@ export function HabitTileRows({
   const kept = keepShownRows(shownIds, rows, todayRows, held);
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
   const { run, error, setError, pending } = useOptimisticRun<HabitChange>(applyOptimistic);
+  const fly = useStarFlight();
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
@@ -98,7 +105,7 @@ export function HabitTileRows({
               <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
                 setError(null);
                 setLoggingId(hoursRow.id);
-              })} />
+              }, { fly, lateStars })} />
             </li>
           ))}
         </ul>
