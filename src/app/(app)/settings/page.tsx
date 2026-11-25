@@ -54,7 +54,7 @@ export default async function SettingsPage() {
   const canManageSlideshow = canSyncCalendars;
   const slideshowCount = canManageSlideshow ? await countSlideshowPhotos() : 0;
   // Late checks pay stars, so the Rewards section is for the same people who set them.
-  const canSetRewards = !user.isDevice && canSetStars(user.role);
+  const canSetRewards = canSetStars(user.role);
   const lateStars = canSetRewards ? await loadLateStars() : "full";
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 

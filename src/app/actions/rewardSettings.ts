@@ -14,7 +14,7 @@ import { LATE_STARS, LATE_STARS_OFF_LIST, LATE_STARS_REFUSAL } from "@/lib/rewar
 
 export async function saveLateStars(value: unknown): Promise<{ error?: string }> {
   const user = await getVerifiedUser();
-  if (!user || user.isDevice || !canSetStars(user.role)) return { error: LATE_STARS_REFUSAL };
+  if (!user || !canSetStars(user.role)) return { error: LATE_STARS_REFUSAL };
   const lateStars = LATE_STARS.find((choice) => choice === value);
   if (!lateStars) return { error: LATE_STARS_OFF_LIST };
 

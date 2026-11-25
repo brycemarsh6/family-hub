@@ -1,6 +1,9 @@
 import { Check, Plus, SkipForward } from "lucide-react";
 import { SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 
+/** The 30px check circle drawn inside every 44px tap, so the circles match. */
+export const CHECK_CIRCLE_CLASS = "flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full";
+
 /**
  * The read-only check circle (a row the viewer may not tick, or a done mark
  * with nothing to tap): a 30px circle inside the same 44px box as the button,
@@ -10,7 +13,7 @@ export function CheckMarker({ done, srText }: { done: boolean; srText: string })
   return (
     <span className="flex h-11 w-11 shrink-0 items-center justify-center">
       <span
-        className={`flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full ${
+        className={`${CHECK_CIRCLE_CLASS} ${
           done ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
         }`}
       >
@@ -54,7 +57,7 @@ export function LogButton({
   if (skipped) {
     return (
       <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
-        <span className="flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
+        <span className={`${CHECK_CIRCLE_CLASS} border-2 border-dashed border-line-strong text-muted`}>
           <SkipForward aria-hidden="true" size={14} />
         </span>
         <span className="sr-only">{skippedLabel}</span>
@@ -73,7 +76,7 @@ export function LogButton({
       className="flex h-11 w-11 shrink-0 items-center justify-center disabled:opacity-40"
     >
       <span
-        className={`flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full transition-colors ${
+        className={`${CHECK_CIRCLE_CLASS} transition-colors ${
           done ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
         }`}
       >

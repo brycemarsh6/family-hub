@@ -79,7 +79,7 @@ export function HabitRow({
     </span>
   ) : null;
   // A row with stars carries a small chip beside the streak (mission 79); never without stars.
-  const starChip = row.stars ? <StarChip stars={row.stars} /> : null;
+  const starChip = <StarChip stars={row.stars} />;
   const shownPeople = row.sharing === "together" ? row.participants : othersDone;
 
   let actions: SwipeAction[] = [];

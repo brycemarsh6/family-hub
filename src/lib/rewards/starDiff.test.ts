@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starDiff, type StarDiffRow } from "./starDiff";
+import { shownBanks, starDiff, type StarDiffRow } from "./starDiff";
 import { applyHabitChange, type HabitRowState } from "../habitChanges";
 
 function row(id: string, stars: number | null | undefined, done: Record<string, boolean>, carriedFrom: unknown | null = null): StarDiffRow {
@@ -74,4 +74,45 @@ test("it fits the real reducer: an Each tap, a Together tap, then an un-check", 
   const doneServer = shown;
   const undone = applyHabitChange(doneServer, { type: "uncheck", habitId: "t" });
   assert.deepEqual(starDiff(doneServer, undone, "full"), { a: -2, b: -2 });
+});
+
+// The family page: an Each habit has one copy per column, each built for that column's person (`viewerId`), and the server decides late for the tapped person.
+const CARRIED = { year: 2026, month: 11, day: 23 };
+const members = () => [{ userId: "dad", done: false, skipped: false }, { userId: "kid", done: false, skipped: false }];
+function eachCopy(viewerId: string, carriedFrom: unknown | null): HabitRowState & StarDiffRow {
+  return { id: "feed-dog", sharing: "each", doneToday: false, skippedToday: false, dueState: "required", stars: 4, viewerId, carriedFrom, participants: members() };
+}
+function tapKid(copies: (HabitRowState & StarDiffRow)[]) {
+  const change = { type: "check" as const, habitId: "feed-dog", userId: "kid" };
+  return copies.flatMap((copy) => applyHabitChange([copy], change));
+}
+
+for (const [late, pays] of [["half", 2], ["none", 0]] as const) {
+  test(`Each copies that differ: Kid's carried copy is second, Late checks ${late}, the tap pays Kid ${pays}`, () => {
+    const server = [eachCopy("dad", null), eachCopy("kid", CARRIED)];
+    assert.equal(starDiff(server, tapKid(server), late).kid ?? 0, pays);
+  });
+
+  test(`Each copies that differ: Dad's copy is carried, Kid's is not, Late checks ${late}, the tap pays Kid the full 4`, () => {
+    const server = [eachCopy("dad", CARRIED), eachCopy("kid", null)];
+    assert.equal(starDiff(server, tapKid(server), late).kid, 4);
+  });
+
+  test(`Each copies that differ: Kid's carried copy is first (control), Late checks ${late}, the tap pays Kid ${pays}`, () => {
+    const server = [eachCopy("kid", CARRIED), eachCopy("dad", null)];
+    assert.equal(starDiff(server, tapKid(server), late).kid ?? 0, pays);
+  });
+}
+
+test("Each copies that differ: un-checking a carried copy takes back the late amount", () => {
+  const server = [eachCopy("dad", null), eachCopy("kid", CARRIED)].map((copy) => ({ ...copy, participants: copy.participants.map((p) => (p.userId === "kid" ? { ...p, done: true } : p)) }));
+  const change = { type: "uncheck" as const, habitId: "feed-dog", userId: "kid" };
+  const shown = server.flatMap((copy) => applyHabitChange([copy], change));
+  assert.equal(starDiff(server, shown, "half").kid, -2);
+});
+
+test("shownBanks adds the diff to each bank and keeps people the diff does not name", () => {
+  assert.deepEqual(shownBanks({ a: 10, b: 3 }, { a: 4 }), { a: 14, b: 3 });
+  assert.deepEqual(shownBanks({ a: 10 }, { a: -5, c: 2 }), { a: 5, c: 2 });
+  assert.deepEqual(shownBanks({ a: 1 }, {}), { a: 1 });
 });

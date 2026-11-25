@@ -24,7 +24,7 @@ import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
 import type { LateStars } from "@/lib/rewardVocabulary";
-import { starDiff } from "@/lib/rewards/starDiff";
+import { shownBanks, starDiff } from "@/lib/rewards/starDiff";
 import {
   ANYTIME_LABEL,
   CHORE_STREAK_SR,
@@ -120,7 +120,7 @@ export function HabitTodayList({
   const stripCards = Number(nudges.length > 0) + Number(throughDay !== null) + Number(shoutOut) + Number(prompts.length > 0);
   // "2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 259); none on a past day (the cached streak is as of a later day). "Mine" is not on this line (Bryce, 2026-11-24); the star bank sits at its right end.
   const streak = showStreaks && !readOnly ? streakLabel(choreStreak, "days") : null;
-  const shownBank = bank + (starDiff(rows, live, lateStars)[viewerId] ?? 0);
+  const shownBank = shownBanks({ [viewerId]: bank }, starDiff(rows, live, lateStars))[viewerId];
   const subtitle = (
     <>
       {live.length > 0 && doneCountLabel(live)}

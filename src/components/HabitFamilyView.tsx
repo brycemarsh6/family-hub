@@ -11,7 +11,7 @@ import { formatCalendarDate } from "@/lib/householdDate";
 import { shownColumns } from "@/lib/habitsReportScope";
 import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import type { LateStars } from "@/lib/rewardVocabulary";
-import { starDiff } from "@/lib/rewards/starDiff";
+import { shownBanks, starDiff } from "@/lib/rewards/starDiff";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /** A tap applied to every place the habit shows: each Together row and each column (an Each habit's `userId` keeps it to one person's own flags). */
@@ -75,8 +75,7 @@ export function HabitFamilyView({
   const live = readOnly ? lockPage(state) : state;
   // Each bank moves the instant a tap does: the server's number plus what the tapped rows have paid since (one diff for both layouts).
   const pageRows = (p: FamilyPage) => [...p.together, ...p.columns.flatMap((column) => column.rows)];
-  const diff = starDiff(pageRows(page), pageRows(state), lateStars);
-  const shownBanks = Object.fromEntries(page.columns.map((column) => [column.id, (banks[column.id] ?? 0) + (diff[column.id] ?? 0)]));
+  const bankNow = shownBanks(banks, starDiff(pageRows(page), pageRows(state), lateStars));
   // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
   const columns = shownColumns(live.columns, hiddenPeople);
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
@@ -118,12 +117,12 @@ export function HabitFamilyView({
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
               {columns.map((column) => (
-                <HabitFamilyColumn key={column.id} column={column} bank={shownBanks[column.id]} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+                <HabitFamilyColumn key={column.id} column={column} bank={bankNow[column.id] ?? 0} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
               ))}
             </div>
           )}
         </div>
-        <HabitFamilyWide page={{ ...live, columns }} banks={shownBanks} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
+        <HabitFamilyWide page={{ ...live, columns }} banks={bankNow} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
       </div>
       {loggingRow?.hours && (
         <HoursLogSheet

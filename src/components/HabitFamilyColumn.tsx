@@ -72,7 +72,6 @@ export function FamilyHabitRow({
     (row.carriedFrom && !row.doneToday ? "Carried over" : null) ??
     progressLabel;
   const streak = showStreaks && row.streakLabel;
-  const stars = row.stars ?? 0;
   // The check names whose it is, because a card holds several people's rows (and a parent or the tablet taps for others).
   const who = row.participants.find((p) => p.userId === row.logForId)?.displayName ?? "them";
 
@@ -103,7 +102,7 @@ export function FamilyHabitRow({
           {streak}
         </span>
       )}
-      {stars > 0 && !row.hours && <StarChip stars={stars} />}
+      {!row.hours && <StarChip stars={row.stars} />}
     </TitleArea>
   );
 
