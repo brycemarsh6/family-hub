@@ -11,13 +11,17 @@ import {
   COST_STEPS,
   DEFAULT_REWARD_COST,
   REWARD_COST_LABEL,
+  REWARD_DELETING_LABEL,
+  REWARD_EDIT_HEADING,
   REWARD_NAME_LABEL,
   REWARD_NO_PICTURE_LABEL,
+  REWARD_ADD_LABEL,
   REWARD_ONE_TIME_LABEL,
   REWARD_OWNER_LABEL,
   REWARD_PICTURE_LABEL,
   REWARD_REPEATABLE_LABEL,
   REWARD_REPEAT_LABEL,
+  REWARD_SAVING_LABEL,
   REWARD_TITLE_MAX,
   starCountText,
 } from "@/lib/rewardVocabulary";
@@ -84,7 +88,7 @@ export function RewardSheet({
     });
   }
 
-  const heading = initial ? "Edit reward" : "Add reward";
+  const heading = initial ? REWARD_EDIT_HEADING : REWARD_ADD_LABEL;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -196,7 +200,7 @@ export function RewardSheet({
             disabled={pending || !title.trim()}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
-            {pending && !deleting ? "Saving…" : initial ? "Save" : "Add"}
+            {pending && !deleting ? REWARD_SAVING_LABEL : initial ? "Save" : "Add"}
           </button>
           {error && (
             <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -210,7 +214,7 @@ export function RewardSheet({
               disabled={pending}
               className="min-h-12 w-full rounded-xl text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? REWARD_DELETING_LABEL : "Delete"}
             </button>
           )}
         </div>

@@ -113,7 +113,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `src/app/actions/habitNudges.ts`, which owns the session, the guards and
   `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
   once-a-day confetti marker on each device (the `lastStore.ts` pattern),
-  and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
+  and `HabitConfetti.tsx` and `StarRain.tsx` (the redeem star rain, mission 81) are the only importers of `canvas-confetti`.
   `src/lib/habitsFamilyColumns.ts` (pure, mission-41, Captain's A3) is the
   only home of the wide Whole family column: rows grouped by time of day then
   Anytime, the Together rows a person is on (built from `countedRows`, never

@@ -85,6 +85,21 @@ export const REWARD_CANCEL_LABEL = "Cancel";
 export const REWARD_DONE_LABEL = "Done";
 export const REWARD_UNDO_LABEL = "Undo redeem";
 export const REWARD_CELEBRATION_HEADING = "Great work!";
+export const REWARD_REDEEM_LABEL = "Redeem";
+export const REWARD_NO_COST_LABEL = "No cost yet";
+export const REWARD_EDIT_HEADING = "Edit reward";
+export const REWARD_REDEEM_HEADING = "Redeem reward";
+export const REWARD_REDEEMED_HEADING = "Reward redeemed";
+
+/** What a button says while its call runs. */
+export const REWARD_SAVING_LABEL = "Saving…";
+export const REWARD_DELETING_LABEL = "Deleting…";
+export const REWARD_REDEEMING_LABEL = "Redeeming…";
+export const REWARD_UNDOING_LABEL = "Undoing…";
+
+/** An empty person's column: parents are offered the Add tile, others are pointed to one. */
+export const REWARD_EMPTY_PARENT = "No rewards yet.";
+export const REWARD_EMPTY_OTHER = "No rewards yet. Ask a parent to add one.";
 
 /** The Any emoji tile: it opens the device's emoji keyboard. */
 export const ANY_EMOJI_LABEL = "Any emoji";
@@ -134,4 +149,9 @@ export function redeemedByText(name: string, cost: number, dateText: string): st
 /** A card's progress: "55 of 150" (a negative bank reads 0). */
 export function progressText(bank: number, cost: number): string {
   return `${Math.max(bank, 0)} of ${cost}`;
+}
+
+/** The phone's Add tile: "Add reward for Ellie". */
+export function addRewardForText(name: string): string {
+  return `${REWARD_ADD_LABEL} for ${name}`;
 }

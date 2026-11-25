@@ -6,7 +6,18 @@ import { redeemReward, undoRedeem } from "@/app/actions/rewards";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { celebrationLines, redeemConfirmLines } from "@/lib/rewards/rewardRules";
 import type { RewardView } from "@/lib/rewardsRead";
-import { REWARD_CANCEL_LABEL, REWARD_DONE_LABEL, REWARD_NEEDS_COST_REFUSAL, REWARD_UNDO_LABEL, redeemButtonText } from "@/lib/rewardVocabulary";
+import {
+  REWARD_CANCEL_LABEL,
+  REWARD_DONE_LABEL,
+  REWARD_NEEDS_COST_REFUSAL,
+  REWARD_REDEEMED_HEADING,
+  REWARD_REDEEMING_LABEL,
+  REWARD_REDEEM_HEADING,
+  REWARD_REDEEM_LABEL,
+  REWARD_UNDOING_LABEL,
+  REWARD_UNDO_LABEL,
+  redeemButtonText,
+} from "@/lib/rewardVocabulary";
 
 type Redemption = { id: string; title: string; emoji: string | null; cost: number; ownerName: string; redeemedAt: string };
 
@@ -55,7 +66,7 @@ export function RedeemSheet({ reward, ownerName, bank, onClose }: { reward: Rewa
     });
   }
 
-  const heading = redemption ? "Reward redeemed" : "Redeem reward";
+  const heading = redemption ? REWARD_REDEEMED_HEADING : REWARD_REDEEM_HEADING;
   const shownEmoji = redemption ? redemption.emoji : reward.emoji;
   const lines = reward.cost === null ? null : redeemConfirmLines({ title: reward.title, cost: reward.cost }, ownerName, bank);
   const done = redemption ? celebrationLines({ ...redemption, redeemedAt: new Date(redemption.redeemedAt) }, HOUSEHOLD_TIME_ZONE) : null;
@@ -98,7 +109,7 @@ export function RedeemSheet({ reward, ownerName, bank, onClose }: { reward: Rewa
                 {REWARD_DONE_LABEL}
               </button>
               <button type="button" onClick={handleUndo} disabled={pending} className="min-h-12 w-full rounded-xl text-base font-semibold text-muted transition-colors active:bg-surface-2 disabled:opacity-50">
-                {undoing ? "Undoing…" : REWARD_UNDO_LABEL}
+                {undoing ? REWARD_UNDOING_LABEL : REWARD_UNDO_LABEL}
               </button>
             </>
           ) : (
@@ -109,7 +120,7 @@ export function RedeemSheet({ reward, ownerName, bank, onClose }: { reward: Rewa
                 disabled={pending || reward.cost === null}
                 className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
               >
-                {pending ? "Redeeming…" : reward.cost === null ? "Redeem" : redeemButtonText(reward.cost)}
+                {pending ? REWARD_REDEEMING_LABEL : reward.cost === null ? REWARD_REDEEM_LABEL : redeemButtonText(reward.cost)}
               </button>
               <button type="button" onClick={onClose} disabled={pending} className="min-h-12 w-full rounded-xl text-base font-semibold text-muted transition-colors active:bg-surface-2 disabled:opacity-50">
                 {REWARD_CANCEL_LABEL}

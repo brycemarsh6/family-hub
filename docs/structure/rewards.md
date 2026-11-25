@@ -47,8 +47,8 @@ code lines; past that a concern gets its own
   the server bank plus this delta, added by the one helper beside it
   (`shownBanks`); a component adding the two itself is a BLOCKER (R2's
   count-up reads the helper). `habitChanges.ts` never learns stars.
-- R2 to R5 add `starMotion.ts`, `rewardRules.ts`, `rewardEmoji.ts`,
-  `pinPolicy.ts` and `starHistory.ts` here, each pure with its own test.
+- R2, R4 and R5 add `starMotion.ts`, `pinPolicy.ts` and
+  `starHistory.ts` here (`rewardRules.ts` and `rewardEmoji.ts` arrived in R3), each pure with its own test.
 
 **Dependency direction.** `src/lib/rewards/` imports only
 `rewardVocabulary.ts`, `constants.ts`, its own files and types. It never
@@ -87,10 +87,43 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   the number leaves the server (the chore-streak precedent). R3 and R5
   add redemptions and adjustments inside `loadStarBanks`; a second bank
   sum in a page, action, component or Winnie route is a BLOCKER.
-- R3's reward catalogue: reads in `src/lib/rewardsRead.ts`, writes in
-  `src/lib/rewardWrites.ts` (a domain write module: `server-only`, no
-  auth, no `revalidatePath`), actions in `src/app/actions/rewards.ts`.
-  The settings read stays in `rewardSettingsRead.ts`.
+- **R3's reward catalogue (mission 81).** `Reward` and `RewardRedemption`
+  each have one reader and one writer: reads in `src/lib/rewardsRead.ts`
+  (`loadRewards`), writes in `src/lib/rewardWrites.ts` (a domain write
+  module: `server-only`, no auth, no `revalidatePath`), actions in
+  `src/app/actions/rewards.ts` (`saveReward`, `deleteReward`,
+  `redeemReward`, `undoRedeem`; each checks `canManageRewards` or
+  `canRedeemRewards` itself). A redemption row snapshots the title, emoji
+  and cost and is never rewritten; Undo redeem deletes it. **The redeem is
+  one serializable transaction** (`redeemReward` in `rewardWrites.ts`): it
+  re-reads the reward and the bank through `loadStarBanks([ownerId], tx)`,
+  asks `redeemRefusal`, then creates the row, retrying a write conflict (via
+  `isWriteConflictError`) up to three tries in all, so two quick taps cannot
+  spend the same stars. `loadStarBanks` now subtracts each person's redeemed
+  costs (it can go below 0); it is still the only bank sum. The settings
+  read stays in `rewardSettingsRead.ts`.
+- `src/lib/rewards/rewardEmoji.ts` is the only list of reward pictures
+  (`REWARD_EMOJI_GROUPS`) and the only emoji check (`toRewardEmoji`: one
+  grapheme that is an emoji). `rewardRules.ts` is the only home of the cost
+  stepper walk (`nextCostStep`), earned (`isEarned`), a card's state
+  (`rewardStatus`), Hide earned (`visibleRewards`), the redeem refusal, the
+  sheet's input check and the redeem sheet's lines. `access.ts` has two named
+  checks, `canManageRewards` (add, edit, delete) and `canRedeemRewards`
+  (redeem, undo), so a later PR can widen redeem alone.
+- `src/lib/hideEarned.ts` is the only home of the Hide earned switch on a
+  device (the `lastStore.ts` pattern, key `marshee.rewards.hideEarned`).
+
+**Rewards page components (R3).** `/rewards` is a wide page
+(`data-page-width="wide"`). `RewardsBoard.tsx` owns the sheet state and
+the layout: one `@container`, chips and one person below 48rem, a column
+per person from it up (a container variant, never a screen breakpoint). It
+keeps a copy of the open redeem sheet's reward, owner name and bank, so the
+refresh after a redeem never closes the celebration. `RewardCard.tsx`
+draws one reward, `RewardPersonChips.tsx` the phone's people row.
+`RewardSheet`, `RewardEmojiPicker` and `RedeemSheet` are the sheets (rendered
+outside the container); `StarRain.tsx` is the second importer of
+`canvas-confetti` (habits.md names both). Colour emoji and `--star-soft` are
+allowed only here (DESIGN.md).
 
 **Undo columns.** `LATE_COLUMNS` in `src/lib/assistant/undoModels.ts` is
 the only list of columns added after audit copies existed: a copy
