@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Store, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
+import { RecoveryCodeCard } from "@/components/RecoveryCodeCard";
 import { RewardsSettings } from "@/components/RewardsSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
@@ -21,7 +22,7 @@ import { canSetStars } from "@/lib/rewards/access";
 import { loadLateStars, loadPinStatus } from "@/lib/rewardSettingsRead";
 import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import { formatCalendarDate } from "@/lib/householdDate";
-import { householdStores } from "@/lib/householdSettingsRead";
+import { hasRecoveryCode, householdStores } from "@/lib/householdSettingsRead";
 import { isOwnerCopy } from "@/lib/copyConfig";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
 
@@ -61,6 +62,7 @@ export default async function SettingsPage() {
   const lateStars = canSetRewards ? await loadLateStars() : "full";
   const pinStatus = canSetRewards ? await loadPinStatus() : { pinSet: false, pinRequired: true };
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
+  const recoveryCodeSaved = user.role === "admin" ? await hasRecoveryCode() : false;
 
   return (
     <div className="py-2" data-page-width="wide">
@@ -185,6 +187,12 @@ export default async function SettingsPage() {
                     <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
                   </span>
                 </Link>
+              </div>
+            )}
+
+            {user.role === "admin" && (
+              <div className="order-4">
+                <RecoveryCodeCard hasCode={recoveryCodeSaved} />
               </div>
             )}
 

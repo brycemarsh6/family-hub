@@ -63,7 +63,8 @@ export function AppChrome({
   // only <main>, which the drawer (portaled to body) is never part of.
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const openFeedback = () => setFeedbackOpen(true);
-  const wordmark = showsWordmarkHeader(pathname);
+  // /setup is a signed-out page like /login, so it gets /login's chrome.
+  const wordmark = showsWordmarkHeader(pathname) || pathname === "/setup";
   const pinnedMode = user && navMode !== "hamburger" ? navMode : null;
 
   const page = (
