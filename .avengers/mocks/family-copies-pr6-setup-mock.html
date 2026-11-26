@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Setup link and recovery code mock (family copies PR 6)</title>
+<style>
+:root{--bg:#f6f0e8;--fg:#4e5256;--muted:#6f6a60;--line:#e2d9c9;--surface:#fff;--surface2:#ede6d9;--accent:#5a6b4f;--accent-fg:#f6f0e8;--accent-soft:#e4e9dc;--warn:#8a6410;--warn-soft:#faebc3}
+*{box-sizing:border-box}
+body{margin:0;background:#ddd6ca;color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:0 0 4px}
+h2.q{font-size:17px;margin:30px 0 6px;color:#2e3236}
+p.note{margin:0 0 12px;font-size:14px;line-height:1.5;max-width:760px}
+.rec{background:#fff;border-left:4px solid var(--accent);padding:8px 12px;margin:0 0 12px;font-size:14px;max-width:760px;line-height:1.5}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.frame h3{font-size:14px;margin:0 0 6px;max-width:330px}
+.dev{width:330px;height:680px;background:var(--bg);border:6px solid #222;border-radius:28px;overflow:hidden;position:relative;padding:0 22px}
+.logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:56px}
+.mark{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px}
+.word{font-weight:800;font-size:28px;letter-spacing:-.02em;color:#3f4347}
+.tag{font-family:Georgia,serif;font-style:italic;color:var(--muted);text-align:center;font-size:15px;margin:4px 0 0}
+.muted{color:var(--muted);font-size:15px;line-height:1.5;margin:14px 0 0}
+.dots{display:flex;gap:6px;justify-content:center;margin:22px 0 4px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+.stepname{text-align:center;font-size:13px;color:var(--muted)}
+.h{font-size:22px;font-weight:700;margin:18px 0 4px;color:#3f4347}
+.lab{display:block;font-size:14px;color:var(--muted);margin:14px 0 6px}
+.field{min-height:48px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;padding:0 14px;font-size:16px}
+.field.ph{color:#9a9488}
+.btn{min-height:48px;width:100%;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:700;display:flex;align-items:center;justify-content:center;border:0;font-size:16px;margin-top:18px}
+.btn.off{opacity:.5}
+.btn.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.back{font-size:14px;color:var(--muted);font-weight:500;margin-top:18px}
+.link{font-size:14px;color:var(--accent);font-weight:600;text-align:center;margin-top:14px;text-decoration:underline}
+.code{font:700 23px ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 6px;margin-top:14px;color:#2e3236}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:500;margin-top:14px;line-height:1.45}
+.check{display:flex;gap:10px;align-items:center;margin-top:16px;font-size:15px;min-height:48px}
+.box{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);background:#fff;flex:none}
+.box.on{background:var(--accent);border-color:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+.chip{display:flex;align-items:center;gap:12px;min-height:56px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:0 14px;font-weight:600;margin-top:8px}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:none}
+.set{padding:0 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
+.ct{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.cs{font-size:14px;color:var(--muted);line-height:1.5;margin-top:6px}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--fg)}
+.pill.none{background:var(--surface2);color:var(--muted)}
+.row2{min-height:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:center;padding:0 14px;margin-top:10px;font-weight:500;color:var(--muted)}
+</style></head><body><div class="wrap">
+
+<h1>Setup link and recovery code (family copies PR 6)</h1>
+<p class="note">Phone screens, top to bottom in the order a relative meets them. Every question below has my recommendation. Nothing here shows on your own copy except the "Forgot password?" link and the Settings card (Q6, Q7).</p>
+
+<h2 class="q">Q1. The sign-in page before anyone exists</h2>
+<div class="rec">Today it says "In a terminal, run npm run db:bootstrap-users". <b>Recommend:</b> "This Marshee isn't set up yet. Open the setup link you were sent to create your family." Only a brand-new copy ever shows it.</div>
+<div class="row">
+<div class="frame"><h3>Sign-in page, no accounts yet</h3><div class="dev">
+<div class="logo"><div class="mark">M</div><div class="word">Marshee</div></div>
+<p class="tag">A family hub app designed to bring what matters together.</p>
+<p class="muted">This Marshee isn't set up yet. Open the setup link you were sent to create your family.</p>
+</div></div>
+</div>
+
+<h2 class="q">Q2. Setup step 1: family name</h2>
+<div class="rec"><b>Recommend:</b> heading "Welcome to Marshee", one question "What's your family called?", hint text "The Smiths". Two dots show it's step 1 of 2. Required, up to 60 characters.</div>
+<h2 class="q">Q3. Setup step 2: your login</h2>
+<div class="rec"><b>Recommend:</b> "Your name" plus "Password" and "Password again". Two password boxes because there is no email reset, so a typo would lock them out. At least 8 characters, same rule as everywhere else. This person becomes the family's first admin. A "Back" link returns to step 1 without losing what they typed.</div>
+<div class="row">
+<div class="frame"><h3>Step 1</h3><div class="dev">
+<div class="logo"><div class="mark">M</div><div class="word">Marshee</div></div>
+<div class="dots"><i class="on"></i><i></i></div>
+<div class="h">Welcome to Marshee</div>
+<p class="muted" style="margin-top:4px">Let's set up your family's home base. It takes about a minute.</p>
+<span class="lab">What's your family called?</span>
+<div class="field ph">The Smiths</div>
+<div class="btn">Next</div>
+</div></div>
+<div class="frame"><h3>Step 2</h3><div class="dev">
+<div class="back">‹ Family name</div>
+<div class="dots"><i></i><i class="on"></i></div>
+<div class="h">Your login</div>
+<p class="muted" style="margin-top:4px">You'll be the first admin for The Smiths. You can add everyone else after this.</p>
+<span class="lab">Your name</span><div class="field ph">Jane</div>
+<span class="lab">Password</span><div class="field">••••••••••</div>
+<span class="lab">Password again</span><div class="field">••••••••••</div>
+<div class="btn">Create my family</div>
+</div></div>
+<div class="frame"><h3>A wrong, old or missing link</h3><div class="dev">
+<div class="logo"><div class="mark">M</div><div class="word">Marshee</div></div>
+<div class="h" style="text-align:center">This setup link doesn't work</div>
+<p class="muted" style="text-align:center">Ask the person who sent it for a new link.</p>
+</div></div>
+</div>
+<div class="rec"><b>The wrong-link screen:</b> the link is checked as soon as the page opens, so nobody types a family name into a dead link. <b>Recommend</b> the neutral "Ask the person who sent it" over naming you, matching PR 3's neutral wording. Once a family is set up, or on your copy, the page is a plain "page not found", same as any made-up address.</div>
+
+<h2 class="q">Q4. The recovery code, shown once</h2>
+<div class="rec"><b>Recommend:</b> 16 letters and numbers in four groups, with look-alike characters left out (no 0/O, 1/I/L), so it is easy to copy by hand. A "Copy" button, a warning that it won't be shown again, and a tick box "I saved my code" that must be ticked before Continue. Continue signs them straight in with the password they just made (no retyping) and opens the dashboard. PR 7 will point it at the welcome steps instead.</div>
+<div class="row">
+<div class="frame"><h3>After "Create my family"</h3><div class="dev">
+<div class="logo" style="margin-top:40px"><div class="mark">M</div></div>
+<div class="h">Save your recovery code</div>
+<p class="muted" style="margin-top:4px">If an admin ever forgets their password, this code lets them set a new one from the sign-in screen.</p>
+<div class="code">K7QM-4XRT-9WHE-2PDN</div>
+<div class="btn ghost" style="margin-top:10px">Copy code</div>
+<div class="warnbox">Write it down or save it in your notes. It won't be shown again.</div>
+<div class="check"><div class="box on">✓</div>I saved my code</div>
+<div class="btn">Continue</div>
+</div></div>
+</div>
+
+<h2 class="q">Q5. "Forgot password?" on the sign-in page</h2>
+<div class="rec"><b>Recommend:</b> a small "Forgot password?" link under the Sign in button, for every account. For an <b>admin</b> it opens the recovery view (recovery code, new password, new password again). For <b>everyone else</b> it shows "Ask an admin to set a new password for you in Settings, Manage family." because only admins can use the code. One code for the whole family, not one per admin.</div>
+<div class="row">
+<div class="frame"><h3>Password step, with the new link</h3><div class="dev">
+<div class="back" style="margin-top:56px">‹ All accounts</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:10px"><div class="av" style="background:#6a7f9a">J</div><b style="font-size:18px">Jane</b></div>
+<span class="lab">Password</span><div class="field">•••</div>
+<div class="btn">Sign in</div>
+<div class="link">Forgot password?</div>
+</div></div>
+<div class="frame"><h3>Admin: recovery view</h3><div class="dev">
+<div class="back" style="margin-top:56px">‹ Password</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:10px"><div class="av" style="background:#6a7f9a">J</div><b style="font-size:18px">Jane</b></div>
+<div class="h" style="font-size:19px">Set a new password</div>
+<p class="muted" style="margin-top:2px">Enter your family's recovery code. Capitals and dashes don't matter.</p>
+<span class="lab">Recovery code</span><div class="field ph">XXXX-XXXX-XXXX-XXXX</div>
+<span class="lab">New password</span><div class="field">••••••••</div>
+<span class="lab">New password again</span><div class="field">••••••••</div>
+<div class="btn">Set password</div>
+</div></div>
+<div class="frame"><h3>Not an admin</h3><div class="dev">
+<div class="back" style="margin-top:56px">‹ Password</div>
+<div style="display:flex;align-items:center;gap:12px;margin-top:10px"><div class="av" style="background:#c47b5a">S</div><b style="font-size:18px">Sam</b></div>
+<div class="h" style="font-size:19px">Forgot your password?</div>
+<p class="muted">Ask an admin to set a new password for you in Settings, Manage family.</p>
+</div></div>
+<div class="frame"><h3>After "Set password": a new code</h3><div class="dev">
+<div class="logo" style="margin-top:40px"><div class="mark">M</div></div>
+<div class="h">Your new recovery code</div>
+<p class="muted" style="margin-top:4px">Your password is changed. The old code no longer works, so save this one instead.</p>
+<div class="code">P3VC-8NWA-6YKT-HM4R</div>
+<div class="btn ghost" style="margin-top:10px">Copy code</div>
+<div class="warnbox">It won't be shown again.</div>
+<div class="check"><div class="box on">✓</div>I saved my code</div>
+<div class="btn">Continue</div>
+</div></div>
+</div>
+
+<h2 class="q">Q6. Settings card for admins</h2>
+<div class="rec"><b>Recommend:</b> its own card titled "Recovery code", admins only, placed just under "Feedback". It shows whether a code exists ("Saved" or "No code yet") and a "Make a new code" button. The new code shows once on the same screen as Q4. <b>No password check</b> before making one: a signed-in admin can already reset anyone's password in Manage family, so asking again adds a step without protecting anything new. Your copy starts at "No code yet" because it was never set up through the link, so you'd make one there yourself.</div>
+<div class="row">
+<div class="frame"><h3>Settings (admin), new card</h3><div class="dev set" style="padding:0 14px">
+<div style="font-size:24px;font-weight:700;margin-top:50px">Settings</div>
+<div class="row2">Manage family</div>
+<div class="row2">Feedback</div>
+<div class="card">
+<div class="ct">Recovery code <span class="pill">Saved</span></div>
+<div class="cs">If an admin forgets their password, this code sets a new one from the sign-in screen. Making a new code stops the old one working.</div>
+<div class="btn ghost" style="margin-top:12px">Make a new code</div>
+</div>
+</div></div>
+<div class="frame"><h3>Same card, no code yet (your copy today)</h3><div class="dev set" style="padding:0 14px">
+<div style="font-size:24px;font-weight:700;margin-top:50px">Settings</div>
+<div class="row2">Manage family</div>
+<div class="row2">Feedback</div>
+<div class="card">
+<div class="ct">Recovery code <span class="pill none">No code yet</span></div>
+<div class="cs">If an admin forgets their password, this code sets a new one from the sign-in screen.</div>
+<div class="btn" style="margin-top:12px">Make a code</div>
+</div>
+</div></div>
+</div>
+
+<h2 class="q">Q7. Does "Forgot password?" show on your copy too?</h2>
+<div class="rec"><b>Recommend: yes.</b> It is the same code for every copy, it does nothing until you make a code in Settings, and it gives you a way back in if you ever forget yours.</div>
+
+</div></body></html>

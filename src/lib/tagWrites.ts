@@ -7,6 +7,10 @@ import "server-only";
 // `renameTag` stops carrying its own copy. Same shape as `recipeWrites.ts`:
 // `server-only`, NO auth check, NO `revalidatePath`.
 //
+// One named exception: `createFamilyAndFirstAdmin` in
+// `householdSettingsWrites.ts` also makes the `MEAL_SLOTS` tags, inside setup's
+// one transaction (mission-91).
+//
 // This module is the lowest of the write modules: `recipeWrites.ts` imports
 // it (to run the tag diff inside its own transaction), never the other way.
 //

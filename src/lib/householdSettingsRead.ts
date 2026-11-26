@@ -25,3 +25,28 @@ export async function savedFamilyName(): Promise<string | null> {
     return null;
   }
 }
+
+/** True once first-run setup has finished. Errors propagate: the setup gate
+ * must never read a failed lookup as "not finished". */
+export async function setupFinished(): Promise<boolean> {
+  const row = await db.householdSettings.findUnique({
+    where: { id: "household" },
+    select: { setupFinishedAt: true },
+  });
+  return row?.setupFinishedAt != null;
+}
+
+/** The stored hash of the current recovery code, or null when none is saved.
+ * Errors propagate. */
+export async function recoveryCodeHash(): Promise<string | null> {
+  const row = await db.householdSettings.findUnique({
+    where: { id: "household" },
+    select: { recoveryCodeHash: true },
+  });
+  return row?.recoveryCodeHash ?? null;
+}
+
+/** Whether a recovery code has been made yet. Errors propagate. */
+export async function hasRecoveryCode(): Promise<boolean> {
+  return (await recoveryCodeHash()) !== null;
+}

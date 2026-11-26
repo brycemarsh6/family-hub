@@ -106,6 +106,10 @@ jobs:
           GOOGLE_CLIENT_SECRET: "ci-dummy-google-client-secret"
           TOKEN_ENCRYPTION_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
         run: node --import tsx prisma/fresh-db-smoke.ts
+      - name: "Fresh database: setup and recovery attacks"
+        env:
+          DATABASE_URL: "postgresql://fresh:fresh@localhost:5433/fresh"
+        run: node --import tsx prisma/setup-attack-smoke.ts
       # Positive and negative control for the build's time zone check.
       - name: Time zone check
         run: |
