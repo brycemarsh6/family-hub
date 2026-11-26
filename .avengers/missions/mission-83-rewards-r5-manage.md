@@ -1,7 +1,7 @@
 # Mission: Rewards R5, Manage rewards, bonus stars and star history
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-25 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r5-manage-history-b55a63`, cut from main at
 b4e32c8 (R1 PR #124, R2 PR #125, R3 PR #126 merged). R4 (mission 82) runs at
@@ -453,6 +453,8 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 | 2 | Captain (HEAD c60fed8) | PASS | none | Pass-1 blocker fixed (RewardActivityList on useOptimisticRun); doc fixes and amendments all true. NOTES (Fury applied): rewards.md "a third is a BLOCKER" scoped to STAR_STEPS steppers (RewardSheet's cost stepper is not one); Words paragraph names ADJUST_NOTE_MAX; DESIGN.md wish wording. Others: the hook comment could say "or a state setter"; rewardVocabulary.ts 200 code lines (R4 words next); rewards.md 193 to 237; sync shared files with main before merging |
 | 2 | Vision (HEAD c60fed8; Denver 2248/2248, UTC 2238 + 10 skips; eslint whole repo, build OK) | BLOCKED | RewardActivityList.tsx:21-22 feeds `useOptimisticRun` a plain `useState` setter; inside the async transition React 19.2.4 holds that update until the action ends, so the row stays (Undo still live) for the whole round trip, breaking "instant optimistic updates" and DESIGN.md's new Undo exception. Fix: `useOptimistic` hide plus a `gone` set added on success | All doc claims true; StarAdjustForm's `run(null, ...)` correct; bank button opens history, data-star-bank unchanged; word functions right |
 | 2 | Strange (HEAD c60fed8; 390, 820 portrait, 1180; light and dark verified) | BLOCKED | F2's wider bank button (52 to 74px) truncates names in wide column headers ("Led…", "Elea…" at 820 and 1180); names tell people apart (two L and two E avatars) | Pass-1 blockers fixed (placeholder 5.38/6.12; bank button outlined and opens history; colours recorded). Chips wrap, all 5 show; Gift on a no-picture redeem; aria-labels right; the Undo row left at once on a local server (Vision's finding is about the round trip; local is near-instant). Even Strange's tighter one-row fix truncates once banks reach 3 digits: **Bryce chose (2026-11-25) the bank on its own line under the name.** DESIGN.md wording notes applied by Fury. Out of scope: R3's Add button looks pale with a name typed. Test reward "zz r5 gift" made, redeemed, undone and deleted |
+| 3 | Vision (HEAD 5c49204; Denver 2248/2248, UTC 2238 + 10 skips; eslint whole repo; build OK) | PASS | none | Pass-2 blocker fixed, proved with a scratchpad probe running real React 19.2.4 and the real `useOptimisticRun` (the probe also catches pass 2's bug): the row hides during the action, stays hidden after success until the refresh, comes back on an error or a throw; no double restore. Doc claims true. NOTES: two concurrent undos, a failed second one stays hidden until the first ends (cosmetic); the name `h2` has no `break-words`; `gone` only grows |
+| 3 | Strange (HEAD 5c49204; 390, 820 portrait, 1180; light and dark verified) | PASS on checks 1, 2, 4; check 3 not run (environment) | none | Every name whole on its own line; the bank button on line 2, outlined, 48px, opens history; a 3-digit bank (DOM text only) keeps names whole and columns 216/220px; 1180 five-column fit unchanged; phone unchanged; DESIGN.md wording right. Check 3 (Recent Undo on screen) blocked: the browser pane was signed in as the Tablet mid-run by two `POST /login` on this worktree's dev server that Strange did not make (source unknown). As the Tablet, Manage is hidden and `/rewards/manage` redirects to `/rewards` (Done item 5 seen live for the device). **Bryce (2026-11-25): "Merge on Vision's proof"**; Undo is on his phone checklist. NOTES: `break-words` on the name; a wrapped name lowers that column's bank |
 
 ## Handoff log
 
@@ -474,4 +476,24 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 
 ## Delivery
 
-(Not yet.)
+- **Status:** gates PASS (Vision pass 3; Captain pass 2; Strange pass 3 on
+  checks 1, 2 and 4, check 3 waived by Bryce on Vision's proof).
+- **Commits:** C1 de63305, C2 f102738, F0 d06fcb3, F1 d2ac530, F2 fa8833c,
+  F3 7676992, plus Fury's record and doc commits.
+- **Gauntlet at HEAD:** tsc, eslint (whole repo) clean; Denver 2248/2248;
+  UTC 2238 + 10 DST skips; build OK; both greps empty.
+- **Dev test data:** all removed. Strange removed his own through the app;
+  Fury's "zz r5 fury" +5 was deleted by a scratchpad script (dev host
+  checked first, notes starting "zz r5" made since 2026-11-25): 1 deleted,
+  0 left, 0 "zz r5" rewards.
+- **Bryce's decisions this mission:** the mock as drawn (four questions);
+  "Late" in history; the bank on its own line in wide headers; merge on
+  Vision's proof.
+- **Done means item 8:** CLAUDE.md lists R5 as built and R4 as the plan's
+  last open PR; whichever of R4 and R5 merges last marks the plan finished.
+- **Deliberately not done (open notes):** `break-words` on the wide header
+  name; two concurrent undos (a failed one shows late); the stepper's star is
+  an outline in `--star` (the mock drew it filled); minus amounts use an
+  ASCII hyphen; R3's Add button looks pale with a name typed (Strange, out
+  of scope); `rewardVocabulary.ts` at 200 code lines with R4's words to come;
+  rewards.md grew 193 to 240.
