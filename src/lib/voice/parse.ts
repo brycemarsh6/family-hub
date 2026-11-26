@@ -96,10 +96,13 @@ export async function parseTranscript(
   const client = new Anthropic();
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
+    model: "claude-sonnet-5-5",
+    max_tokens: 2048,
     system: SYSTEM,
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    output_config: {
+      effort: "low",
+      format: { type: "json_schema", schema: SCHEMA },
+    },
     messages: [{ role: "user", content: transcript }],
   });
 
