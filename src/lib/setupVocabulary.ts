@@ -5,6 +5,8 @@
 export const SETUP_WORDS = {
   checking: "Checking your link…",
   linkCheckFailed: "Couldn't check your link. Check your connection, then reload this page.",
+  /** A dropped connection on "Create my family" (Bryce, 2026-11-26). Reloading would wipe what was typed, so it says tap again. */
+  createFailed: "Couldn't reach Marshee. Check your connection, then tap Create my family again.",
   badLinkTitle: "This setup link doesn't work",
   badLinkBody: "Ask the person who sent it for a new link.",
   limited: "Too many tries. Wait about 15 minutes, then open your link again.",
