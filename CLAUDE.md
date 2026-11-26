@@ -242,7 +242,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Dashboard widgets W3** is next: `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (tablet dashboard, calendar editing, parent rule) and
   PR C (per-person habits tiles) are next: `.avengers/missions/mission-39-tablet-login.md`.
-- **Family copies** (a private copy of Marshee per relative): PR 1 is next, `.avengers/plans/family-copies-v1.md`.
+- **Family copies** (a private copy of Marshee per relative): next PRs per "Running order" in `.avengers/plans/family-copies-v1.md`. Owner-only features (Winnie, voice, Alexa, briefing) check `isOwnerCopy()` in `src/lib/copyConfig.ts` (on only with `MARSHEE_OWNER_COPY=1`, Bryce's Vercel Production); a new one must too.
 - **Winnie next:** Rewards writes (W2, `.avengers/plans/winnie-rewards-v1.md`), then calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).

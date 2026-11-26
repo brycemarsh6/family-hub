@@ -8,6 +8,7 @@ import { claimBriefing, finishBriefing, releaseBriefing, type BriefingStatus } f
 import { buildWinnieEvent } from "@/lib/winnieEvents";
 import { sendWinnieEvent } from "@/lib/winnieNotify";
 import { isAuthorized } from "@/lib/cronAuth";
+import { isOwnerCopy } from "@/lib/copyConfig";
 
 // Winnie's morning briefing (mission 48). Vercel's cron calls this twice a day
 // (15:00 and 16:00 UTC); only the run that lands in the 9 o'clock hour in
@@ -31,6 +32,7 @@ async function recordOutcome(userId: string, day: CalendarDate, status: Exclude<
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!isOwnerCopy()) return Response.json({ sent: 0, skipped: "not-owner-copy" });
 
   const now = new Date();
   if (!isBriefingHour(now)) return Response.json({ sent: 0, skipped: "outside-hour" });

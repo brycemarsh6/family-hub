@@ -21,6 +21,7 @@ import { canSetStars } from "@/lib/rewards/access";
 import { loadLateStars, loadPinStatus } from "@/lib/rewardSettingsRead";
 import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { isOwnerCopy } from "@/lib/copyConfig";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
 
 // Reads the session, so it can never be cached.
@@ -201,7 +202,7 @@ export default async function SettingsPage() {
               </>
             )}
 
-            {user.role === "admin" && (
+            {user.role === "admin" && isOwnerCopy() && (
               <div className="order-7">
                 <WinnieSettings />
               </div>

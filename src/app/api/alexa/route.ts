@@ -11,6 +11,7 @@ import {
 } from "@/lib/voice/alexa";
 import { parseTranscript } from "@/lib/voice/parse";
 import { applyActions } from "@/lib/voice/apply";
+import { isOwnerCopy } from "@/lib/copyConfig";
 
 // The Alexa door into the app -- a third thin client over the same voice
 // backend Siri already uses (src/app/api/voice/route.ts), but Alexa is not
@@ -107,6 +108,9 @@ function requireSkillId(): string {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
+  // Not the owner's copy: this door doesn't exist. Before the body, before the signature.
+  if (!isOwnerCopy()) return new Response(null, { status: 404 });
+
   // Amazon computes the signature over the exact request bytes, so this has
   // to be the raw text -- never request.json() first. Parsing to an object
   // and re-serializing it (even just for logging, or a body already read

@@ -8,6 +8,7 @@
 // eventId, the status and the attempt count, never the webhook URL or key.
 
 import { getVerifiedUser } from "@/lib/dal";
+import { isOwnerCopy } from "@/lib/copyConfig";
 import { buildWinnieEvent } from "@/lib/winnieEvents";
 import { sendWinnieEvent } from "@/lib/winnieNotify";
 
@@ -22,6 +23,7 @@ export async function sendWinnieTestEvent(): Promise<SendWinnieTestResult> {
   const user = await getVerifiedUser();
   if (!user) return { ok: false, error: NOT_SIGNED_IN };
   if (user.role !== "admin") return { ok: false, error: "Only an admin can send a test to Winnie." };
+  if (!isOwnerCopy()) return { ok: false, error: "Winnie isn't part of this copy of Marshee." };
 
   try {
     const event = buildWinnieEvent(
