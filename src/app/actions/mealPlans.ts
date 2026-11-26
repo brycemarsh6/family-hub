@@ -21,6 +21,8 @@ import {
 import type { Category, Location } from "@/lib/constants";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { suggestMeals, type MealSuggestion } from "@/lib/mealSuggest";
+import { AiAllowanceError } from "@/lib/aiMeter";
+import { aiBlockedResult, type AiBlocked } from "@/lib/aiBlocked";
 
 function refreshMealPlanViews() {
   revalidatePath("/kitchen/cooking/meal-plan");
@@ -100,6 +102,8 @@ const SUGGEST_EXPIRY_WINDOW_DAYS = 7;
 export type SuggestMealsResult = {
   suggestions?: MealSuggestion[];
   error?: string;
+  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  aiBlocked?: AiBlocked;
 };
 
 /**
@@ -189,6 +193,7 @@ export async function suggestMealsForSlot(
     }
     return { suggestions };
   } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
     // Never let a Claude outage block the manual paths — the sheet keeps
     // presets, the recipe picker, and free text usable either way.
     console.error("suggestMealsForSlot failed:", error);

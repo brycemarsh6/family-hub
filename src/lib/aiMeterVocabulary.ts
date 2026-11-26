@@ -45,7 +45,12 @@ export function aiOwnerText(usedMicroUsd: number, requests: number): string {
 export const AI_BLOCKED_TITLE = "This month's AI allowance is used up.";
 
 export function aiBlockedResetsText(resetsOn: CalendarDate): string {
-  return `It resets ${resetsLabel(resetsOn)}. Everything else in Marshee still works.`;
+  return aiBlockedResetsLine(resetsLabel(resetsOn));
+}
+
+/** The same line from an already-made label ("December 1"), for the screens. */
+export function aiBlockedResetsLine(label: string): string {
+  return `It resets ${label}. Everything else in Marshee still works.`;
 }
 
 /** For people who cannot upgrade (not an admin). */

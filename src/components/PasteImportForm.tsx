@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, extractRecipeFromPastedText } from "@/app/actions/recipes";
 
@@ -21,6 +23,7 @@ export function PasteImportForm({
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [extracted, setExtracted] = useState<RecipeFormDefaults | null>(null);
   // Bumped on every successful extraction so RecipeForm remounts — its
   // inputs are uncontrolled (defaultValue), so a fresh key is what makes a
@@ -29,9 +32,11 @@ export function PasteImportForm({
 
   function handleExtract() {
     setError(null);
+    setAiBlocked(null);
     startTransition(async () => {
       const result = await extractRecipeFromPastedText(text);
       if (result.error || !result.data) {
+        setAiBlocked(result.aiBlocked ?? null);
         setError(result.error ?? "Something went wrong. Try again.");
         return;
       }
@@ -80,13 +85,17 @@ export function PasteImportForm({
             />
           </label>
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-            >
-              {error}
-            </p>
+          {aiBlocked ? (
+            <AiAllowanceNotice aiBlocked={aiBlocked} />
+          ) : (
+            error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+              >
+                {error}
+              </p>
+            )
           )}
 
           <button

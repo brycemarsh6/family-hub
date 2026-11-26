@@ -18,6 +18,8 @@ import {
   type PhotoInput,
 } from "@/lib/recipeExtract";
 import { importRecipeFromUrl } from "@/lib/recipeUrlImport";
+import { AiAllowanceError } from "@/lib/aiMeter";
+import { aiBlockedResult, type AiBlocked } from "@/lib/aiBlocked";
 import { estimateNutrition } from "@/lib/nutritionEstimate";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 import {
@@ -117,7 +119,12 @@ export async function updateRecipe(
   redirect(`/kitchen/cooking/recipes/${id}`);
 }
 
-export type ExtractResult = { data?: ExtractedRecipe; error?: string };
+export type ExtractResult = {
+  data?: ExtractedRecipe;
+  error?: string;
+  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  aiBlocked?: AiBlocked;
+};
 
 /**
  * Pull recipe fields out of pasted text via Claude, for the "Paste text"
@@ -139,7 +146,13 @@ export async function extractRecipeFromPastedText(
     };
   }
 
-  const extracted = await extractRecipeFromText(trimmed);
+  let extracted;
+  try {
+    extracted = await extractRecipeFromText(trimmed);
+  } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    throw error;
+  }
   if (!hasRecipeContent(extracted)) {
     return {
       error:
@@ -176,7 +189,13 @@ export async function extractRecipeFromRecipePhotos(
     return { error: "One of those photos is too large. Try again." };
   }
 
-  const extracted = await extractRecipeFromPhotos(photos);
+  let extracted;
+  try {
+    extracted = await extractRecipeFromPhotos(photos);
+  } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    throw error;
+  }
   if (!hasRecipeContent(extracted)) {
     return {
       error:
@@ -203,7 +222,12 @@ export async function importRecipeFromLink(
   const trimmed = url.trim();
   if (!trimmed) return { error: "Paste a link first." };
 
-  return importRecipeFromUrl(trimmed);
+  try {
+    return await importRecipeFromUrl(trimmed);
+  } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    throw error;
+  }
 }
 
 export type ShareResult = { shareToken?: string | null; error?: string };
@@ -320,6 +344,8 @@ export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResu
 }
 
 export type NutritionResult = {
+  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  aiBlocked?: AiBlocked;
   nutrition?: {
     calories: number;
     proteinG: number;
@@ -360,6 +386,7 @@ export async function computeNutrition(
   try {
     estimate = await estimateNutrition(recipe.title, recipe.ingredients, servings);
   } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
     // Same "an AI outage isn't a data problem" pattern as
     // classifyRecipeIngredients / suggestMealsForSlot — the recipe itself
     // is fine, only the estimate call failed.

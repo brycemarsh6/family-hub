@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, importRecipeFromLink } from "@/app/actions/recipes";
 
@@ -23,6 +25,7 @@ export function LinkImportForm({
   const [url, setUrl] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [extracted, setExtracted] = useState<RecipeFormDefaults | null>(null);
   // Bumped on every successful import so RecipeForm remounts — see the same
   // note in PasteImportForm about uncontrolled inputs.
@@ -30,9 +33,11 @@ export function LinkImportForm({
 
   function handleImport() {
     setError(null);
+    setAiBlocked(null);
     startTransition(async () => {
       const result = await importRecipeFromLink(url);
       if (result.error || !result.data) {
+        setAiBlocked(result.aiBlocked ?? null);
         setError(result.error ?? "Something went wrong. Try again.");
         return;
       }
@@ -85,13 +90,17 @@ export function LinkImportForm({
             />
           </label>
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-            >
-              {error}
-            </p>
+          {aiBlocked ? (
+            <AiAllowanceNotice aiBlocked={aiBlocked} />
+          ) : (
+            error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+              >
+                {error}
+              </p>
+            )
           )}
 
           <button

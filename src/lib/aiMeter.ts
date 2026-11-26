@@ -38,7 +38,7 @@ export class AiAllowanceError extends Error {
 }
 
 /** The allowance in cents. Read at call time, never cached at module load. */
-function allowanceCents(): number {
+export function allowanceCents(): number {
   return parseAllowanceCents(process.env.AI_ALLOWANCE_CENTS);
 }
 

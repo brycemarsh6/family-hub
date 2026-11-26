@@ -14,6 +14,8 @@ import {
   IngredientAiError,
   type RecipeIngredientSuggestion,
 } from "@/lib/recipeIngredientMatch";
+import { AiAllowanceError } from "@/lib/aiMeter";
+import { aiBlockedResult, type AiBlocked } from "@/lib/aiBlocked";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -41,6 +43,8 @@ function refreshGroceryViews() {
 export type ClassifyIngredientsResult = {
   suggestions?: RecipeIngredientSuggestion[];
   error?: string;
+  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  aiBlocked?: AiBlocked;
 };
 
 /**
@@ -60,6 +64,7 @@ export async function classifyRecipeIngredients(
   try {
     result = await classifyRecipe(recipeId);
   } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
     if (!(error instanceof IngredientAiError)) throw error;
     // Never let a Claude outage look like a data problem, the recipe is
     // fine, the parse isn't. Same shape as suggestMealsForSlot's guard.

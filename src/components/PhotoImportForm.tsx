@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { Camera, X } from "lucide-react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, extractRecipeFromRecipePhotos } from "@/app/actions/recipes";
 
@@ -33,6 +35,7 @@ export function PhotoImportForm({
   const [isPending, startTransition] = useTransition();
   const [isReadingFile, setIsReadingFile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [extracted, setExtracted] = useState<RecipeFormDefaults | null>(null);
   // Bumped on every successful extraction so RecipeForm remounts — see the
   // same note in PasteImportForm about uncontrolled inputs.
@@ -75,11 +78,13 @@ export function PhotoImportForm({
 
   function handleExtract() {
     setError(null);
+    setAiBlocked(null);
     startTransition(async () => {
       const result = await extractRecipeFromRecipePhotos(
         photos.map(({ mediaType, data }) => ({ mediaType, data })),
       );
       if (result.error || !result.data) {
+        setAiBlocked(result.aiBlocked ?? null);
         setError(result.error ?? "Something went wrong. Try again.");
         return;
       }
@@ -178,13 +183,17 @@ export function PhotoImportForm({
               : `${photos.length} of ${MAX_PHOTOS} photos added.`}
           </p>
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-            >
-              {error}
-            </p>
+          {aiBlocked ? (
+            <AiAllowanceNotice aiBlocked={aiBlocked} />
+          ) : (
+            error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+              >
+                {error}
+              </p>
+            )
           )}
 
           <button

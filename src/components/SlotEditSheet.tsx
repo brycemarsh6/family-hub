@@ -8,6 +8,8 @@ import { searchRecipes } from "@/lib/match";
 import type { RecipeListItem } from "./RecipeList";
 import { suggestMealsForSlot } from "@/app/actions/mealPlans";
 import type { MealSuggestion } from "@/lib/mealSuggest";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 
 // Real-life frequent answers, one tap each — the whole point of these is
 // that a preset tap *is* the save, no second confirmation needed. Free text
@@ -47,6 +49,7 @@ export function SlotEditSheet({
 
   const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [suggesting, startSuggesting] = useTransition();
 
   useEffect(() => {
@@ -63,10 +66,12 @@ export function SlotEditSheet({
   function askAi() {
     setView("askAi");
     setSuggestError(null);
+    setAiBlocked(null);
     startSuggesting(async () => {
       const result = await suggestMealsForSlot(slot);
       if (result.error) {
         setSuggestError(result.error);
+        setAiBlocked(result.aiBlocked ?? null);
         setSuggestions([]);
       } else {
         setSuggestions(result.suggestions ?? []);
@@ -181,7 +186,11 @@ export function SlotEditSheet({
               </p>
             ) : suggestError ? (
               <div className="px-1 py-6 text-center">
-                <p className="text-sm text-danger">{suggestError}</p>
+                {aiBlocked ? (
+                  <AiAllowanceNotice aiBlocked={aiBlocked} />
+                ) : (
+                  <p className="text-sm text-danger">{suggestError}</p>
+                )}
                 <button
                   type="button"
                   onClick={askAi}

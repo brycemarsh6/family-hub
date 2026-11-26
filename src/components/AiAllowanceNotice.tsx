@@ -1,0 +1,38 @@
+import { ExternalLink } from "lucide-react";
+import type { AiBlocked } from "@/lib/aiBlocked";
+import {
+  AI_ASK_ADMIN_TEXT,
+  AI_BLOCKED_TITLE,
+  AI_UPGRADE_BUTTON,
+  aiBlockedResetsLine,
+} from "@/lib/aiMeterVocabulary";
+
+/**
+ * The message that takes the place of an AI result when this copy's monthly
+ * allowance blocks the call (mission 89). Admins get the Upgrade link (when the
+ * copy has one); everyone else is told to ask an admin. Warn, not danger: the
+ * person did nothing wrong and nothing is lost. Shared by the six AI screens.
+ */
+export function AiAllowanceNotice({ aiBlocked }: { aiBlocked: AiBlocked }) {
+  return (
+    <div role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-left text-warn">
+      <p className="text-sm font-semibold">{AI_BLOCKED_TITLE}</p>
+      <p className="mt-1 text-sm">{aiBlockedResetsLine(aiBlocked.resetsLabel)}</p>
+      {aiBlocked.isAdmin ? (
+        aiBlocked.upgradeUrl && (
+          <a
+            href={aiBlocked.upgradeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
+          >
+            {AI_UPGRADE_BUTTON}
+            <ExternalLink aria-hidden="true" size={18} />
+          </a>
+        )
+      ) : (
+        <p className="mt-2 text-sm font-medium">{AI_ASK_ADMIN_TEXT}</p>
+      )}
+    </div>
+  );
+}
