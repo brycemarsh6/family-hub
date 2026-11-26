@@ -676,10 +676,13 @@ amendment id.
   and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
   rules in `src/lib/rewards/`, one row reader per table
   (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`), one write
-  module (`rewardWrites.ts`), one bank sum and one serializable redeem.
-  (Rules: docs/structure/rewards.md, "Stars and the star bank". Added
-  2026-11-24 on Captain's ruling; Bryce approved. R3 homes added
-  2026-11-25, mission-81.)
+  module (`rewardWrites.ts`), one bank sum and one serializable redeem;
+  since R4 one gate (`rewardGates.ts`) for who may do what and whether
+  the parent PIN is asked, and the PIN checked only on the server.
+  (Rules: docs/structure/rewards.md, "Stars and the star bank" and "The
+  parent PIN and wishes". Added 2026-11-24 on Captain's ruling; Bryce
+  approved. R3 homes added 2026-11-25, mission-81; R4 homes 2026-11-25,
+  mission-82.)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
@@ -936,7 +939,8 @@ amendment id.
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
-  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309. (Added
+  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309;
+  2026-11-25 (mission-82) `rewards.md` 238 (was 193). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

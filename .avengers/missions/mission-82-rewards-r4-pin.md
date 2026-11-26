@@ -289,7 +289,7 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 
 ### C2 - The PIN pad and the Parent PIN card in Settings
 
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** A reusable `PinPad.tsx`, a `SetPinSheet.tsx`, and the
   Parent PIN card in the Rewards section of Settings, as in mock screens
   A to C and E to G.
@@ -323,7 +323,16 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   stated.
 - **Done criteria:** Fury sees the screenshots match the mock and the
   boundary list matches the diff.
-- **Report:** (pending)
+- **Report:** DONE (2026-11-25), code and Gauntlet only (Stark has no
+  browser; the running-app checks and screenshots move to Strange's gate).
+  New `PinPad.tsx` 136 lines (keys 4.5 by 3.75rem, Lucide `Delete`,
+  `role="alert"` error, lock countdown each second, calls no action), new
+  `SetPinSheet.tsx` 95, `RewardsSettings.tsx` 141, settings page +3.
+  Tests 2246 both zones (components only), tsc, eslint, build clean.
+  Notes for C3: PinPad clears its dots when `error`, `lockMs` or `busy`
+  changes, and restarts the countdown only when `lockMs` changes, so C3
+  drives `busy` from a transition and remounts or clears `lockMs`; the
+  pad's "Cancel" is a literal (C3 swaps it for `REWARD_CANCEL_LABEL`).
 
 ### C3 - The Rewards page: PIN step, kid and tablet redeem, wishes
 
@@ -337,7 +346,8 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   new `src/components/WishSheet.tsx`, `src/lib/rewardVocabulary.ts`
   (words only; remove `REWARD_ASK_A_PARENT` if nothing uses it). · must
   not touch: C1's rules, reads, writes and actions (import only),
-  `PinPad.tsx` and `SetPinSheet.tsx` (import only), `StarBank.tsx`,
+  `SetPinSheet.tsx` (import only), `PinPad.tsx` (import only, except
+  its "Cancel" literal becomes `REWARD_CANCEL_LABEL`), `StarBank.tsx`,
   `StarRain.tsx`, schema, docs.
 - **Details:** the page loads `loadPinStatus` and passes
   `rewardRights(...)` to the board (replacing `canManage` and

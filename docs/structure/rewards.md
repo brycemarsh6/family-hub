@@ -39,7 +39,9 @@ code lines; past that a concern gets its own
   anywhere else is a BLOCKER. Later reward policy (who redeems, approves,
   sets a PIN) joins this file as one named check each. Anything the
   tablet may do beyond the default goes in `src/lib/tabletRules.ts` as a
-  `tabletMay...` check, never here.
+  `tabletMay...` check, never here. R4 added `canSetRewardPin`,
+  `kidMayRedeem`, `kidMayWish` and `canUndoRedeem` (with
+  `REDEEM_UNDO_WINDOW_MS`); none tests the device role.
 - `starDiff.ts`: `starDiff(server, shown, lateStars)` is the only
   optimistic bank change; it pays through `starsForLog`, counts each
   habit id's flips once, and pays late by the tapped person's own carry
@@ -56,8 +58,9 @@ code lines; past that a concern gets its own
   typed in a component is a BLOCKER; the two celebration layers keep the
   `z-[70]` class (the sheets' `z-[60]` precedent), and
   `CONFETTI_Z_INDEX`'s test pins it between 61 and 70.
-- `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below); R4 and R5
-  add `pinPolicy.ts` and `starHistory.ts` here, each pure with its own test.
+- `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below);
+  `pinPolicy.ts` in R4 (mission 82, "The parent PIN and wishes" below); R5
+  adds `starHistory.ts` here, pure with its own test.
 
 **Dependency direction.** `src/lib/rewards/` imports only
 `rewardVocabulary.ts`, `constants.ts`, its own files and types. It never
@@ -73,13 +76,16 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
 - `RewardSettings` (one row, id "household", the `ScreensaverSettings`
   precedent): `src/lib/rewardSettingsRead.ts` (`server-only`, no auth) is
   the only reader (`loadLateStars(client = db)`; a missing row or an
-  off-list value reads as "full"). `saveLateStars` in
-  `src/app/actions/rewardSettings.ts` (guard form a, `canSetStars`) is
-  the only writer. A new household setting on this row gets a reader
-  beside `loadLateStars` and an action beside `saveLateStars`; a
-  per-login switch (R2's animation switch) is a preference, not this
-  row. If a second caller appears (a Winnie route), the write moves into
-  `src/lib/rewardWrites.ts` first (the `feedback.ts` precedent).
+  off-list value reads as "full"; R4's `loadPinStatus` and `loadPinCheck`,
+  below). Since R4 the PIN check gave the row a second caller, so every
+  write of it lives in `src/lib/rewardWrites.ts` (`writeLateStars`,
+  `writeRewardPin`, `writePinRequired`, `checkRewardPin`); the actions in
+  `src/app/actions/rewardSettings.ts` (guard form a: `saveLateStars` with
+  `canSetStars`, `setRewardPin` and `saveRewardPinRequired` with
+  `canSetRewardPin`) and `actions/rewards.ts` call them. A new household
+  setting on this row gets a reader beside these and a write beside
+  them; a per-login switch (R2's animation switch) is a preference, not
+  this row.
 - `Habit.stars` is written only through `habitColumns` in
   `habits/habitRows.ts` (through `toStarValue`; an hours habit is forced
   to null). It arrives only from `checkHabitInput`, after
@@ -100,11 +106,13 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   each have one reader of rows and one writer: `loadRewards` in
   `src/lib/rewardsRead.ts` is the only reader that builds a `RewardView`;
   the only other reads are `loadStarBanks`'s cost sum and the reads inside
-  `rewardWrites.ts`'s own writes; a third is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
+  `rewardWrites.ts`'s own writes, plus R4's `loadRewardFacts(id)` in
+  `rewardsRead.ts` (owner and cost only, so an action can work out its
+  gate before it writes); another is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
   module: `server-only`, no auth, no `revalidatePath`), actions in
   `src/app/actions/rewards.ts` (`saveReward`, `deleteReward`,
-  `redeemReward`, `undoRedeem`; each checks `canManageRewards` or
-  `canRedeemRewards` itself). A redemption row snapshots the title, emoji
+  `saveWish`, `redeemReward`, `undoRedeem`; since R4 each asks
+  `rewardGates.ts` itself, below). A redemption row snapshots the title, emoji
   and cost and is never rewritten; Undo redeem deletes it. **The redeem is
   one serializable transaction** (`redeemReward` in `rewardWrites.ts`): it
   re-reads the reward and the bank through `loadStarBanks([ownerId], tx)`,
@@ -126,6 +134,43 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   (redeem, undo), so a later PR can widen redeem alone.
 - `src/lib/hideEarned.ts` is the only home of the Hide earned switch on a
   device (the `lastStore.ts` pattern, key `marshee.rewards.hideEarned`).
+
+**The parent PIN and wishes (mission 82, R4).** Bryce's calls are in the
+mission-82 file.
+- `src/lib/rewards/pinPolicy.ts` (pure) is the only home of the PIN's
+  shape (`isPinShaped`: exactly 4 ASCII digits), its numbers
+  (`PIN_LENGTH`, `PIN_MAX_TRIES` 5, `PIN_LOCK_MS` 5 minutes), when it is
+  asked (`pinGate`) and the lock's arithmetic (active, ended, minutes
+  left, the lock to write after a wrong try). A PIN number or lock time
+  typed anywhere else is a BLOCKER.
+- `src/lib/rewardGates.ts` (pure, top of `src/lib/` because it combines
+  `rewards/access.ts`, `rewards/pinPolicy.ts` and `tabletRules.ts`; the
+  `starFlights.ts` precedent) is the only answer to "may this login do
+  this, and does it need the PIN": `redeemGate`, `manageGate`,
+  `mayChangeWish`, and `rewardRights` (plain data the page hands the
+  board). The tablet's own rules are `tabletMayRedeemRewards`,
+  `tabletMayManageRewards` and `tabletMayAddWishes` in `tabletRules.ts`.
+  A role, device or PIN-switch test for rewards in a page, action or
+  component is a BLOCKER.
+- **The PIN is checked only on the server**, by `checkRewardPin` in
+  `rewardWrites.ts`, called from the actions' one gate helper on every
+  call that needs it; nothing stays unlocked. The hash is made and
+  compared only by `src/lib/password.ts`; `pinHash` is read only by
+  `loadPinCheck` (for `checkRewardPin`) and pages see only
+  `loadPinStatus`'s `{ pinSet, pinRequired }`. The lock is its own
+  columns on this row and never reads or writes `LoginAttempt`. A wrong
+  try is an atomic `increment`; a live lock refuses before any bcrypt
+  work; a new PIN clears the lock.
+- A wish is a `Reward` with a null `cost`, made by `createWish` (no cost,
+  one time) through `saveWish` and `checkWishInput`; only its title and
+  picture change (`updateWish`), and a no-PIN delete goes only while the
+  cost is still null. Setting a cost is an ordinary `saveReward`.
+- Kid and tablet Undo redeem: only a redemption that login made, within
+  `REDEEM_UNDO_WINDOW_MS` (`canUndoRedeem`, checked inside
+  `undoRedemption`'s own transaction). Parents and admins undo any.
+- Components: `PinPad.tsx` is the only PIN keypad (no text input, so no
+  autofill; it calls no action), used by `SetPinSheet.tsx` (Settings),
+  `RedeemSheet` and `RewardSheet`. `WishSheet.tsx` is the wish sheet.
 
 **Rewards page components (R3).** `/rewards` is a wide page
 (`data-page-width="wide"`). `RewardsBoard.tsx` owns the sheet state and
