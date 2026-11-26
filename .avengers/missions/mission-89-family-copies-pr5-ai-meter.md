@@ -257,9 +257,31 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Evidence:** outputs and `git diff --stat`.
 - **Done:** all pass; `grep -n "role=\"progressbar\"" src/components/AiUsageCard.tsx` is empty.
 
+### C5 — Captain pass 1 fixes and notes
+
+- **Objective:** clear Captain's three blockers and take his cheap notes.
+- **Boundaries:**
+  - May touch: `src/lib/aiMeterVocabulary.ts`, `src/lib/aiMeterPolicy.ts`, `src/lib/aiMeterPolicy.test.ts`, new `src/lib/aiMeterVocabulary.test.ts`, `src/lib/aiMeter.ts`, `src/lib/aiBlocked.ts`, `src/lib/aiUsageRead.ts`, new `src/components/AiUpgradeLink.tsx`, `src/components/AiAllowanceNotice.tsx`, `src/components/AiUsageCard.tsx`, `src/app/actions/recipes.ts`, `src/app/actions/mealPlans.ts`, `src/app/actions/groceriesRecipes.ts`, `src/app/(app)/settings/page.tsx` (the AI card lines and one alias only), `src/lib/recipeUrlImport.ts` (its docstring only).
+  - Must not touch: everything else, including PR 4's Stores lines on the settings page.
+- **Content:**
+  1. Delete `aiBlockedResetsText`; `aiBlockedResetsLine` is the one way.
+  2. `priceForModel` becomes private.
+  3. Move the three vocabulary tests and their import into new `src/lib/aiMeterVocabulary.test.ts`.
+  4. `AiAllowanceError` message becomes log-only (`ai allowance: <reason>`), no user words.
+  5. One named `AiBlockReason = Exclude<AiAccess, "allow">` in the policy, used by the error, `AiBlocked` and the card data.
+  6. One `AiUpgradeLink` component used by both the notice and the card.
+  7. `aiBlockedResult(error, role)` takes the role from the calling action's own guard instead of re-reading the session.
+  8. Settings page: a neutral `isManagerLogin` alias for the AI card's visibility (calendar sync keeps its own name).
+  9. `importRecipeFromUrl` docstring: says it throws only `AiAllowanceError`.
+- **Verification:** the gauntlet in full.
+- **Evidence:** outputs, `git diff --stat`.
+- **Done:** all pass; `grep -rn "aiBlockedResetsText" src` empty.
+
 ## Gate log
 
 - 2026-11-26 Fury: dev DB host confirmed `ep-hidden-pine` (dev branch). `migrate status` showed PR 4 had already applied `20261126200000_household_settings` there, the same stamp as ours, so ours was renamed to `20261126300000_ai_usage` (sorts after PR 4 whichever merges first). SQL reviewed (CREATE TABLE + CREATE INDEX only), `npx prisma migrate deploy` applied it to the dev branch only.
 
 ## Delivery
 - 2026-11-26 Vision pass 1 on dec5966: **PASS**, no blockers. Re-ran the full gauntlet (2320 / UTC 2310 + 10 skipped, build exit 0, grep one hit). Notes: branch behind main, PR 4 (aedae02) conflicts in `schema.prisma` and settings page, re-run the gauntlet on the merged tree; `recipeUrlImport.ts:62-65` docstring still says "Never throws"; assistant routes answer 503 "try again" on a blocked copy (owner-only API, accepted); `aiBlocked.ts:34` error string always the used-up title (not shown while `aiBlocked` is set); relative's copy fails closed if the month query throws.
+- 2026-11-26 Captain pass 1 on dec5966: **BLOCKED**, 3 blockers (dormant `aiBlockedResetsText`; `priceForModel` exported with no outside caller; vocabulary tests living in `aiMeterPolicy.test.ts`). Notes: `AiAllowanceError` message repeats user words; reason union written 3 times; Upgrade link drawn twice; `aiBlockedResult` re-reads the session; `canSyncCalendars` name reused for the AI card; size trend (`recipes.ts` 411, `recipeUrlImport.ts` 440, `SlotEditSheet.tsx` 321); STRUCTURE.md amendment drafted. All taken in C5.
+- 2026-11-26 Fury: merged origin/main (PR 4 aedae02) into the branch. Conflicts in `schema.prisma` (kept both models) and the settings page doc comment (kept Stores and AI features). `prisma validate` and `tsc` clean after.
