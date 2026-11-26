@@ -43,7 +43,7 @@ function refreshGroceryViews() {
 export type ClassifyIngredientsResult = {
   suggestions?: RecipeIngredientSuggestion[];
   error?: string;
-  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  /** Set when this copy's AI allowance blocked the call (mission 92). */
   aiBlocked?: AiBlocked;
 };
 

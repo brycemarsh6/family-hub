@@ -35,7 +35,7 @@ a one-line pointer.
   by a Server Action in `src/app/actions/` that calls `getVerifiedSession()`
   first (`voice/parse.ts`, `mealSuggest.ts`, `recipeExtract.ts`,
   `ingredientParse.ts`, `nutritionEstimate.ts` all follow it, each calling
-  Anthropic only through `meteredCreate`, mission-89). New calls
+  Anthropic only through `meteredCreate`, mission-92). New calls
   follow the same split — auth lives next to the data, once, in the action.
   For non-browser clients that cannot hold a session, the guard may instead
   be a Route Handler in `src/app/api/` whose own auth check (a shared token,
@@ -936,7 +936,7 @@ amendment id.
   (mission-56) and bringing them back (mission-60).** (Rules:
   docs/structure/calendar-sync.md, "Google calendar link, copying events to
   Google and bringing them back".)
-- **The AI meter (mission-89, family copies PR 5).** `meteredCreate(feature,
+- **The AI meter (mission-92, family copies PR 5).** `meteredCreate(feature,
   params)` in `src/lib/aiMeter.ts` (`server-only`) is the only place the app
   calls Anthropic; a `new Anthropic()` or `messages.create` anywhere else in
   `src/` is a BLOCKER (`grep -rn "messages.create\|new Anthropic" src` shows
@@ -950,7 +950,7 @@ amendment id.
   `AiAllowanceError` unchanged first; the action returns `aiBlockedResult()`
   from `src/lib/aiBlocked.ts`, and the screen draws `AiAllowanceNotice`. The
   Settings card reads only `src/lib/aiUsageRead.ts`. (Added 2026-11-26,
-  mission-89, on Captain's ruling.) (Story: docs/history/structure-rationale.md,
+  mission-92, on Captain's ruling.) (Story: docs/history/structure-rationale.md,
   "The AI meter".)
 
 ## File-size caps

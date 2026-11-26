@@ -4,7 +4,7 @@ import { AI_UPGRADE_BUTTON } from "@/lib/aiMeterVocabulary";
 /**
  * The Upgrade button: a link styled as a full-width 48px button, opened in a
  * new tab. Shared by the blocked-call notice and the Settings AI card
- * (mission 89). `className` is only the caller's spacing.
+ * (mission 92). `className` is only the caller's spacing.
  */
 export function AiUpgradeLink({ href, className = "" }: { href: string; className?: string }) {
   return (

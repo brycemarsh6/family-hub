@@ -14,7 +14,7 @@ import {
   type AiFeature,
 } from "@/lib/aiMeterPolicy";
 
-// The one door to Anthropic (mission 89, family copies PR 5). Every AI call in
+// The one door to Anthropic (mission 92, family copies PR 5). Every AI call in
 // the app goes through `meteredCreate`: it refuses a relative's copy once the
 // month's allowance is spent (before Anthropic is called, so a blocked call
 // costs nothing) and records every call's tokens and cost. The rules

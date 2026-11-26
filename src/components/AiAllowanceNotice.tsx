@@ -9,7 +9,7 @@ import {
 
 /**
  * The message that takes the place of an AI result when this copy's monthly
- * allowance blocks the call (mission 89). Admins get the Upgrade link (when the
+ * allowance blocks the call (mission 92). Admins get the Upgrade link (when the
  * copy has one); everyone else is told to ask an admin. Warn, not danger: the
  * person did nothing wrong and nothing is lost. Shared by the six AI screens.
  */

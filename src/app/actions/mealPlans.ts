@@ -102,7 +102,7 @@ const SUGGEST_EXPIRY_WINDOW_DAYS = 7;
 export type SuggestMealsResult = {
   suggestions?: MealSuggestion[];
   error?: string;
-  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  /** Set when this copy's AI allowance blocked the call (mission 92). */
   aiBlocked?: AiBlocked;
 };
 

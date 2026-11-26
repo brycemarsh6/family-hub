@@ -4,7 +4,7 @@ import type { AiBlockReason } from "@/lib/aiMeterPolicy";
 import { AI_BLOCKED_TITLE, AI_LOCKED_TEXT, resetsLabel } from "@/lib/aiMeterVocabulary";
 
 // What a Server Action hands the screen when `meteredCreate` refuses an AI
-// call (mission 89). Plain data, so it crosses to the client. Only an admin
+// call (mission 92). Plain data, so it crosses to the client. Only an admin
 // gets the Upgrade link; everyone else gets the ask-an-admin line.
 
 export type AiBlocked = {

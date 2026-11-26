@@ -1,4 +1,4 @@
-// Every word the AI usage meter shows (mission 89), in one place. Pure: no
+// Every word the AI usage meter shows (mission 92), in one place. Pure: no
 // database, no environment. The Settings card, the blocked message and the
 // forms all read from here.
 

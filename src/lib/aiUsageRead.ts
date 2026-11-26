@@ -9,7 +9,7 @@ import {
 import type { CalendarDate } from "@/lib/householdDate";
 import { aiUpgradeUrl, allowanceCents, loadAiMonthSummary } from "@/lib/aiMeter";
 
-// What the Settings "AI features" card shows (mission 89). Bryce's copy gets
+// What the Settings "AI features" card shows (mission 92). Bryce's copy gets
 // dollars, a request count and a per-feature line. A relative's copy gets a
 // percent and the reset day, never dollars.
 

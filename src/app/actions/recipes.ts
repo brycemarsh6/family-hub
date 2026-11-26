@@ -122,7 +122,7 @@ export async function updateRecipe(
 export type ExtractResult = {
   data?: ExtractedRecipe;
   error?: string;
-  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  /** Set when this copy's AI allowance blocked the call (mission 92). */
   aiBlocked?: AiBlocked;
 };
 
@@ -347,7 +347,7 @@ export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResu
 }
 
 export type NutritionResult = {
-  /** Set when this copy's AI allowance blocked the call (mission 89). */
+  /** Set when this copy's AI allowance blocked the call (mission 92). */
   aiBlocked?: AiBlocked;
   nutrition?: {
     calories: number;

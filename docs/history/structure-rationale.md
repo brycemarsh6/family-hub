@@ -329,7 +329,7 @@ and the rule keeps a third path from appearing.
 
 ## The AI meter
 
-Added 2026-11-26, mission 89 (family copies PR 5). Each relative's copy of
+Added 2026-11-26, mission 92 (family copies PR 5). Each relative's copy of
 Marshee gets a monthly AI allowance (`AI_ALLOWANCE_CENTS`, $3 at launch for a
 $5 a month upgrade). The allowance only holds if every Anthropic call is
 counted, so there is exactly one door: `meteredCreate` in `src/lib/aiMeter.ts`

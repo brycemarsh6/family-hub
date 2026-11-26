@@ -41,7 +41,7 @@ it is done. The pre-cleanup text is in
   else reads "A private habit"), "Any wishes waiting for a cost?" and "Who
   redeemed something lately?". She cannot redeem and never sees the PIN:
   ask her to redeem something and she should say it happens in the app.
-- **AI meter (mission 89, family copies PR 5)**, about 2 minutes, on your
+- **AI meter (mission 92, family copies PR 5)**, about 2 minutes, on your
   iPhone. Settings: an "AI features" card shows "$0.00 used this month,
   0 requests. No limit on your copy." (no Upgrade button). Then use one AI
   feature you'd use anyway (for example Meal Plan, Ask AI what to make):

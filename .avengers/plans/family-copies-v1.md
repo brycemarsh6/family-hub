@@ -142,7 +142,7 @@ them it shows whatever is on screen. The screenshot is sent only when it is on
 (production builds only), settings table above, Blob store, domain, Google
 redirect address, deploy, confirm the "open your setup link" message, send the
 link, delete `SETUP_CODE` afterwards. AI settings for every relative's copy (Bryce,
-2026-11-26, mission 89): `AI_ALLOWANCE_CENTS=300` ($3 a month for a $5 a
+2026-11-26, mission 92): `AI_ALLOWANCE_CENTS=300` ($3 a month for a $5 a
 month upgrade) once they pay, and `STRIPE_PAYMENT_LINK_URL` is **required**
 (without it an admin on a locked copy has no next step). Includes a check step so a wrong
 `DATABASE_URL` can never point one family at another's data.

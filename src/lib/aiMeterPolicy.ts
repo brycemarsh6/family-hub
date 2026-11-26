@@ -1,4 +1,4 @@
-// The AI usage meter's rules, as pure code (mission 89, family copies PR 5):
+// The AI usage meter's rules, as pure code (mission 92, family copies PR 5):
 // which feature a call belongs to, what a call costs, which month it counts
 // toward, and whether a copy may make the next call. No database, no
 // environment reads: `src/lib/aiMeter.ts` feeds these the real values.
