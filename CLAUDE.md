@@ -239,9 +239,9 @@ Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
 - **Dashboard widgets W3** is next: `.avengers/plans/dashboard-widgets-v2.md`.
-- **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
-  parent rule) and PR C (per-person habits tiles) are next:
-  `.avengers/missions/mission-39-tablet-login.md`.
+- **Tablet login** PR B (tablet dashboard, calendar editing, parent rule) and
+  PR C (per-person habits tiles) are next: `.avengers/missions/mission-39-tablet-login.md`.
+- **Family copies** (a private copy of Marshee per relative): PR 1 is next, `.avengers/plans/family-copies-v1.md`.
 - **Winnie next:** Rewards writes (W2, `.avengers/plans/winnie-rewards-v1.md`), then calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
