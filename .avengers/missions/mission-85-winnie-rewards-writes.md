@@ -1,7 +1,7 @@
 # Mission 85: Winnie Rewards W2, Winnie changes Rewards
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/winnie-rewards-w2-writes-e68c3a` (worktree, cut from main 48f7c4f)
 
@@ -376,4 +376,5 @@ AGENTS.md in full. For this mission:
 - 2026-11-26: merged `origin/main` (a47b9da, missions 86 and 87) as 57e0d87. Only CLAUDE.md conflicted (status lines; kept main's, Winnie line drops Rewards). Mission 87's owner flag rule does not apply: it scopes out the Assistant API.
 - Gauntlet after the merge: tsc, eslint, build green; `npm test` 2318/2318; direct TZ=UTC 2308 pass + 10 pre-existing DST skips.
 - Leftovers on purpose (NOTEs): `RewardEdit` to move to `rewards/rewardRules.ts` on next touch; watch `rewardVocabulary.ts` and `undoModels.ts` sizes; wording look at "-5 from Winnie" for a take in Recent.
-- PR, merge commit and production check: below.
+- PR 139 merged 2026-11-26 as f02b85b (auto-merge, Bryce's yes), after a second sync with main (1193fe3: time zone work, gauntlet re-run green, 2319 tests both zones).
+- Production: latest READY deploy (7ed6b63, a later main) contains f02b85b. `git log origin/main..HEAD` empty. Record check: 0 hard failures; its REVIEW lines are all in other missions' files brought in by the main merges.
