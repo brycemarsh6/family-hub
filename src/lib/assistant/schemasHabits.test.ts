@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkHabitInput } from "@/lib/habitInput";
+import { STAR_REFUSAL } from "@/lib/rewardVocabulary";
 import {
   habitChartQuery,
   habitCreateBody,
@@ -10,6 +11,7 @@ import {
   habitPatchBody,
   habitTapBody,
   habitTapQuery,
+  habitStarsRefusal,
   newHabitInput,
   patchedHabitInput,
 } from "./schemasHabits";
@@ -196,4 +198,41 @@ test("patchedHabitInput: a schedule moving to weekly takes times 1; to hours nee
     { error: "Pick 1 to 80 hours a week." },
   );
   assert.ok(!("error" in checkHabitInput(patchedHabitInput(current, habitPatchBody.parse({ track: "hours", weeklyHours: 4 })), HOUSEHOLD, ["bryce"])));
+});
+
+test("stars: a whole number or null in both bodies; left out is not sent on to the form", () => {
+  assert.ok(ok(habitCreateBody.safeParse({ title: "Dishes", everyone: true, stars: 5 })));
+  assert.ok(ok(habitCreateBody.safeParse({ title: "Dishes", everyone: true, stars: null })));
+  assert.ok(!ok(habitCreateBody.safeParse({ title: "Dishes", everyone: true, stars: 2.5 })));
+  assert.ok(!ok(habitCreateBody.safeParse({ title: "Dishes", everyone: true, stars: "5" })));
+  assert.ok(ok(habitPatchBody.safeParse({ stars: 10 })));
+  assert.ok(ok(habitPatchBody.safeParse({ stars: null })));
+  assert.ok(!ok(habitPatchBody.safeParse({ stars: 1.5 })));
+  assert.ok(!("stars" in create({ title: "Dishes", everyone: true }).input));
+  assert.equal(create({ title: "Dishes", everyone: true, stars: 5 }).input.stars, 5);
+  assert.equal(create({ title: "Dishes", everyone: true, stars: null }).input.stars, null);
+});
+
+test("stars: a value off the star list is refused in the app's words, a listed one is written", () => {
+  const bad = create({ title: "Dishes", everyone: true, stars: 7 }).checked;
+  assert.deepEqual(bad, { error: STAR_REFUSAL });
+  const good = create({ title: "Dishes", everyone: true, stars: 25 }).checked;
+  assert.ok("fields" in good && good.fields.stars === 25);
+  const none = create({ title: "Dishes", everyone: true }).checked;
+  assert.ok("fields" in none && !("stars" in none.fields));
+});
+
+test("patchedHabitInput: stars pass through, and left out the column is left alone", () => {
+  const base = create({ title: "Dishes", everyone: true, stars: 5 }).input;
+  assert.equal(patchedHabitInput(base, habitPatchBody.parse({ stars: 10 })).stars, 10);
+  assert.equal(patchedHabitInput(base, habitPatchBody.parse({ stars: null })).stars, null);
+  assert.ok(!("stars" in patchedHabitInput({ ...base, stars: undefined }, habitPatchBody.parse({ title: "Plates" }))));
+});
+
+test("habitStarsRefusal: a number of stars on an hours habit is refused, anything else is not", () => {
+  const hours = create({ title: "Read", participantIds: ["bryce"], track: "hours", weeklyHours: 5, stars: 5 }).input;
+  assert.equal(habitStarsRefusal(hours), "Hours habits don't pay stars.");
+  assert.equal(habitStarsRefusal({ ...hours, stars: null }), null);
+  assert.equal(habitStarsRefusal({ ...hours, stars: undefined }), null);
+  assert.equal(habitStarsRefusal({ ...hours, track: "checks" }), null);
 });

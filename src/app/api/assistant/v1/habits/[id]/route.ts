@@ -3,7 +3,7 @@ import type { ChangeInput } from "@/lib/assistant/audit";
 import { notFound, toWriteFailure } from "@/lib/assistant/errors";
 import { assistantHabitActor } from "@/lib/assistant/habitActorEnv";
 import { getHabit, getHabitDetail, habitSnapshot } from "@/lib/assistant/habitReads";
-import { habitInputFromRow, habitPatchBody, patchedHabitInput } from "@/lib/assistant/schemasHabits";
+import { habitInputFromRow, habitPatchBody, habitStarsRefusal, patchedHabitInput } from "@/lib/assistant/schemasHabits";
 import { habitChanges } from "@/lib/assistant/serializeHabits";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { db } from "@/lib/db";
@@ -52,7 +52,10 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof habitPatchBo
           if (!canEditHabit(actor, { isPrivate: before.habit.isPrivate, participantIds: ids })) throw notFound();
           if (Object.keys(edit).length > 0) {
             const current = habitInputFromRow(await tx.habit.findUniqueOrThrow({ where: { id: params.id } }), ids);
-            const checked = checkHabitInput(patchedHabitInput(current, edit), household, ids);
+            const input = patchedHabitInput(current, edit);
+            const noStars = habitStarsRefusal(input);
+            if (noStars) throw toWriteFailure(invalid(noStars));
+            const checked = checkHabitInput(input, household, ids);
             if ("error" in checked) throw toWriteFailure(invalid(checked.error));
             // The app's rule: you may not leave behind what you could no longer edit (rolls back, nothing recorded).
             if (!canEditHabit(actor, { isPrivate: checked.fields.isPrivate ?? false, participantIds: checked.participantIds })) {

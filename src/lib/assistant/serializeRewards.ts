@@ -3,6 +3,8 @@ import type { HistoryDay, RecentLine } from "@/lib/rewards/starHistory";
 import type { RewardView } from "@/lib/rewardsRead";
 import type { LateStars } from "@/lib/rewardVocabulary";
 import type { HouseholdPerson } from "@/lib/householdPeople";
+import type { ChangeInput } from "./audit";
+import { toCopy } from "./undoPlan";
 
 // Reader output -> wire format for the Assistant API's Rewards routes. Pure,
 // and every output is built field by field: never a spread of a row, so a
@@ -80,5 +82,39 @@ export function toStarSummary(people: readonly RewardPerson[], banks: Readonly<R
   return {
     banks: people.map((person) => ({ personId: person.id, name: person.displayName, stars: banks[person.id] ?? 0 })),
     wishesWaiting: rewards.filter(isWish).length,
+  };
+}
+
+/** The one star adjustment as `POST /rewards/adjustments` answers it. */
+export function toAdjustmentAnswer(row: { id: string; userId: string; amount: number; note: string | null; createdAt: Date }) {
+  return { id: row.id, personId: row.userId, amount: row.amount, note: row.note, createdAt: row.createdAt.toISOString() };
+}
+
+// ---- Audit copies ----
+
+type Row = Record<string, unknown> & { id: string };
+
+/** A reward write's entry: the whole row before and after (`update` needs both, `create` only after, `delete` only before). */
+export function rewardChange(action: ChangeInput["action"], before: Row | null, after: Row | null): ChangeInput {
+  const row = (after ?? before)!;
+  return {
+    model: "Reward",
+    recordId: row.id,
+    action,
+    summary: { title: row.title, cost: row.cost ?? null },
+    before: before ? toCopy("Reward", before) : null,
+    after: after ? toCopy("Reward", after) : null,
+  };
+}
+
+/** A bonus or taken-away line that was just added. */
+export function adjustmentChange(row: Row & { amount: number }): ChangeInput {
+  return {
+    model: "StarAdjustment",
+    recordId: row.id,
+    action: "create",
+    summary: { amount: row.amount },
+    before: null,
+    after: toCopy("StarAdjustment", row),
   };
 }

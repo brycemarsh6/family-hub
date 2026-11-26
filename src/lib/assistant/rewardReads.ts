@@ -47,3 +47,18 @@ export async function readStarSummary() {
   const [banks, rewards] = await Promise.all([loadStarBanks(ids), loadRewards(ids)]);
   return toStarSummary(people, banks, rewards);
 }
+
+/** One person's reward as `GET /rewards` shows it, with the person's name and bank. Null when the person or the reward is not there. */
+export async function readRewardAnswer(ownerId: string, rewardId: string) {
+  const answer = await readRewards(ownerId);
+  const person = answer?.people[0];
+  const reward = person?.rewards.find((r) => r.id === rewardId);
+  if (!person || !reward) return null;
+  return { person: { personId: person.personId, name: person.name, stars: person.stars }, reward };
+}
+
+/** One household person's name and bank. Null when `personId` is not a household person. */
+export async function readPersonStars(personId: string) {
+  const person = (await readRewards(personId))?.people[0];
+  return person ? { personId: person.personId, name: person.name, stars: person.stars } : null;
+}
