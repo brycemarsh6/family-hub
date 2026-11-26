@@ -168,6 +168,44 @@ unaffected. Bryce's design changes reach every family.
   Attack checks: setup with a wrong code, setup after a user exists, setup on
   Bryce's copy (must be 404), link import to an internal address.
 
+## Running order (which PRs can run at the same time)
+
+What each PR needs first:
+
+| PR | Needs first | Shares files with |
+|---|---|---|
+| 0 Plan | nothing | Rewards R5 (`CLAUDE.md`, one line) |
+| 1 Link import | nothing | nothing |
+| 2 Time zone + fresh DB | Rewards R5 merged (both change `householdDate.ts`) | |
+| 3 Owner flag | Bryce sets `MARSHEE_OWNER_COPY=1` in Vercel | settings page, `auth.ts`, `DESIGN.md` |
+| 4 Stores + settings row | Bryce OKs the stores mock | settings page, `schema.prisma` |
+| 5 AI meter | PR 3 (owner copy never blocked) | settings page, `schema.prisma` |
+| 6 Setup + recovery | PR 4 (settings row) and PR 3 (`auth.ts`) | `LoginForm.tsx`, `proxy.ts` |
+| 7 Welcome + checklist | PR 4 and PR 6 | dashboard widgets |
+| 8 Google walkthrough | Bryce's own Google link proven | `/settings/calendars` only |
+| 9 Feedback forwarding | PR 3 | `schema.prisma`, feedback sheet |
+| 10 Runbook | all others merged | docs only |
+
+Waves (start everything in a wave together):
+
+- **Wave 1, now:** PR 0, PR 1, PR 3, PR 4.
+- **Wave 2:** PR 5 and PR 9 once PR 3 merges; PR 6 once PR 3 and PR 4
+  merge; PR 2 once Rewards R5 merges.
+- **Wave 3:** PR 7 once PR 6 merges; PR 8 whenever Google is proven.
+- **Wave 4:** PR 10, then the throwaway-copy dress rehearsal.
+
+Rules for running in parallel:
+
+- **At most 3 build chats at once.** The limit is Bryce's attention for
+  sign-offs and phone tests, not the computer. Prefer pairing one PR that
+  needs a sign-off with ones that don't.
+- **Each PR updates from `main` right before it merges.** Shared files
+  (settings page, `schema.prisma`) then merge cleanly because each PR adds
+  its own card or table and never edits another PR's lines.
+- **Two PRs with migrations:** the second to merge regenerates nothing; it
+  just updates from `main` so its migration sorts after the first one.
+- When a PR merges, the planning chat starts whatever it unblocks.
+
 ## Working method
 
 Per house rules: the planning chat stays put; each PR gets its own chat,
