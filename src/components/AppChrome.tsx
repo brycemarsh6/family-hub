@@ -70,7 +70,7 @@ export function AppChrome({
     <>
       {wordmark ? (
         /*
-          This header only exists on the dashboard, /login and /setup. What other
+          This header only exists on the dashboard and /login. What other
           files position against is the floating hamburger's row,
           `HAMBURGER_ROW_HEIGHT` / `useHamburgerRowHeight` in
           `src/lib/appChrome.ts`, which carries the dependents list.

@@ -82,6 +82,9 @@ export function RecoveryResetForm({ userId }: { userId: string }) {
           placeholder={RECOVERY_WORDS.codePlaceholder}
           autoComplete="off"
           autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          autoFocus
           required
           className={FIELD}
         />

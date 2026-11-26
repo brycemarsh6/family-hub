@@ -74,8 +74,6 @@ export function SetupWizard() {
     };
   }, [code]);
 
-  if (code === null) return null;
-  const setupCode: string = code;
 
   const errorLine = error && (
     <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -111,7 +109,9 @@ export function SetupWizard() {
     );
   }
 
-  const status = code === "" ? "bad" : link?.code === code ? link.status : null;
+  // Null until the address bar has been read (the server renders null).
+  const setupCode = code ?? "";
+  const status = code === null ? null : code === "" ? "bad" : link?.code === code ? link.status : null;
 
   if (status === null) {
     return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.checking}</p>;
@@ -135,7 +135,14 @@ export function SetupWizard() {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createFamily({ code: setupCode, familyName, displayName, password, passwordAgain });
+      let result: Awaited<ReturnType<typeof createFamily>>;
+      try {
+        result = await createFamily({ code: setupCode, familyName, displayName, password, passwordAgain });
+      } catch {
+        // A dropped connection: keep what was typed and say what to do.
+        setError(SETUP_WORDS.linkCheckFailed);
+        return;
+      }
       if ("error" in result) {
         setError(result.error);
       } else if ("status" in result) {

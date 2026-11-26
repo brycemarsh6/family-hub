@@ -8,7 +8,7 @@ const HAMBURGER_ROW_HEIGHT_REM = 3.5;
 
 /**
  * mission-23 — the height of the row the floating hamburger button sits in
- * on every page except the dashboard, /login and /setup: a 0.5rem gap ABOVE the
+ * on every page except the dashboard and /login: a 0.5rem gap ABOVE the
  * button (its top offset) plus the 3rem (`h-12`) button, so the button's
  * bottom edge is exactly where `<main>` content starts. Deliberately
  * EXCLUDES `env(safe-area-inset-top)`, a device fact this constant cannot
@@ -85,7 +85,7 @@ function readRowHeight(bottom: number): number {
 /**
  * Measures the real bottom edge of the floating hamburger button (inset
  * included), picked out by its `data-floating-menu-button` attribute. Returns
- * 0 when it is absent, which is the truth on the dashboard, /login and /setup where
+ * 0 when it is absent, which is the truth on the dashboard and /login where
  * the in-header button is not floating. Follows the Text size setting
  * because the button is rem-sized. Seeded with
  * `HAMBURGER_ROW_HEIGHT_PX` so the first paint already reads a real number;
@@ -129,7 +129,7 @@ function subscribeToNothing() {
 
 /**
  * The header slot's DOM node, or null when it is not on the page (/login
- * and /setup render it but nothing portals in) or on the server. A browser-only read,
+ * renders it but nothing portals in) or on the server. A browser-only read,
  * so `useSyncExternalStore` (DESIGN.md), not state set in an effect: the
  * server snapshot is null and the client snapshot reads the DOM, which React
  * re-checks after the first commit and re-renders if the node has appeared
@@ -144,9 +144,9 @@ export function useWordmarkHeaderActionsTarget(): HTMLElement | null {
   );
 }
 
-/** True on the pages that show the Marshee wordmark header: `/`, `/login` and `/setup`. */
+/** True on the pages that show the Marshee wordmark header: `/` and `/login`. */
 export function showsWordmarkHeader(pathname: string): boolean {
-  return pathname === "/" || pathname === "/login" || pathname === "/setup";
+  return pathname === "/" || pathname === "/login";
 }
 
 /**

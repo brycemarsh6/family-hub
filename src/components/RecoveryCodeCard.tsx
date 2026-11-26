@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { makeNewRecoveryCode } from "@/app/actions/recoveryCode";
 import { RecoveryCodeReveal } from "@/components/RecoveryCodeReveal";
-import { CODE_CARD_WORDS } from "@/lib/setupVocabulary";
+import { CODE_CARD_WORDS, SETUP_WORDS } from "@/lib/setupVocabulary";
 
 /**
  * The admin's Settings card for the family recovery code: whether one is
@@ -13,12 +13,15 @@ import { CODE_CARD_WORDS } from "@/lib/setupVocabulary";
  */
 export function RecoveryCodeCard({ hasCode }: { hasCode: boolean }) {
   const [code, setCode] = useState<string | null>(null);
+  // Whether a code existed before the tap: the first one ever has no "old code".
+  const [hadCode, setHadCode] = useState(hasCode);
   const [saved, setSaved] = useState(hasCode);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function make() {
     setError(null);
+    setHadCode(saved);
     startTransition(async () => {
       const result = await makeNewRecoveryCode();
       if ("error" in result) {
@@ -34,8 +37,8 @@ export function RecoveryCodeCard({ hasCode }: { hasCode: boolean }) {
     return (
       <div className="mt-3 rounded-xl border border-line bg-surface p-4">
         <RecoveryCodeReveal
-          title={CODE_CARD_WORDS.revealTitle}
-          intro={CODE_CARD_WORDS.revealIntro}
+          title={hadCode ? CODE_CARD_WORDS.revealTitle : SETUP_WORDS.codeTitle}
+          intro={hadCode ? CODE_CARD_WORDS.revealIntro : SETUP_WORDS.codeIntro}
           code={code}
           continueLabel={CODE_CARD_WORDS.done}
           onContinue={() => setCode(null)}
@@ -51,7 +54,7 @@ export function RecoveryCodeCard({ hasCode }: { hasCode: boolean }) {
         {CODE_CARD_WORDS.title}
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-            saved ? "bg-accent-soft text-fg" : "bg-surface-2 text-muted"
+            saved ? "bg-accent-soft text-fg" : "bg-surface-2 text-muted-strong"
           }`}
         >
           {saved ? CODE_CARD_WORDS.saved : CODE_CARD_WORDS.none}

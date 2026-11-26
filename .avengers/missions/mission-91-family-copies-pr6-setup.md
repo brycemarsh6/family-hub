@@ -414,3 +414,59 @@ recovery code reuse · two setup submits at once (only one admin).
   error boundary (pre-existing in C3; taken into the Strange fix batch if one
   happens); case 18 also writes the row, which the STRUCTURE.md sentence only
   calls a read (CI script, not a violation).
+- **Strange pass 1: BLOCKED** (three). (1) "No code yet" pill `text-muted` on
+  `surface-2` is 4.33:1 in light, under 4.5:1. (2) The first code ever on
+  Settings says "The old code no longer works." when there was none (Bryce's
+  copy today). (3) Closed `/setup` answers HTTP 200 with the not-found UI inside
+  the app chrome, because `src/app/(app)/loading.tsx` streams first; a made-up
+  address answers a real 404. NOTES taken into C5: wizard paints nothing before
+  hydration; Recovery code input needs autoFocus, autoCorrect off, spellCheck
+  off. Left as notes: the copy-failed line stacks with the warn box; the dark
+  unticked checkbox is white (existing `accent-accent` pattern); the full logo
+  block sits above step 2 and the reveal (the mock shows less).
+- **D6 (Fury, structure, Strange blocker 3):** `/setup` becomes its own root
+  layout at `src/app/setup/` (the `src/app/privacy/` pattern), with no
+  `loading.tsx`, so `notFound()` lands before anything streams. It no longer
+  uses AppChrome, so the C4 `showsWordmarkHeader` `/setup` change is reverted.
+
+### C5. Fix batch (Strange pass 1 + Vision pass 2 note)
+
+- **May touch:** move `src/app/(app)/setup/page.tsx` and `SetupWizard.tsx` to
+  `src/app/setup/` (git mv) and create `src/app/setup/layout.tsx`;
+  `src/components/RecoveryCodeCard.tsx`, `src/app/(app)/login/RecoveryResetForm.tsx`,
+  `src/lib/appChrome.ts`, `src/lib/appChrome.test.ts`, `src/components/AppChrome.tsx`
+  (comment only, if it names `/setup`), `src/lib/setupVocabulary.ts` (no new words),
+  `STRUCTURE.md`, `docs/structure/layout.md`. Nothing else.
+1. **Root layout** `src/app/setup/layout.tsx`: copy `src/app/privacy/layout.tsx`
+   (fonts Inter and Manrope plus Cormorant Garamond with `--font-accent-serif`,
+   weight 400, as `src/app/(app)/layout.tsx` sets it, because the tagline uses
+   `font-accent`; globals.css; the theme colours; `viewportFit: "cover"`),
+   metadata title "Set up Marshee" and `robots: { index: false, follow: false }`,
+   no session read. Body wraps children in a centred column with the same side
+   padding the login page has inside AppChrome's `<main>` (read AppChrome for the
+   exact classes) so the page looks like `/login`. The page keeps its own icon,
+   wordmark and tagline block. No `loading.tsx`.
+2. **Revert C4's `/setup` in `showsWordmarkHeader`**, its test assertion and the
+   docstrings back to "the dashboard and /login". STRUCTURE.md `(app)` row: back to
+   `/` and `/login` for the header, and say `/setup` is its own root layout like
+   `/privacy` (404 unless `isSetupOpen()`, no loading screen so the 404 is real).
+   The layout map / root layouts wherever STRUCTURE.md lists root layouts (privacy,
+   share) gains `setup`. `docs/structure/layout.md`: undo the mission-91 header line.
+3. **Pill contrast:** "No code yet" pill `text-muted` → `text-muted-strong`.
+4. **First code wording:** remember whether a code existed before the tap; with
+   none, the reveal uses `SETUP_WORDS.codeTitle` and `SETUP_WORDS.codeIntro`
+   (approved Q4 words); with one, keep the current "Your new recovery code" words.
+5. **Before hydration:** `SetupWizard` shows the "Checking your link…" line when the
+   hash is not read yet, instead of returning null.
+6. **Recovery code input** in `RecoveryResetForm`: `autoFocus`, `autoCorrect="off"`,
+   `spellCheck={false}`.
+7. **A rejected `createFamily` call** (network drop): catch it and show
+   `SETUP_WORDS.linkCheckFailed` (Bryce approved it, D5) in the step-2 alert, values kept.
+- **Verification:** tsc, eslint, `npm test`, the direct `TZ=UTC` line, `npm run build`
+  (the route table still lists `/setup`).
+- **Done:** all green, boundaries kept, nothing committed.
+- **C5 DONE (Stark).** Fury's live check on the dev server (signed out, curl):
+  `/setup` 404 (was 200), with "This page could not be found" and
+  `noindex, nofollow`; `/login` 200; a made-up path 307 to `/login` (proxy, as
+  before). Positive control for the open page is the CI attack step (the page
+  and the actions share `isSetupOpen()`); dev cannot open setup (real users).

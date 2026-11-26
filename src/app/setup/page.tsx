@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { MarsheeIcon } from "@/components/MarsheeIcon";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 import { isSetupOpen } from "@/lib/setupFlow";
@@ -7,11 +6,6 @@ import { SetupWizard } from "./SetupWizard";
 
 // Reads the database, so it can never be cached.
 export const dynamic = "force-dynamic";
-
-// A relative's private setup link: nothing here belongs in a search index.
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
 
 /**
  * A relative's first visit to their own copy (family copies PR 6). A plain
