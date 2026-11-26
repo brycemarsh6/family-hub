@@ -34,7 +34,8 @@ a one-line pointer.
   is a pure `server-only` function in `src/lib/` with *no* auth check, wrapped
   by a Server Action in `src/app/actions/` that calls `getVerifiedSession()`
   first (`voice/parse.ts`, `mealSuggest.ts`, `recipeExtract.ts`,
-  `ingredientParse.ts`, `nutritionEstimate.ts` all follow it). New calls
+  `ingredientParse.ts`, `nutritionEstimate.ts` all follow it, each calling
+  Anthropic only through `meteredCreate`, mission-92). New calls
   follow the same split — auth lives next to the data, once, in the action.
   For non-browser clients that cannot hold a session, the guard may instead
   be a Route Handler in `src/app/api/` whose own auth check (a shared token,
@@ -935,6 +936,22 @@ amendment id.
   (mission-56) and bringing them back (mission-60).** (Rules:
   docs/structure/calendar-sync.md, "Google calendar link, copying events to
   Google and bringing them back".)
+- **The AI meter (mission-92, family copies PR 5).** `meteredCreate(feature,
+  params)` in `src/lib/aiMeter.ts` (`server-only`) is the only place the app
+  calls Anthropic; a `new Anthropic()` or `messages.create` anywhere else in
+  `src/` is a BLOCKER (`grep -rn "messages.create\|new Anthropic" src` shows
+  only `aiMeter.ts`). A new AI feature adds its key to `AI_FEATURES` and its
+  label to `AI_FEATURE_LABELS` in the same commit. Prices, the household
+  month window, allow / locked / used-up and the percent are pure in
+  `src/lib/aiMeterPolicy.ts` (the `loginRateLimitPolicy.ts` split);
+  `AI_ALLOWANCE_CENTS` and `STRIPE_PAYMENT_LINK_URL` are read only in
+  `aiMeter.ts`, at call time. Every visible word is in `aiMeterVocabulary.ts`.
+  A lib function between an action and the call that catches errors rethrows
+  `AiAllowanceError` unchanged first; the action returns `aiBlockedResult()`
+  from `src/lib/aiBlocked.ts`, and the screen draws `AiAllowanceNotice`. The
+  Settings card reads only `src/lib/aiUsageRead.ts`. (Added 2026-11-26,
+  mission-92, on Captain's ruling.) (Story: docs/history/structure-rationale.md,
+  "The AI meter".)
 
 ## File-size caps
 

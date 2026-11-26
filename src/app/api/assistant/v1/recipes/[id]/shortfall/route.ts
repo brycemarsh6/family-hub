@@ -1,3 +1,4 @@
+import { AiAllowanceError } from "@/lib/aiMeter";
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { aiUnavailable, notFound } from "@/lib/assistant/errors";
 import { toShortfall } from "@/lib/assistant/serializeRecipes";
@@ -10,6 +11,7 @@ export const GET = assistantRoute<{ id: string }>({
     try {
       result = await classifyRecipe(params.id);
     } catch (error) {
+      if (error instanceof AiAllowanceError) throw aiUnavailable();
       if (!(error instanceof IngredientAiError)) throw error;
       console.error("[assistant] ingredient reader failed:", error.original);
       throw aiUnavailable();

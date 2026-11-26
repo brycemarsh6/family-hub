@@ -326,3 +326,17 @@ The September drag attempt (mission-20, branch `claude/calendar-cd1`) had
 its own `moveCalendarEvent` that never reached the Google push. Mission-70
 rebuilt it so editing and dragging finish through one `afterEventSaved`,
 and the rule keeps a third path from appearing.
+
+## The AI meter
+
+Added 2026-11-26, mission 92 (family copies PR 5). Each relative's copy of
+Marshee gets a monthly AI allowance (`AI_ALLOWANCE_CENTS`, $3 at launch for a
+$5 a month upgrade). The allowance only holds if every Anthropic call is
+counted, so there is exactly one door: `meteredCreate` in `src/lib/aiMeter.ts`
+checks the allowance before calling and saves the tokens and cost after. Six
+call sites existed when the meter landed; any seventh written straight
+against the SDK would spend without being counted or blocked, which is why a
+direct call is a BLOCKER rather than a note. The pure rules (prices, month
+window, allow or block) sit apart from the database code for the same reason
+as the login rate limit: they can be tested in both time zones without a
+database. Captain drafted the rule in his pass 1 review.

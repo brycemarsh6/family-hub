@@ -41,6 +41,12 @@ it is done. The pre-cleanup text is in
   else reads "A private habit"), "Any wishes waiting for a cost?" and "Who
   redeemed something lately?". She cannot redeem and never sees the PIN:
   ask her to redeem something and she should say it happens in the app.
+- **AI meter (mission 92, family copies PR 5)**, about 2 minutes, on your
+  iPhone. Settings: an "AI features" card shows "$0.00 used this month,
+  0 requests. No limit on your copy." (no Upgrade button). Then use one AI
+  feature you'd use anyway (for example Meal Plan, Ask AI what to make):
+  it works as before, and the card now shows a few cents, 1 request and a
+  "Meal ideas" line. Your copy is never blocked.
 - **Stores (family copies PR 4)**, about 3 minutes, on your iPhone and the
   iPad. Before touching anything: Shopping chips, the add bar's Store list,
   an item's edit sheet and Inventory's cart sheet still read Walmart, Costco,

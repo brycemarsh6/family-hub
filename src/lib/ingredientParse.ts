@@ -1,5 +1,5 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { meteredCreate } from "@/lib/aiMeter";
 
 // Turns a recipe's free-text ingredient lines into plain, shoppable item
 // names — "1 cup sliced bell pepper" becomes "bell pepper".
@@ -93,13 +93,9 @@ export async function parseIngredientNames(
 ): Promise<ParsedIngredient[]> {
   if (lines.length === 0) return [];
 
-  // Constructed per call, same reasoning as voice/parse.ts: a missing API key
-  // should fail this one request with a clear message, not crash the app.
-  const client = new Anthropic();
-
   const numbered = lines.map((line, index) => `${index}. ${line}`).join("\n");
 
-  const response = await client.messages.create({
+  const response = await meteredCreate("ingredient-sort", {
     model: "claude-sonnet-5-5",
     max_tokens: 4096,
     system: SYSTEM,

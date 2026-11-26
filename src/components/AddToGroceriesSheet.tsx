@@ -6,6 +6,8 @@ import {
   classifyRecipeIngredients,
   addIngredientsToGroceries,
 } from "@/app/actions/groceriesRecipes";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 import type { RecipeIngredientSuggestion } from "@/lib/recipeIngredientMatch";
 
 /**
@@ -35,6 +37,7 @@ export function AddToGroceriesSheet({
   );
   const [chosen, setChosen] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [addedCount, setAddedCount] = useState<number | null>(null);
   const [loading, startLoading] = useTransition();
   const [saving, startSaving] = useTransition();
@@ -53,6 +56,7 @@ export function AddToGroceriesSheet({
     startLoading(async () => {
       const result = await classifyRecipeIngredients(recipeId);
       if (result.error || !result.suggestions) {
+        setAiBlocked(result.aiBlocked ?? null);
         setError(result.error ?? "Something went wrong.");
         return;
       }
@@ -150,7 +154,11 @@ export function AddToGroceriesSheet({
           </p>
         ) : error ? (
           <div className="px-1 py-6 text-center">
-            <p className="text-sm text-danger">{error}</p>
+            {aiBlocked ? (
+              <AiAllowanceNotice aiBlocked={aiBlocked} />
+            ) : (
+              <p className="text-sm text-danger">{error}</p>
+            )}
             <button
               type="button"
               onClick={onClose}
