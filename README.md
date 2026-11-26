@@ -139,6 +139,19 @@ Without them the
 page says sync isn't set up. For local testing, `npm run db:seed-linked-calendars`
 adds two fake accounts and `npm run db:clean-linked-calendars` removes them.
 
+## Time zone and a brand-new database
+
+The household time zone is `HOUSEHOLD_TIME_ZONE` in `src/lib/constants.ts`.
+It is Denver unless the Vercel project sets `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE`
+(a name like `America/Los_Angeles`). Set it once, before a new family copy has
+any data, because saved days depend on it. A misspelled name fails the build
+(`prisma/migrate-on-production.mjs` checks it first).
+
+CI (the Gauntlet) also builds an empty Postgres from every migration, checks it
+matches `prisma/schema.prisma`, and runs the calendar pull and the briefing
+reads on it (`prisma/fresh-db-smoke.ts`, which refuses any database that is not
+on `localhost`).
+
 ## Slideshow photos
 
 Settings > Slideshow photos lets a parent or admin add photos for the wall

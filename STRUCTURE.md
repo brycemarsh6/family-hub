@@ -626,7 +626,9 @@ amendment id.
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
   zone-explicit (`CalendarDate`, never a process-local `Date`;
-  `HOUSEHOLD_TIME_ZONE` from constants). `mealPlanDates.ts` /
+  `HOUSEHOLD_TIME_ZONE` from constants, the only zone name in app code: it
+  reads `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE`, default Denver, and the Vercel
+  build refuses a bad name; mission-88). `mealPlanDates.ts` /
   `calendarDates.ts` remain the browser-local homes. A server-side
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added

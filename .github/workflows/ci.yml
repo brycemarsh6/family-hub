@@ -13,7 +13,8 @@
 # database), and every page is force-dynamic so `next build` renders no
 # data. The one exception is the "Fresh database" steps at the end of the job:
 # they talk to a throwaway empty Postgres that lives only for the run, on
-# port 5433 so the dummy DATABASE_URL above (port 5432) stays unreachable. If a future change makes any of these steps need a *real* secret,
+# port 5433 so the dummy DATABASE_URL above (port 5432) stays unreachable.
+# If a future change makes any of these steps need a *real* secret,
 # treat that as a design smell to fix in the change, not a reason to add
 # secrets to CI.
 name: CI
