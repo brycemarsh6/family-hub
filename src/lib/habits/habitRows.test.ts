@@ -10,6 +10,7 @@ import {
   hoursFromRow,
   logDayFromRow,
   logsForUser,
+  refillSlots,
   scheduleChanged,
   specFromRow,
   timeEntryFromRow,
@@ -186,4 +187,17 @@ test("habitColumns forces stars null on an hours habit, and leaves them alone on
   assert.equal(habitColumns({ track: "hours" }).stars, null);
   assert.equal(habitColumns({ track: "checks", stars: 10 }).stars, 10);
   assert.equal("stars" in habitColumns({ track: "checks" }), false);
+});
+
+test("refillSlots: the wanted items take the slots they held, in the wanted order; the rest stay put", () => {
+  assert.deepEqual(refillSlots(["a", "b", "c", "d"], ["d", "c", "b", "a"]), ["d", "c", "b", "a"]);
+  // b is hidden from the screen: it keeps slot 1 while the others swap around it.
+  assert.deepEqual(refillSlots(["a", "b", "c", "d"], ["d", "c", "a"]), ["d", "b", "c", "a"]);
+  assert.deepEqual(refillSlots(["a", "b", "c"], ["b", "a"]), ["b", "a", "c"]);
+});
+
+test("refillSlots: unknown ids are ignored, repeats count once, an empty wish changes nothing", () => {
+  assert.deepEqual(refillSlots(["a", "b", "c"], ["c", "zzz", "c", "a"]), ["c", "b", "a"]);
+  assert.deepEqual(refillSlots(["a", "b"], []), ["a", "b"]);
+  assert.deepEqual(refillSlots([], ["a"]), []);
 });

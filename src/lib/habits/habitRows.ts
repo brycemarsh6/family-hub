@@ -214,3 +214,17 @@ export function habitColumns(fields: HabitFields): HabitColumns {
   }
   return out;
 }
+
+/**
+ * The one slot rule for a reorder (mission 86): the items of `order` that are
+ * in `wanted` take `wanted`'s order in the slots they held; every other item
+ * keeps its slot, so a hidden or archived habit never moves. Ids in `wanted`
+ * that are not in `order` are ignored, and a repeat counts once.
+ */
+export function refillSlots<T>(order: readonly T[], wanted: readonly T[]): T[] {
+  const held = new Set(order);
+  const sequence = [...new Set(wanted)].filter((item) => held.has(item));
+  const taking = new Set(sequence);
+  let next = 0;
+  return order.map((item) => (taking.has(item) ? sequence[next++] : item));
+}

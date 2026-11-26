@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitReport, canSeeHabitStats, othersPrivateHidden, showsOnFamilyView, type NudgeHabit } from "./access";
+import { canChangeChore, canEditChart, canOpenManageOf, canReorderListOf, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitReport, canSeeHabitStats, othersPrivateHidden, showsOnFamilyView, type NudgeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -164,4 +164,27 @@ test("othersPrivateHidden: your own habits show in full, another person's only w
 test("showsOnFamilyView: a private habit never shows, whoever looks", () => {
   assert.equal(showsOnFamilyView({ isPrivate: false }), true);
   assert.equal(showsOnFamilyView({ isPrivate: true }), false);
+});
+
+test("canOpenManageOf: yourself; a parent or admin for anyone; never a kid for another, never the tablet", () => {
+  assert.equal(canOpenManageOf(kid, "kid"), true);
+  assert.equal(canOpenManageOf(kid, "other"), false);
+  assert.equal(canOpenManageOf(parent, "kid"), true);
+  assert.equal(canOpenManageOf(admin, "parent"), true);
+  assert.equal(canOpenManageOf(device, "tablet"), false);
+  assert.equal(canOpenManageOf(device, "kid"), false);
+});
+
+test("canReorderListOf: yourself; a parent or admin for a kid's list only; never the tablet", () => {
+  assert.equal(canReorderListOf(kid, "kid", "kid"), true);
+  assert.equal(canReorderListOf(parent, "parent", "parent"), true);
+  assert.equal(canReorderListOf(parent, "kid", "kid"), true);
+  assert.equal(canReorderListOf(admin, "kid", "kid"), true);
+  assert.equal(canReorderListOf(admin, "parent", "parent"), false); // another adult keeps their own order
+  assert.equal(canReorderListOf(parent, "admin", "admin"), false);
+  assert.equal(canReorderListOf(kid, "other", "kid"), false);
+  assert.equal(canReorderListOf(kid, "parent", "parent"), false);
+  assert.equal(canReorderListOf(device, "tablet", "device"), false);
+  assert.equal(canReorderListOf(device, "kid", "kid"), false);
+  assert.equal(canReorderListOf({ userId: "kid", role: "device" }, "kid", "kid"), false);
 });
