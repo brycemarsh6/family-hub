@@ -106,6 +106,19 @@ export function assistantCreatedWhere(model: string, recordId: string | { in: st
 }
 
 /**
+ * Which of these records did the Assistant API itself create? One query for
+ * the whole list (none for an empty one), the batched form of didAssistantCreate.
+ */
+export async function assistantCreatedIds(model: string, ids: readonly string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const hits = await db.assistantChange.findMany({
+    where: assistantCreatedWhere(model, { in: [...ids] }),
+    select: { recordId: true },
+  });
+  return new Set(hits.map((hit) => hit.recordId));
+}
+
+/**
  * Did the Assistant API itself create this record? Gates the bot's deletes
  * ("the bot deletes only what it created"); first caller is mission 22's
  * `DELETE /shopping/{id}`.

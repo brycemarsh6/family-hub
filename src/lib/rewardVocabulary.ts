@@ -309,6 +309,8 @@ export const HISTORY_LOADING = "Loading…";
 export const HISTORY_FAILED = "Couldn't load the star history. Please try again.";
 export const BONUS_NO_GIVER = "Bonus stars";
 export const TAKEN_NO_GIVER = "Stars taken away";
+/** The name the family calls the Assistant API's bot; star history shows it as the giver of her bonuses. */
+export const ASSISTANT_GIVER_NAME = "Winnie";
 
 /** "Ellie's stars" (the history sheet's title) */
 export function historyTitleText(name: string): string {

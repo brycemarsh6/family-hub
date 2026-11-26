@@ -23,7 +23,7 @@ minutes) is a small function taking that number, and its caller passes
 the rule's constant (`pinLockedText`, `pinSheetHint`); the number is never
 typed in the sentence (Captain, mission 82). New reward words (R3 to R5) go here until it passes about 300
 code lines; past that a concern gets its own
-`reward<Concern>Vocabulary.ts`.
+`reward<Concern>Vocabulary.ts`. Words only Winnie is ever told (her API refusals) live in `src/lib/assistant/schemasRewards.ts`, the `schemasGoals.ts` precedent (rewards-winnie.md, "Input words"); the one Winnie word the family sees, `ASSISTANT_GIVER_NAME`, lives here.
 
 **Pure rules: `src/lib/rewards/`**, a domain subdirectory under the
 `src/lib/voice/` precedent. Every file there is pure: no `db`, no
@@ -292,21 +292,9 @@ Motion always wins over the switch and has two readers:
 `HabitConfetti` calls `matchMedia` once when it fires, on purpose (the
 hook's first value on a fresh load is the server's guess, false).
 
-**Winnie's Rewards reads (mission 84, W1).** `GET /rewards`,
-`/rewards/history` and `/rewards/recent` (`src/app/api/assistant/v1/rewards/`)
-and the `stars` section of `GET /summary` are read-only.
-`src/lib/assistant/rewardReads.ts` (`server-only`) is their only reader and
-calls only the app's own: people from `loadHouseholdPeople`, banks from
-`loadStarBanks`, rewards from `loadRewards`, history from `loadStarHistory`
-(viewer `assistantHabitActor()`, so `canSeeHabit` hides private names),
-Recent from `loadRecentActivity`, the setting from `loadLateStars`, and "did
-Winnie make this reward" from one batched `assistantCreatedWhere("Reward", ...)`
-query. `serializeRewards.ts` (pure) builds every answer field by field and
-applies only the app's rules (`orderRewards`, `rewardStatus`, `isWish`). A
-bank sum, or a Reward, RewardRedemption or StarAdjustment read, anywhere
-under `src/lib/assistant/` or `src/app/api/assistant/` other than through
-these readers is a BLOCKER, and the PIN readers are never called. Habit
-answers carry the habit's own `stars` value (`Habit.stars`).
+**Winnie and Rewards (missions 84 and 85).** Winnie's Rewards reads, writes,
+undo and the "from Winnie" giver rule live in
+[rewards-winnie.md](rewards-winnie.md).
 
 **Tests.** `src/lib/rewards/*.test.ts` is in `package.json`'s test
 script, both CI timezone steps and the AGENTS.md command (mission-79/C1).

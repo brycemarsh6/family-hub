@@ -89,6 +89,8 @@ function delegate(tx: Tx, model: UndoModel): Delegate {
     GoalCheckIn: tx.goalCheckIn,
     PlanItem: tx.planItem,
     VisionStatement: tx.visionStatement,
+    Reward: tx.reward,
+    StarAdjustment: tx.starAdjustment,
   };
   return tables[model] as Delegate;
 }
@@ -111,6 +113,7 @@ function countReferences(tx: Tx, ref: Reference, parentId: string, exclude: stri
     PlanItem: tx.planItem,
     GoalCheckIn: tx.goalCheckIn,
     PlanLog: tx.planLog,
+    RewardRedemption: tx.rewardRedemption,
   };
   return (tables[ref.child] as unknown as { count(args: { where: object }): Promise<number> }).count({ where });
 }

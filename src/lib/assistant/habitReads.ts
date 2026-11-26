@@ -21,7 +21,7 @@ import { choreStreakAfter } from "@/lib/habits/choreStreak";
 import { vacationFromRow } from "@/lib/habits/habitRows";
 import type { Vacation } from "@/lib/habits/types";
 import { addCalendarDays, formatCalendarDate, startOfWeek, utcMidnightInstant, type CalendarDate } from "@/lib/householdDate";
-import { assistantCreatedWhere, didAssistantCreate } from "./audit";
+import { assistantCreatedIds, didAssistantCreate } from "./audit";
 import { notFound } from "./errors";
 import { assistantHabitActor } from "./habitActorEnv";
 import {
@@ -162,11 +162,8 @@ export async function getHabitDetail(id: string, today: CalendarDate, gated = tr
     }),
     didAssistantCreate("Habit", id),
   ]);
-  const hers = entries.length === 0 ? [] : await db.assistantChange.findMany({
-    where: assistantCreatedWhere("HabitTimeEntry", { in: entries.map((entry) => entry.id) }),
-    select: { recordId: true },
-  });
-  return toHabitDetail(row, { entries, madeByAssistant: new Set(hers.map((h) => h.recordId)), logs, createdByAssistant }, ctx);
+  const madeByAssistant = await assistantCreatedIds("HabitTimeEntry", entries.map((entry) => entry.id));
+  return toHabitDetail(row, { entries, madeByAssistant, logs, createdByAssistant }, ctx);
 }
 
 /**
