@@ -92,20 +92,48 @@ export async function importRecipeFromUrl(
   }
 }
 
-async function importFromTikTok(pageUrl: string): Promise<UrlImportResult> {
-  const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(pageUrl)}`;
-  const response = await safeFetch(oembedUrl);
-  if (!response.ok) {
-    return {
-      error: `Couldn't read that TikTok. If the recipe is only spoken in the video, there's nothing to read — ${SCREENSHOT_HINT.toLowerCase()}`,
-    };
+/**
+ * TikTok's oEmbed endpoint used to return the caption as `title`. It no
+ * longer does (checked 2026-11-26), so the page itself is the fallback:
+ * its embedded data carries the full caption as `desc`.
+ */
+async function readTikTokCaption(pageUrl: string): Promise<string | null> {
+  const oembed = await safeFetch(
+    `https://www.tiktok.com/oembed?url=${encodeURIComponent(pageUrl)}`,
+  );
+  if (oembed.ok) {
+    const body = (await oembed.json()) as { title?: string };
+    const title = body.title?.trim();
+    if (title) return title;
   }
 
-  const body = (await response.json()) as { title?: string };
-  const caption = body.title?.trim();
+  const page = await safeFetch(pageUrl, { headers: BROWSER_HEADERS });
+  if (!page.ok) return null;
+  const html = await page.text();
+  const match = html.match(
+    /<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/,
+  );
+  if (!match) return null;
+  try {
+    const data = JSON.parse(match[1]) as {
+      __DEFAULT_SCOPE__?: {
+        "webapp.video-detail"?: { itemInfo?: { itemStruct?: { desc?: string } } };
+      };
+    };
+    const desc =
+      data.__DEFAULT_SCOPE__?.["webapp.video-detail"]?.itemInfo?.itemStruct
+        ?.desc;
+    return desc?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+async function importFromTikTok(pageUrl: string): Promise<UrlImportResult> {
+  const caption = await readTikTokCaption(pageUrl);
   if (!caption) {
     return {
-      error: `Couldn't read that TikTok. If the recipe is only spoken in the video, there's nothing to read — ${SCREENSHOT_HINT.toLowerCase()}`,
+      error: `Couldn't read that TikTok. If the recipe is only spoken in the video, there's nothing to read, ${SCREENSHOT_HINT.toLowerCase()}`,
     };
   }
 
