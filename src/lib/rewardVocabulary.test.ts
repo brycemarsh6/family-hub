@@ -20,6 +20,7 @@ import {
   redeemedByText,
   redeemedTitleText,
   rewardProgressLabel,
+  rewardRedeemAriaLabel,
   toRewardCost,
   LATE_STARS,
   LATE_STARS_HELP,
@@ -112,4 +113,8 @@ test("the people row, chip and progress words are pinned", () => {
   assert.equal(personChipLabel("Ellie", 55), "Ellie, 55 stars");
   assert.equal(personChipLabel("Ellie", 1), "Ellie, 1 star");
   assert.equal(rewardProgressLabel("Cupcake"), "Cupcake progress");
+});
+
+test("the Redeem button names its reward for a screen reader", () => {
+  assert.equal(rewardRedeemAriaLabel("Cupcake"), "Redeem Cupcake");
 });

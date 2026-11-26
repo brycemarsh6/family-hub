@@ -63,7 +63,7 @@ export function RewardsBoard({
         <div className="@min-[48rem]:hidden">
           <RewardPersonChips people={people} banks={banks} selectedId={selectedId} onSelect={setSelectedId} />
         </div>
-        <div className="grid grid-cols-1 gap-3 @min-[48rem]:grid-flow-col @min-[48rem]:auto-cols-[minmax(13.5rem,1fr)] @min-[48rem]:overflow-x-auto">
+        <div className="grid grid-cols-1 gap-3 @min-[48rem]:grid-cols-none @min-[48rem]:grid-flow-col @min-[48rem]:auto-cols-[minmax(13.5rem,1fr)] @min-[48rem]:overflow-x-auto">
           {people.map((person) => {
             const bank = banks[person.id] ?? 0;
             const owned = rewards.filter((reward) => reward.ownerId === person.id);

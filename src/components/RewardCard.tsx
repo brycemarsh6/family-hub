@@ -10,6 +10,7 @@ import {
   REWARD_REDEEM_LABEL,
   REWARD_REPEATS_TAG,
   rewardProgressLabel,
+  rewardRedeemAriaLabel,
   starCountText,
 } from "@/lib/rewardVocabulary";
 
@@ -79,6 +80,7 @@ export function RewardCard({
           <button
             type="button"
             onClick={onRedeem}
+            aria-label={rewardRedeemAriaLabel(reward.title)}
             className="min-h-12 shrink-0 rounded-xl bg-accent px-4 @max-[18rem]:w-full text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
           >
             {REWARD_REDEEM_LABEL}

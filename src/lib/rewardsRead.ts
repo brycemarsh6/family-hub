@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 
-// The only place the Reward table is read. No login check: callers check who
+// The only reader that builds a RewardView. No login check: callers check who
 // is asking. The settings read is rewardSettingsRead.ts; the bank is
 // starBankRead.ts.
 

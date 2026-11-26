@@ -165,6 +165,11 @@ export function rewardProgressLabel(title: string): string {
   return `${title} progress`;
 }
 
+/** A card's Redeem button name for a screen reader: "Redeem Cupcake". */
+export function rewardRedeemAriaLabel(title: string): string {
+  return `${REWARD_REDEEM_LABEL} ${title}`;
+}
+
 /** The phone's Add tile: "Add reward for Ellie". */
 export function addRewardForText(name: string): string {
   return `${REWARD_ADD_LABEL} for ${name}`;
