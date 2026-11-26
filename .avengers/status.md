@@ -6,7 +6,7 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
-- **Manage other people's habits (mission 88)**, about 5 minutes, on
+- **Manage other people's habits (mission 89)**, about 5 minutes, on
   your iPhone and the iPad, light and dark. Habits & Chores, Manage: a row
   of person chips sits at the top, you first. Tap Ledger: his habits and
   chores show, drag one to a new place, reload, it stays. Tap a row: the

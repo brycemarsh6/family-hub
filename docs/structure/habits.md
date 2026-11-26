@@ -242,7 +242,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   filter option builder or matcher anywhere else, a component file included,
   is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
   `TIME_ICONS`.
-  **Manage other people's habits (mission-88).** `src/lib/habitsManage.ts`
+  **Manage other people's habits (mission-89).** `src/lib/habitsManage.ts`
   is the only home of Manage's person (`resolveManagePerson`), the
   `?person=` value (`personParam`), the chips (`managePersonChips`) and the
   Manage, New, Edit and chart addresses (`manageHref`, `newHabitHref`,

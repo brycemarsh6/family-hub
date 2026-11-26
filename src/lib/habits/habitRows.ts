@@ -219,7 +219,7 @@ export function habitColumns(fields: HabitFields): HabitColumns {
 }
 
 /**
- * The one slot rule for a reorder (mission 88): the items of `order` that are
+ * The one slot rule for a reorder (mission 89): the items of `order` that are
  * in `wanted` take `wanted`'s order in the slots they held; every other item
  * keeps its slot, so a hidden or archived habit never moves. Ids in `wanted`
  * that are not in `order` are ignored, and a repeat counts once.

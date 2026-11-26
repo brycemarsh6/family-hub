@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { REPORT_LABELS } from "@/lib/habitVocabulary";
 
-/** The person chips as links, for the Report (decision 165) and Manage (mission 88). They wrap to a second line so the selected chip never scrolls out of view. */
+/** The person chips as links, for the Report (decision 165) and Manage (mission 89). They wrap to a second line so the selected chip never scrolls out of view. */
 export function ReportPersonChips({ chips, ariaLabel = REPORT_LABELS.personAria }: { chips: { id: string; name: string; selected: boolean; href: string }[]; ariaLabel?: string }) {
   return (
     <nav aria-label={ariaLabel} className="mb-3 flex flex-wrap gap-2">

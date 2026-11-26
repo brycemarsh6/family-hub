@@ -27,7 +27,7 @@ export default async function EditHabitPage({ params, searchParams }: { params: 
 
   const thisSunday = startOfWeek(today);
   const people = await loadHabitRoster();
-  // Back and after-save return to the Manage list the habit was opened from (mission 88).
+  // Back and after-save return to the Manage list the habit was opened from (mission 89).
   const returnHref = manageHref(personParam(resolveManagePerson({ userId: user.userId, role: user.role }, person, people), user.userId));
 
   return (

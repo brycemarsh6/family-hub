@@ -1,9 +1,14 @@
-# Mission 88: Manage other people's habits
+# Mission 89: Manage other people's habits
 
 **Project:** family-hub (Marshee)
 **Status:** DELIVERING (gates passed; PR next)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
-**Branch:** `claude/mission-88-manage-people-cf4dbd`, cut from main at 48f7c4f (PR 132's kid-chore edit fix already in).
+**Branch:** `claude/mission-86-manage-people-cf4dbd`, cut from main at 48f7c4f (PR 132's kid-chore edit fix already in).
+**Renumbered twice at delivery (2026-11-26):** this mission started as 86.
+While it ran, the family copies work merged its own missions 86, 87 and 88
+to main, so this one became 88 and then 89. The branch name and the commit
+messages up to 3ee1eb8 say 86 or 88; they mean this mission. Mission 88 on
+main is the household time zone (family copies PR 2).
 
 ## Brief
 
@@ -358,6 +363,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 - 2026-11-26 — Gate pass 1: Vision PASS, Captain BLOCK 2, Strange BLOCK 2. Bryce decided D5 (chips wrap) and D6 (Private only on your own items). F1 built, committed ec4a5c5.
 - 2026-11-26 — Gate pass 2: Vision PASS, Captain PASS, Strange BLOCK 1 (D6 by Side by side). F2 built, committed 95b6c20.
 - 2026-11-26 — Gate pass 3: Vision PASS, Strange PASS. Renumbered to mission 88 (86 and 87 taken on main). Next: sync with main, PR, merge.
+- 2026-11-26 — PR 140 opened, Bryce turned on auto-merge. Main then merged its own mission 88 (time zone), so this became mission 89 and synced again.
 
 ## Delivery
 

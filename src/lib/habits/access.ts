@@ -62,7 +62,7 @@ export function canSeeHabitReport(actor: HabitActor, personId: string): boolean 
 }
 
 /**
- * Whose Manage list a person may open (mission 88): yourself; a parent or
+ * Whose Manage list a person may open (mission 89): yourself; a parent or
  * admin for anyone. Never the tablet.
  */
 export function canOpenManageOf(actor: HabitActor, personId: string): boolean {
@@ -70,7 +70,7 @@ export function canOpenManageOf(actor: HabitActor, personId: string): boolean {
 }
 
 /**
- * Whose Manage order a person may change (mission 88): yourself; a parent or
+ * Whose Manage order a person may change (mission 89): yourself; a parent or
  * admin for a kid's list only (a kid has no login to set their own order).
  * Another adult keeps their own order. Never the tablet. `personRole` is the
  * list owner's role.

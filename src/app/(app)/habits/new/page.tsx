@@ -19,7 +19,7 @@ export default async function NewHabitPage({ searchParams }: { searchParams: Pro
   const thisSunday = startOfWeek(householdToday(new Date())!);
   // Everyone the picker can offer: active people, not the shared tablet login.
   const people = await loadHabitRoster();
-  // Started from someone's Manage list: that person is picked, and saving returns there (mission 88).
+  // Started from someone's Manage list: that person is picked, and saving returns there (mission 89).
   const subjectId = resolveManagePerson({ userId: user.userId, role: user.role }, person, people);
   const returnHref = manageHref(personParam(subjectId, user.userId));
 

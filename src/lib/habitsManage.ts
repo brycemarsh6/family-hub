@@ -2,7 +2,7 @@ import { canOpenManageOf } from "./habits/access";
 import type { HabitActor } from "./habits/types";
 import { personChipsFor, type ChartChip, type ChartPerson } from "./choreChart";
 
-// Manage's person, chips and the habit page addresses (mission 88), with no
+// Manage's person, chips and the habit page addresses (mission 89), with no
 // database: whose list Manage opens on, the `?person=` that carries that
 // person through Manage, the edit page, New and the chore chart, and the chips
 // that switch between people. Pure; the pages and the client components
