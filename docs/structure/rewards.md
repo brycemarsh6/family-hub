@@ -108,7 +108,9 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   (`REWARD_EMOJI_GROUPS`) and the only emoji check (`toRewardEmoji`: one
   grapheme that is an emoji). `rewardRules.ts` is the only home of the cost
   stepper walk (`nextCostStep`), earned (`isEarned`), a card's state
-  (`rewardStatus`), Hide earned (`visibleRewards`), the redeem refusal, the
+  (`rewardStatus`), Hide earned (`visibleRewards`), the board's order
+(`orderRewards`: earned last, added order kept inside each group;
+`visibleRewards` uses it, Hill's H2), the redeem refusal, the
   sheet's input check and the redeem sheet's lines (the date arrives
   formatted, by `formatLongCalendarDate` in `householdDate.ts`). `access.ts` has two named
   checks, `canManageRewards` (add, edit, delete) and `canRedeemRewards`

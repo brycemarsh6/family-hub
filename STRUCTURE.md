@@ -624,10 +624,13 @@ amendment id.
   (mission-71; docs/structure/calendar.md, "A repeating series belongs to
   Google"). `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
-  `formatLongCalendarDate(date)` is the only "Tuesday, November 24"
-  (weekday, long month, day), built from `mealPlanDates.ts`'s
-  `FULL_DAY_NAMES` and `FULL_MONTH_NAMES` (mission-81; the redeem
-  celebration).
+  `formatLongCalendarDate(date)` is the only zone-explicit "Tuesday,
+  November 24" (weekday, long month, day, from a `CalendarDate`), built
+  from `mealPlanDates.ts`'s `FULL_DAY_NAMES` and `FULL_MONTH_NAMES`
+  (mission-81; the redeem celebration and the screensaver's date line,
+  whose `formatScreensaverDate` calls it). `MiniMonth`'s day label is its
+  browser-local twin (a `Date`): two homes because their date types
+  differ, the `formatWeekRange` precedent.
   `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
   Meal Plan, Schedule, This week, the meal plan sheets) prints the same
   dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5"; mission-52, decision
@@ -933,7 +936,7 @@ amendment id.
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
-  `rewards.md` 150 (was 113), `layout.md` 332, `habits.md` 309. (Added
+  `rewards.md` 152 (was 113), `layout.md` 332, `habits.md` 309. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

@@ -530,6 +530,43 @@ person.
   so the row wraps only when needed; `lastGrapheme` uses the `"en"`
   segmenter. Not seen in a browser by Stark.
 
+### F2 - Gate fixes, pass 2 (Vision, Captain, Strange)
+- **Status:** DISPATCHED 2026-11-25
+- **Objective:** Clear the two pass-2 blockers plus two cheap notes, in one
+  commit. Fury already made the doc fixes (STRUCTURE.md's
+  `formatLongCalendarDate` line and size line, rewards.md's `orderRewards`
+  home, layout.md's 18rem card container).
+- **Boundaries:** may touch: `src/components/RewardsBoard.tsx`,
+  `src/lib/screensaver.ts`, `src/components/RewardCard.tsx`,
+  `src/lib/rewardVocabulary.ts`, `src/lib/rewardVocabulary.test.ts`,
+  `src/lib/rewardsRead.ts` (comment only) · must not touch: docs,
+  `STRUCTURE.md`, `DESIGN.md`, `prisma/`, `src/lib/screensaver.test.ts`,
+  `src/lib/householdDate.ts`, everything else.
+- **What to build:**
+  1. (Vision and Strange blocker) `RewardsBoard.tsx`: the person grid gets
+     `@min-[48rem]:grid-cols-none`, so no explicit `minmax(0,1fr)` column
+     survives on wide screens and every person column is
+     `minmax(13.5rem,1fr)`.
+  2. (Captain blocker) `screensaver.ts`: `formatScreensaverDate` keeps its
+     name and signature and its body becomes `return
+     formatLongCalendarDate(calendarDateInZone(now, timeZone));`. Add
+     `formatLongCalendarDate` to the `./householdDate` import, drop
+     `dayOfWeek` if it has no other use, and import from `./mealPlanDates`
+     only what is still used. `screensaver.test.ts` passes unchanged.
+  3. (Strange note) new `rewardRedeemAriaLabel(title)` in
+     `rewardVocabulary.ts` ("Redeem Cupcake"), tested; `RewardCard`'s
+     Redeem button uses it as `aria-label`.
+  4. (Captain note) `rewardsRead.ts` header comment: "The only reader that
+     builds a RewardView" instead of "The only place the Reward table is
+     read".
+- **Verification:** full gauntlet; Denver 2201+ pass, UTC 2191+ pass with
+  10 skipped (the DST guards); in a browser or with computed CSS, a 5-person
+  board in a 51rem container gives five equal columns of at least 13.5rem.
+- **Evidence required:** gauntlet tails with counts, the column measurement,
+  `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** -
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -537,6 +574,9 @@ person.
 | 1 | Vision (HEAD 4708afa, in parallel with Strange and Captain) | BLOCKED | actions/rewards.ts never type-checks ids: a forged `{ not: "" }` id makes `deleteMany`/`updateMany` hit every row (undoRedeem wipes every redemption) | redeem held under 4 concurrency probes; migration byte-identical to schema diff; RedeemSheet overlay/Escape close while pending spends silently (Strange); reassigned owner keeps old redemptions in redeemedCount; toRewardEmoji accepts text symbols like ©; foreign ownerId refusal says "didn't save"; Save/Add/Delete inline words in RewardSheet |
 | 1 | Captain (HEAD 4708afa) | BLOCKED | (1) rewardRules.ts:108 own Intl weekday/month formatter (householdDate.ts and mealPlanDates.ts rules): add `formatLongCalendarDate`, celebrationLines takes `dateText`; (2) no `rewards/loading.tsx` (layout.md wide pages); (3) RewardsBoard hand-made switch (ToggleSwitch is the only one); (4) Earned filled star vs rewards.md "appears nowhere else" (doc fix, Fury); (5) `import * as writes` in actions/rewards.ts (Domain write modules aliases) | rewards.md overstates "one reader"; three inline words to move (People, chip label, progress label); RewardEmojiPicker's own lastGrapheme/isQuickPick untested; page reads people first (A3); `Field` from HabitFormFields; six copies of the device-store pattern; R2 shares files. STRUCTURE.md amendments A1 to A6 for Fury |
 | 1 | Strange (HEAD 4708afa, running app, phone 375/390 and iPad 1180, light and dark) | BLOCKED | (1) Hide earned on: a column with only hidden rewards says "No rewards yet." (false); (2) "No picture" label `text-muted` on `surface-2` 4.33:1; (3) hand-made switch (ToggleSwitch is the only one); (4) iPad wraps the 5th person to a second row (Bryce: one column per person): side-by-side strip, Redeem drops below on narrow cards; (5) phone chips at 390 end cleanly with 2 people hidden: trailing fade; (6) RedeemSheet backdrop and Escape close while "Redeeming...", spending silently | Redeem flow not seen live (banks too low; pass 2 needs a bank of 5+); hydration flash on Hide earned reload; no wide loading.tsx; earned sorts first; negative bank reads "0 of 5"; picker open-state looks picked; two E and two L initials; dark cards close to column tone |
+| 2 | Captain (HEAD 94265d2) | BLOCKED | All six pass-1 blockers fixed. New: `formatLongCalendarDate` (householdDate.ts:141) duplicates `formatScreensaverDate`'s body (screensaver.ts:191, mission 65), breaking STRUCTURE.md:627 and :257/:619. Fix: screensaver.ts delegates to it (imports adjusted); Fury scopes STRUCTURE.md:627 to "zone-explicit" with MiniMonth's browser-local twin | `orderRewards` needs a named home in rewards.md:110; RewardCard's 18rem `@container` not in layout.md:17; rewardsRead.ts:5 comment too wide; RewardSheet inline "Save"/"Add"/"Delete" (codebase norm); RewardSheet imports `Field` from HabitFormFields (carried) |
+| 2 | Vision (HEAD 94265d2, gauntlet re-run: Denver 2200/0 skip, UTC 2190 + 10 skip) | BLOCKED | All pass-1 blockers fixed; forged ids re-proved refused with a mocked probe (good path first). New: RewardsBoard.tsx:65 keeps `grid-cols-1` on wide, so when people do not fit column 1 takes the shortfall (5 people at a 51rem board: 1.63rem, then 13.5 each). Fix: `@min-[48rem]:grid-cols-none` (or drop `grid-cols-1`) | The 10 UTC skips are DST tests that skip on purpose in UTC and predate the mission (same guards on main); Undo-then-close-then-redeem-another within one round trip can close the new sheet (pre-F1, contract-accepted); Escape effect re-subscribes each render (fine); orderRewards, all-hidden logic, date helper and card container all correct |
+| 2 | Strange (HEAD 94265d2, running app on 3000; phone 375/390, iPad 1180, 820 portrait, 1133; light and dark; live redeem seen) | BLOCKED | Pass-1 items 1, 2, 3, 5, 6 fixed (contrast measured; Escape and backdrop ignored while "Redeeming..."). Live flow seen: confirm, celebration with Denver date, star rain, Done, Undo redeem, repeatable bar restart, one-time turns Earned and sorts last. New: iPad strip at 820 portrait computes `0px 216px x4` (Bryce's column vanishes under Emily's); 1133 squeezes column 1 to 174px. Same cause and fix as Vision's | One refusal read "needs 8 more" while the page showed 7 (stale bank during a check and uncheck; not reproduced; the board keeps a copy of the bank, so a refresh alone would not help); Done and Undo look disabled for about a second while the refresh runs; star rain is per frame, so 120Hz gets double; every Redeem button is named "Redeem"; the Repeats tag moves after a redeem; Hide earned switch slides on reload (carried) |
 
 ## Handoff log
 
@@ -562,6 +602,17 @@ person.
 
 - 2026-11-25 - Pass-1 verdicts, H1 to H3 and F1 committed as ece5eda.
   Stark's F1 landed as 3b0ab71; Bryce paused the internet before re-gating.
+- 2026-11-25 - Bryce back. Dev server restarted on port 3000 (the 3001 one
+  had stopped). Pass 2 dispatched in parallel at HEAD 94265d2: Vision,
+  Captain, Strange (Strange sets up a 10-star check and "zz r3 pass2"
+  rewards to see the live redeem flow, and lists them for cleanup).
+- 2026-11-25 - Pass 2: all three BLOCKED on two small items (the wide grid's
+  leftover `grid-cols-1`; the duplicate long-date formatter). Fury made the
+  doc fixes; F2 dispatched. Pass 3 is each gate's last. Dev test data now
+  (Strange): habit "zz m31 plan habit" stars 20 and checked today for
+  Bryce; rewards "zz r3 pass2 repeat" (cost 5, repeatable, 1 redemption)
+  and "zz r3 pass2 once" (cost 5, one time, 1 redemption); "zz r3 cupcake"
+  and its redemption from C3; Bryce's bank 7; Hide earned off.
   **Resume:** if Stark's F1 commit is on the branch (`git log ece5eda..HEAD`),
   read its report and re-gate (Vision, Captain, Strange pass 2; Strange
   needs a bank of 5+). If not, check `git status` for half-done F1 edits

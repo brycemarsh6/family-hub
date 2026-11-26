@@ -15,7 +15,7 @@ Wide pages: the
   detail page (mission-51), and the Kitchen lists (mission-52): Inventory,
   Shopping, Expiring, Recipes (All recipes and Cookbooks), Cookbook detail
   and Meal plan, and Rewards (mission-81: one `@container` holds the
-  person columns, 48rem). Their containers: This week's goal-card grid;
+  person columns, 48rem, and each reward card is one, 18rem). Their containers: This week's goal-card grid;
   the Goals board; the Vision card grid; the Goal page's two-panel row
   (`GoalDetail`, with the More row and every sheet outside it); the recipe
   body (two columns). The recipe header band is not a container, because
