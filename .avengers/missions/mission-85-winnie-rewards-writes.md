@@ -1,7 +1,7 @@
 # Mission 85: Winnie Rewards W2, Winnie changes Rewards
 
 **Project:** family-hub (Marshee)
-**Status:** IN PROGRESS (plan approved by Bryce 2026-11-26; C1 next)
+**Status:** IN PROGRESS (C1, C2, C3 committed; C4 live test running)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/winnie-rewards-w2-writes-e68c3a` (worktree, cut from main 48f7c4f)
 
@@ -141,7 +141,7 @@ AGENTS.md in full. For this mission:
 
 ### C1 - Write modules and undo foundations
 
-- **Status:** READY
+- **Status:** DONE (Stark, 2026-11-26; Fury re-ran tsc). Tests 2281 to 2289; TZ=UTC run shows 10 skipped (Vision to confirm they are pre-existing). Live script: every C1 function on the dev DB, counts back to 0 extra.
 - **Objective:** make the reward and star-adjustment writes usable by
   Winnie (null creator, optional transaction client, row lock, whole rows
   back), teach undo the two models, and add `assistantCreatedIds`, with the
@@ -232,7 +232,7 @@ AGENTS.md in full. For this mission:
 
 ### C2 - Winnie's write routes and habit stars
 
-- **Status:** WAITING (after C1)
+- **Status:** DONE (Stark, 2026-11-26). Tests 2308 (Denver), UTC 2298 pass + 10 skipped. Added pure `newRewardInput`; PATCH allows `emoji: null` to clear.
 - **Objective:** the four Rewards write routes and `stars` on habit
   create and patch, exactly as the table above, with OpenAPI rows and tests.
 - **Boundaries.** May touch: `src/app/api/assistant/v1/rewards/route.ts`
@@ -297,7 +297,7 @@ AGENTS.md in full. For this mission:
 
 ### C3 - "From Winnie" in star history and Recent
 
-- **Status:** WAITING (after C1; may run beside C2, no shared files)
+- **Status:** DONE (Stark, 2026-11-26). Tests check `giverName`; the sentences come from the existing text functions.
 - **Objective:** a bonus or take-away Winnie made reads "Bonus from Winnie" /
   "Taken away by Winnie" in history and "... from Winnie" in Manage's Recent.
 - **Boundaries.** May touch: `src/lib/rewardVocabulary.ts` (one constant),
@@ -319,7 +319,7 @@ AGENTS.md in full. For this mission:
 
 ### C4 - Live test on the dev database
 
-- **Status:** WAITING (after C2 and C3)
+- **Status:** DISPATCHED
 - **Objective:** prove the Done-means list end to end over HTTP.
 - **Boundaries.** Scratchpad files only; no repo file changes.
 - **Work:** mission 40's "Live-test setup" (throwaway token, hash only in

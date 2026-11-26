@@ -11,6 +11,17 @@ it is done. The pre-cleanup text is in
   tap one of his chores: the edit page opens (it used to say 404). Who
   reads "Just Ledger". Set Stars, Save, then check Whole family: the chore
   shows its gold stars and is still Ledger's, not yours.
+- **Winnie changes Rewards (mission 85, W2)**, about 5 minutes, in Winnie's
+  chat and then the app on your iPhone. First ask her to refresh what she
+  knows about the Marshee API (`GET /openapi.json`). Then: "Give Ledger 5
+  stars for a great attitude" (his bank goes up 5; his star history says
+  "Bonus from Winnie" with the note under it, and Manage's Recent says
+  "+5 from Winnie"), "undo that" (bank back). "Add a Lego set to Ledger's
+  wishes" (a dashed wish card appears), "make it cost 150" (now a reward
+  with a cost), "undo that" twice (back to a wish, then gone). "Make Dishes
+  worth 5 stars" (the chore shows 5 stars), "undo that". Ask her to delete a
+  reward you made in the app: she should say she can only delete her own.
+  Ask her to redeem: she should say that happens in the app.
 - **Winnie reads Rewards (mission 84, W1)**, about 3 minutes, in Winnie's
   chat. First ask her to refresh what she knows about the Marshee API (she
   reads `GET /openapi.json`). Then ask: "How many stars does everyone have?"
