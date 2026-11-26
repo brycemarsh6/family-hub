@@ -114,9 +114,8 @@ files named beside it.
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
     tap-to-edit sheet.
-  - **Shopping**: aisle-grouped list, per-store tags, check off, "put away"
-    straight into the pantry. Low pantry items push onto the list in one tap.
-    Stores per copy: `/settings/stores` (no saved list = the built-in six).
+  - **Shopping**: aisle-grouped list, store tags (each copy's list at `/settings/stores`,
+    none saved = the built-in six), check off, "put away" to the pantry, low items in one tap.
   - **Expiring**: sorted by urgency, automatic shelf-life guesses (marked `~`),
     "Log leftovers".
   - **Recipes**: cookbooks with share links, four import paths including photo
