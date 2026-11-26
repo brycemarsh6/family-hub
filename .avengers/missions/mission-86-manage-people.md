@@ -237,13 +237,79 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
   `habitVocabulary.ts`; the settings card and grip rules match D2.
 - **Report:** _pending_
 
+### F1 — Gate pass 1 fixes (Captain's and Strange's blockers, plus the cheap notes)
+
+- **Status:** PENDING
+- **Bryce's decisions behind it (2026-11-26, asked with Strange's findings):**
+  **D5** the person chips wrap to a second line (all three chip rows: Manage,
+  Report, chore chart), so the selected chip is always visible. **D6** the
+  Private switch shows only on your own items: a habit for just one other
+  person ("Just Ledger") is never private, and picking Hours no longer turns
+  Private on for someone else.
+- **Boundaries:** may touch: `src/components/HabitManager.tsx`,
+  `src/components/ChoreChart.tsx`, `src/components/ChoreChartSheet.tsx`,
+  `src/components/ReportPersonChips.tsx`, `src/components/HabitForm.tsx`,
+  `src/app/(app)/habits/manage/page.tsx`,
+  `src/app/(app)/habits/chart/page.tsx`, `src/lib/habitsManage.ts`,
+  `src/lib/habitsManage.test.ts`, `src/lib/habitVocabulary.ts`,
+  `src/lib/habitsRead.ts` (header comment only), `src/lib/habits/habitRows.ts`
+  (header comment only), `src/lib/choreChart.ts` (header comment only),
+  `docs/structure/habits.md`, `STRUCTURE.md` (the Forms trend number for
+  `HabitForm.tsx` only) · must not touch: anything else; no logic change in
+  `src/lib/habits/`, the readers or the actions.
+- **What to build:**
+  1. (Captain BLOCKER) `HabitManager.reorderWithin` uses `refillSlots`
+     (import from `@/lib/habits/habitRows`) in place of its queue copy.
+  2. (Captain BLOCKER) `ChoreChart.tsx`: the Default week's edit link uses
+     `editHabitHref(chore.id, personParam(chart.personId, viewerId))`; the
+     chips/tabs address uses `choreChartHref`, which gains an optional `view`
+     argument (test it). The viewer's id reaches the component from the chart
+     page if the chart data does not carry it. The This week sheet's Edit
+     chore uses the same `personParam` form (Strange's NOTE). Replace the
+     sheet's `!chore.id.startsWith("new-")` with a `saved` flag (or similar)
+     passed from `ChoreChart`, which keeps the `new-` prefix to itself.
+  3. (Strange BLOCKER, D5) `ReportPersonChips`: the `<nav>` wraps
+     (`flex-wrap`, no horizontal scroll); same chips, same sizes. Update its
+     doc comment to name Manage too.
+  4. (Strange BLOCKER, D6) `HabitForm`: when the item is for one person who is
+     not the viewer (`who === "me"` and `soloId !== viewerId`), hide the
+     Private switch, send `isPrivate: false`, and `pickTrack` / `pickWho`
+     never turn Private on. Your own items, and shared items, behave exactly
+     as before. Keep the file at or under 350 total lines.
+  5. NOTEs: the Manage page uses `firstNameOf` (choreChart.ts) for the
+     subject's first name; the own-list empty state's title and hint move to
+     `MANAGE_LABELS` in `habitVocabulary.ts`; fix the false header sentences
+     in `habitsManage.ts` (its callers are the pages and client components,
+     not `habitsRead.ts`), `habitsRead.ts` (past 350 code lines a split needs
+     a habits.md amendment naming the new reader), `habits/habitRows.ts` (it
+     also holds the slot rule for a reorder) and `choreChart.ts` (a fourth
+     job: the shared person chips).
+  6. `docs/structure/habits.md` Manage entry: say `habitsManage.ts` is the
+     only home of every Manage, New, Edit and chart address that carries
+     `?person=`; client components (`HabitsDayView`, `HabitManager`,
+     `ChoreChart`, `ChoreChartSheet`) may import it; `personChipsFor`
+     (choreChart.ts) is the one chip order-and-name rule for chart, Report
+     and Manage, each caller only filters who; add `habitsManage.ts` to PR D's
+     list of files that may import `choreChart.ts`. Size watch: real numbers
+     (total and code) from the preflight counter for `habitsRead.ts`,
+     `habitsToday.ts`, `HabitForm.tsx`, `habitVocabulary.ts`. STRUCTURE.md's
+     Forms trend line for `HabitForm.tsx` gets the same number.
+- **Verification:** the full Gauntlet (tsc, eslint, npm test, the UTC
+  command, `npm run build`).
+- **Evidence required:** Gauntlet summary lines; `git diff --stat`; a grep
+  showing no hand-built `/habits/` address with `?person=` outside
+  `habitsManage.ts`; `HabitForm.tsx` line count.
+- **Done criteria:** Captain pass 2 and Strange pass 2 PASS; Vision pass 2 on
+  the F1 diff.
+- **Report:** _pending_
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Strange | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision | PASS | 0 | 7 NOTEs: Hours auto-Private on "Just Ledger" (now D6); `split(" ")` vs `firstNameOf`; old inline chart address; kid's one-person filter link resolves back to self (harmless, left); hidden private id could move slot if guessed (theoretical, left); subtitle `mb-3`; habitsRead.ts size. |
+| 1 | Captain | BLOCK | 2 | B1 `HabitManager.reorderWithin` copies the slot rule; B2 `ChoreChart.tsx` builds two habit addresses by hand (the Default week edit link loses the person). NOTEs folded into F1. |
+| 1 | Strange | BLOCK | 2 | B1 selected chip off screen at 390 (D5: wrap); B2 Private switch false and auto-on for "Just Ledger" (D6: hide). NOTEs: own-chart `?person=` (F1), habit page "Mine" for a kid's chore (pre-existing, follow-up), empty-other and kid-only states checked from source only. |
 
 ## Handoff log
 
