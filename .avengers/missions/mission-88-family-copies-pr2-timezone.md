@@ -1,7 +1,7 @@
 # Mission 88: Family copies PR 2, time zone per copy and a brand-new database
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** GATING
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr2-timezone`
 
@@ -151,3 +151,14 @@ path, then `git show --stat HEAD`.
   breaks lucide-react at import. Fury edited CLAUDE.md, STRUCTURE.md, README
   and wrapped one ci.yml comment line. Draft PR opened so CI can run the
   fresh-database steps (no Postgres on this Mac).
+- 2026-11-26: Captain PASS (5 NOTEs: STRUCTURE.md `prisma/` row and ci.yml
+  header wording, both applied; the 5433 URL is written three times;
+  constants.ts at 349 of 350 lines; CLAUDE.md at the 250 cap).
+- 2026-11-26: CI run 45876392134: migrations from zero PASS, matches schema
+  PASS, smoke FAIL (`meals` is always the 4 slots, titles null on an empty
+  plan). Vision pass 1 BLOCKED on the same line. Fix: expect slots present
+  and none planned; plus Vision's NOTE, the script now refuses when Google
+  is not configured (negative control: exit 1 locally without the values).
+- Vision NOTEs kept for later: Winnie's OpenAPI descriptions still say
+  "(Denver)" (`openapiGoalPaths.ts:49`, `openapiMealPlanPaths.ts:13`); Intl
+  accepts lowercase and legacy zone names (consistent with the app).

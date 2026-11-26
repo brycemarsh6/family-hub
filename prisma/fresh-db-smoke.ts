@@ -44,6 +44,10 @@ async function main(): Promise<void> {
   const { loadBriefingShared } = await import("../src/lib/briefingRead");
   const { calendarDateInZone } = await import("../src/lib/householdDate");
   const { HOUSEHOLD_TIME_ZONE } = await import("../src/lib/constants");
+  const { isCalendarPushConfigured } = await import("../src/lib/linkedCalendarsRead");
+
+  // Without Google settings the pull returns early and proves nothing.
+  if (!isCalendarPushConfigured()) throw new Error("Google settings missing, so the pull would not query the database");
 
   try {
     const pull = await pullCalendars({ force: true, rewindow: true });
