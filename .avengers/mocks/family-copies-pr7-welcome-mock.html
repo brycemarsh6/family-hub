@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Welcome steps and checklist mock (family copies PR 7)</title>
+<style>
+:root{--bg:#f6f0e8;--fg:#4e5256;--muted:#6f6a60;--line:#e2d9c9;--surface:#fff;--surface2:#ede6d9;--accent:#5a6b4f;--accent-fg:#f6f0e8;--accent-soft:#e4e9dc;--warn:#8a6410;--warn-soft:#faebc3}
+*{box-sizing:border-box}
+body{margin:0;background:#ddd6ca;color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:0 0 4px}
+h2.q{font-size:17px;margin:30px 0 6px;color:#2e3236}
+p.note{margin:0 0 12px;font-size:14px;line-height:1.5;max-width:760px}
+.rec{background:#fff;border-left:4px solid var(--accent);padding:8px 12px;margin:0 0 12px;font-size:14px;max-width:760px;line-height:1.5}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.frame h3{font-size:14px;margin:0 0 6px;max-width:330px}
+.dev{width:330px;height:680px;background:var(--bg);border:6px solid #222;border-radius:28px;overflow:hidden;position:relative;padding:0 22px}
+.logo{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:56px}
+.mark{width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px}
+.word{font-weight:800;font-size:28px;letter-spacing:-.02em;color:#3f4347}
+.tag{font-family:Georgia,serif;font-style:italic;color:var(--muted);text-align:center;font-size:15px;margin:4px 0 0}
+.muted{color:var(--muted);font-size:15px;line-height:1.5;margin:14px 0 0}
+.dots{display:flex;gap:6px;justify-content:center;margin:22px 0 4px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+.stepname{text-align:center;font-size:13px;color:var(--muted)}
+.h{font-size:22px;font-weight:700;margin:18px 0 4px;color:#3f4347}
+.lab{display:block;font-size:14px;color:var(--muted);margin:14px 0 6px}
+.field{min-height:48px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;padding:0 14px;font-size:16px}
+.field.ph{color:#9a9488}
+.btn{min-height:48px;width:100%;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:700;display:flex;align-items:center;justify-content:center;border:0;font-size:16px;margin-top:18px}
+.btn.off{opacity:.5}
+.btn.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.back{font-size:14px;color:var(--muted);font-weight:500;margin-top:18px}
+.link{font-size:14px;color:var(--accent);font-weight:600;text-align:center;margin-top:14px;text-decoration:underline}
+.code{font:700 23px ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 6px;margin-top:14px;color:#2e3236}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:500;margin-top:14px;line-height:1.45}
+.check{display:flex;gap:10px;align-items:center;margin-top:16px;font-size:15px;min-height:48px}
+.box{width:24px;height:24px;border-radius:6px;border:2px solid var(--line);background:#fff;flex:none}
+.box.on{background:var(--accent);border-color:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+.chip{display:flex;align-items:center;gap:12px;min-height:56px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:0 14px;font-weight:600;margin-top:8px}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:none}
+.set{padding:0 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
+.ct{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.cs{font-size:14px;color:var(--muted);line-height:1.5;margin-top:6px}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--fg)}
+.pill.none{background:var(--surface2);color:var(--muted)}
+.row2{min-height:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:center;padding:0 14px;margin-top:10px;font-weight:500;color:var(--muted)}
+</style></head><body><div class="wrap">
+</head><body>
+<style>
+.top{display:flex;align-items:center;gap:10px;height:52px;margin:0 -22px;padding:0 14px;border-bottom:1px solid var(--line)}
+.ham{width:22px;height:2px;background:#4e5256;box-shadow:0 6px 0 #4e5256,0 -6px 0 #4e5256;margin:0 8px}
+.steps{list-style:none;margin:14px 0 0;padding:0}
+.steps li{display:flex;gap:12px;align-items:flex-start;margin-top:14px;font-size:15px;line-height:1.45}
+.num{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--fg);font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-size:14px}
+.ico{display:inline-flex;vertical-align:-4px;margin:0 2px}
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:4px;margin-top:14px}
+.seg span{flex:1;min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;font-weight:600;font-size:15px;color:var(--muted)}
+.seg span.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px #0002}
+.cl{display:flex;align-items:center;gap:12px;min-height:52px;border-top:1px solid var(--line);font-size:15px}
+.cl:first-of-type{border-top:0}
+.cl .t{flex:1}
+.cl.done .t{color:var(--muted);text-decoration:line-through}
+.ring{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none}
+.ring.on{background:var(--accent);border-color:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+.chev{color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--surface2);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;height:110px;margin-top:10px;padding:12px;font-weight:700;font-size:14px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 .tile{margin-top:0}
+.small{font-size:13px;color:var(--muted)}
+.opt{font-size:12px;font-weight:600;color:var(--muted);background:var(--surface2);border-radius:999px;padding:2px 8px}
+</style>
+<div class="wrap">
+<h1>Welcome steps, install help and "Finish setting up" (family copies PR 7)</h1>
+<p class="note">Phone screens in the order a new family meets them, right after they save their recovery code on the setup page. Every question has my recommendation. <b>None of this shows on your own copy</b> except the new "Install on your phone" row in Settings (Q6).</p>
+
+<h2 class="q">Q1. Where they land, and the step order</h2>
+<div class="rec"><b>Recommend:</b> after "I saved my code", Continue opens <b>Welcome</b> instead of the dashboard. Two steps, the same dots as setup: <b>1. Add your family</b>, then <b>2. Put Marshee on your phone</b>. Family first, because the admin is the one holding the phone and the others can't sign in until they exist. The welcome page has no menu button and no back link, like setup, so nobody wanders off halfway.</div>
+
+<h2 class="q">Q2. Step 1: add your family</h2>
+<div class="rec"><b>Recommend:</b> heading "Who's in your family?", the admin already listed, and an "Add a person" button that opens the <b>same Add a person sheet</b> as Settings, Manage family (name, adult or kid, own login or profile only). Each person appears in the list as they're added. <b>Skipping is allowed:</b> the button reads "Next" either way, with a line saying they can add people later. Making them add someone would trap a family that wants to try it alone first.</div>
+<div class="row">
+<div class="frame"><h3>Step 1, just the admin</h3><div class="dev">
+<div class="logo" style="margin-top:40px"><div class="mark">M</div></div>
+<div class="dots"><i class="on"></i><i></i></div>
+<div class="stepname">Step 1 of 2</div>
+<div class="h">Who's in your family?</div>
+<p class="muted" style="margin-top:4px">Add the other adults and the kids. Adults can have their own login. Kids can have a login or just a profile.</p>
+<div class="chip"><div class="av" style="background:#6a7f9a">J</div>Jane <span class="pill" style="margin-left:auto">Admin</span></div>
+<div class="btn ghost" style="margin-top:12px">+ Add a person</div>
+<p class="small" style="margin-top:12px">You can add people later in Settings, Manage family.</p>
+<div class="btn">Next</div>
+</div></div>
+<div class="frame"><h3>Step 1, after adding three</h3><div class="dev">
+<div class="logo" style="margin-top:40px"><div class="mark">M</div></div>
+<div class="dots"><i class="on"></i><i></i></div>
+<div class="stepname">Step 1 of 2</div>
+<div class="h">Who's in your family?</div>
+<div class="chip"><div class="av" style="background:#6a7f9a">J</div>Jane <span class="pill" style="margin-left:auto">Admin</span></div>
+<div class="chip"><div class="av" style="background:#8a6f9a">M</div>Mark <span class="pill" style="margin-left:auto">Parent</span></div>
+<div class="chip"><div class="av" style="background:#9a7f5a">E</div>Ella <span class="pill" style="margin-left:auto">Kid</span></div>
+<div class="chip"><div class="av" style="background:#5a8a7f">S</div>Sam <span class="pill none" style="margin-left:auto">Kid, profile</span></div>
+<div class="btn ghost" style="margin-top:12px">+ Add a person</div>
+<div class="btn">Next</div>
+</div></div>
+</div>
+<div class="rec">The "Add a person" sheet itself is unchanged from today's Manage family, so it isn't drawn here. Removing or renaming someone stays in Manage family (the welcome list is add only, to keep it simple).</div>
+
+<h2 class="q">Q3. Step 2: put Marshee on your phone</h2>
+<div class="rec"><b>Recommend:</b> heading "Put Marshee on your phone", an <b>iPhone / iPad</b> switch that starts on whichever device they're holding, and three numbered steps for Safari. One extra line for anyone not in Safari. A last line reminds them each person does this on their own phone. The button is "Go to my dashboard". Skipping is fine here too: it's just help, nothing to save.</div>
+<div class="row">
+<div class="frame"><h3>Step 2, iPhone</h3><div class="dev">
+<div class="back" style="margin-top:20px">‹ Your family</div>
+<div class="dots"><i></i><i class="on"></i></div>
+<div class="stepname">Step 2 of 2</div>
+<div class="h">Put Marshee on your phone</div>
+<p class="muted" style="margin-top:4px">Add it to your Home Screen and it opens like an app, full screen.</p>
+<div class="seg"><span class="on">iPhone</span><span>iPad</span></div>
+<ol class="steps">
+<li><span class="num">1</span><span>In Safari, tap Share <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span> at the bottom of the screen.</span></li>
+<li><span class="num">2</span><span>Scroll down and tap <b>Add to Home Screen</b> <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span>.</span></li>
+<li><span class="num">3</span><span>Tap <b>Add</b>. Marshee is now on your Home Screen.</span></li>
+</ol>
+<p class="small" style="margin-top:14px">Using Chrome? Tap Share at the top right instead, then Add to Home Screen.</p>
+<p class="small" style="margin-top:8px">Everyone else in the family does this on their own phone.</p>
+<div class="btn">Go to my dashboard</div>
+</div></div>
+<div class="frame"><h3>Step 2, iPad</h3><div class="dev">
+<div class="back" style="margin-top:20px">‹ Your family</div>
+<div class="dots"><i></i><i class="on"></i></div>
+<div class="stepname">Step 2 of 2</div>
+<div class="h">Put Marshee on your phone</div>
+<p class="muted" style="margin-top:4px">Add it to your Home Screen and it opens like an app, full screen.</p>
+<div class="seg"><span>iPhone</span><span class="on">iPad</span></div>
+<ol class="steps">
+<li><span class="num">1</span><span>In Safari, tap Share <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span> at the top right, next to the address.</span></li>
+<li><span class="num">2</span><span>Tap <b>Add to Home Screen</b> <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span>.</span></li>
+<li><span class="num">3</span><span>Tap <b>Add</b>. Marshee is now on your Home Screen.</span></li>
+</ol>
+<p class="small" style="margin-top:14px">Using Chrome? Tap Share at the top right, then Add to Home Screen.</p>
+<p class="small" style="margin-top:8px">Everyone else in the family does this on their own phone.</p>
+<div class="btn">Go to my dashboard</div>
+</div></div>
+</div>
+<div class="rec"><b>Android:</b> your plan says iPhone and iPad only. <b>Recommend</b> leaving Android out for now (one line could be added later: "On Android, tap the ⋮ menu, then Add to Home screen"). <b>Home-screen icon:</b> the iPhone icon is already the right size. I'll add the 192 and 512 sizes the manifest is missing (resized from your brand masters, never redrawn), so Android and any "install" prompt show the Marshee mark too.</div>
+
+<h2 class="q">Q4. The "Finish setting up" card on the dashboard</h2>
+<div class="rec"><b>Recommend:</b> a card <b>pinned at the top of the dashboard, full width</b>, above all the widgets, shown <b>to admins only</b>. It is <i>not</i> a normal widget in Customize, because it's temporary and other family members don't need it (the plan said "a dashboard widget"; this is the same thing without it lingering in everyone's Add widget list forever). A thin bar shows progress, like "2 of 5 done". Each row opens the page that does it, and ticks itself when the thing exists.</div>
+<div class="row">
+<div class="frame"><h3>Dashboard, two items done</h3><div class="dev">
+<div class="top"><div class="ham"></div><b style="font-size:18px">Marshee</b></div>
+<div class="card" style="margin-top:12px">
+<div class="ct">Finish setting up <span class="small" style="margin-left:auto;font-weight:500">2 of 5</span></div>
+<div class="bar"><i style="width:40%"></i></div>
+<div style="margin-top:6px">
+<div class="cl done"><div class="ring on">✓</div><span class="t">Add your family</span></div>
+<div class="cl"><div class="ring"></div><span class="t">Pick your stores</span><span class="chev">›</span></div>
+<div class="cl done"><div class="ring on">✓</div><span class="t">Add pantry items</span></div>
+<div class="cl"><div class="ring"></div><span class="t">Set up a wall tablet</span><span class="opt">Optional</span><span class="chev">›</span></div>
+<div class="cl"><div class="ring"></div><span class="t">Link Google Calendar</span><span class="opt">Optional</span><span class="chev">›</span></div>
+</div>
+<div class="link" style="margin-top:8px">Hide this</div>
+</div>
+<div class="tile">Calendar</div>
+<div class="grid2" style="margin-top:10px"><div class="tile">Inventory</div><div class="tile">Grocery</div></div>
+</div></div>
+<div class="frame"><h3>Everything required done</h3><div class="dev">
+<div class="top"><div class="ham"></div><b style="font-size:18px">Marshee</b></div>
+<div class="card" style="margin-top:12px">
+<div class="ct">You're all set</div>
+<p class="cs">Marshee is ready for your family. The optional steps are still in Settings any time.</p>
+<div class="btn" style="margin-top:12px">Done</div>
+</div>
+<div class="tile">Calendar</div>
+<div class="grid2" style="margin-top:10px"><div class="tile">Inventory</div><div class="tile">Grocery</div></div>
+</div></div>
+</div>
+
+<h2 class="q">Q5. The checklist items, how each ticks, and hiding</h2>
+<div class="rec">
+<b>Recommend these five, in this order:</b><br>
+1. <b>Add your family</b>: ticks when anyone besides the admin exists. Opens Manage family. (Added because step 1 can be skipped.)<br>
+2. <b>Pick your stores</b>: ticks once they save the Stores screen, even if they keep the six built-in stores. Opens Settings, Stores.<br>
+3. <b>Add pantry items</b>: ticks at the first item in Inventory. Opens Inventory.<br>
+4. <b>Set up a wall tablet</b> (Optional): ticks when a Tablet login exists. Opens Settings, Manage family, where the Tablet button is.<br>
+5. <b>Link Google Calendar</b> (Optional): ticks when anyone links a Google account. Opens Settings, Synced calendars. <b>Hidden entirely</b> on a copy where Google isn't switched on.<br><br>
+<b>When it goes away:</b> when the three required items are ticked, the card turns into "You're all set" with a Done button. "Hide this" is always there, for a family that doesn't want it. Either one hides it for the whole family, for good (saved as the checklist-dismissed time). Not tied to a person, so a second admin doesn't see it again.<br><br>
+<b>Never on your copy:</b> the card only exists on a copy that was set up through a setup link (it has a "setup finished" time). Your copy never ran setup, and setup is switched off on your copy, so it can never appear for you. I'll also check the owner switch as a second lock, so a stray row can't bring it back.
+</div>
+
+<h2 class="q">Q6. Install help in Settings</h2>
+<div class="rec"><b>Recommend:</b> a new row <b>"Install on your phone"</b> in Settings, near the top with Text size and Open Marshee on, for every login (kids and the Tablet included, since it's harmless help). It opens <b>/settings/install</b>: the same iPhone / iPad steps as welcome step 2, with a back link to Settings and no "Go to my dashboard" button. <b>This row is the one change you'll see on your own copy.</b></div>
+<div class="row">
+<div class="frame"><h3>Settings row</h3><div class="dev">
+<div class="top"><div class="ham"></div><b style="font-size:18px">Settings</b></div>
+<div class="row2">Text size<span class="chev" style="margin-left:auto">›</span></div>
+<div class="row2">Open Marshee on<span class="chev" style="margin-left:auto">›</span></div>
+<div class="row2" style="color:var(--fg);border-color:var(--accent)"><span class="ico" style="margin-right:10px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Install on your phone<span class="chev" style="margin-left:auto">›</span></div>
+<div class="row2">Manage family<span class="chev" style="margin-left:auto">›</span></div>
+</div></div>
+</div>
+</div>
+</body></html>
