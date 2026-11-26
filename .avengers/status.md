@@ -6,6 +6,11 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Owner copy switch (mission 87, family copies PR 3)**, about 1 minute,
+  on your iPhone. Settings, scroll to the bottom: the Winnie card and its
+  "Send test to Winnie" button are still there. Say one Siri shortcut
+  command: it works as before. (Claude already proved production treats
+  your copy as the owner's: voice and Alexa answer past the new switch.)
 - **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
   your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
   tap one of his chores: the edit page opens (it used to say 404). Who
