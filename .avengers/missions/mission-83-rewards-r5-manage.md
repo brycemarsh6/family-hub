@@ -240,17 +240,21 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 ### C2 - The Manage page, the history sheet and the Rewards page links (UI)
 - **Status:** DISPATCHED
 - **Objective:** build the approved screens on top of C1.
-- **Boundaries:** may touch (new): `src/app/(app)/rewards/manage/page.tsx`,
-  `src/components/RewardsManage.tsx` (layout and sheet state),
-  `src/components/StarAdjustForm.tsx`, `src/components/RewardActivityList.tsx`,
-  `src/components/StarHistorySheet.tsx`, and one person-pick chip
-  component only if no existing one fits (check `ReportPersonChips.tsx`
-  first). May touch (edit, small): `src/app/(app)/rewards/page.tsx` (the
-  Manage button, parents and admins only), `src/components/RewardsBoard.tsx`
-  (the wide bank as a button opening history, the phone history link, the
-  sheet), `src/lib/rewardVocabulary.ts` (new words in the R5 block).
-  **Must not touch:** R4's files (C1 list), C1's lib and action files
-  (call them), `StarBank.tsx`, `RewardPersonChips.tsx`, docs.
+- **Boundaries:** may touch: new `src/app/(app)/rewards/manage/page.tsx`,
+  new `src/components/RewardsManage.tsx` (layout and sheet state), new
+  `src/components/StarAdjustForm.tsx`, new
+  `src/components/RewardActivityList.tsx`, new
+  `src/components/StarHistorySheet.tsx`, one new person-pick chip component
+  only if no existing one fits (check `src/components/ReportPersonChips.tsx`
+  first), `src/app/(app)/rewards/page.tsx` (the Manage button, parents and
+  admins only), `src/components/RewardsBoard.tsx` (the wide bank as a
+  button opening history, the phone history link, the sheet),
+  `src/lib/rewardVocabulary.ts`, `src/lib/rewardVocabulary.test.ts` (new
+  words in the R5 block) · must not touch: R4's files (C1's list), C1's
+  lib and action files (call them; if one needs a change, report
+  BLOCKED-ON-CONTRACT), `src/components/StarBank.tsx`,
+  `src/components/RewardPersonChips.tsx` (both imported by RewardsBoard,
+  unchanged), `docs/`, `DESIGN.md`, `STRUCTURE.md`.
 - **What to build:**
   1. `/rewards/manage`: `requireVerifiedUser()`, then
      `canManageRewards(user.role)` or `redirect("/rewards")`; wide page
