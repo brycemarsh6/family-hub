@@ -324,7 +324,7 @@ person.
   `people: { id, displayName }[]`.
 
 ### C3 - The /rewards page, the board, the cards, the drawer row and the rules docs
-- **Status:** DISPATCHED 2026-11-24 at 66b7ac9 (+ this record)
+- **Status:** DONE, commit 6d3b7d6
 - **Objective:** Put it together: the wide `/rewards` page, one person at
   a time on a phone and one column per person when wide, Earned and Hide
   earned, the drawer row, and the design and structure records.
@@ -408,7 +408,28 @@ person.
 - **Evidence required:** gauntlet tails, `wc -l`, `git show --stat HEAD`,
   screenshots or a description of each in-app step (or why skipped).
 - **Done criteria:** one commit, only boundary files, gauntlet green.
-- **Report:** -
+- **Report:** DONE, commit 6d3b7d6, 15 files in the boundary. Gauntlet green,
+  build exit 0 (`/rewards` in the route table), tests 2195 (no new tests).
+  Hide earned is its own 48px switch (ToggleSwitch is 44px). No
+  `rewards/loading.tsx` (not in the boundary; a wide page's loading file
+  should be wide from first paint): gate question.
+- **Fury's in-app check (2026-11-25, dev server, dev branch, signed in as
+  Bryce, a parent):** set test chore `zz m31 plan habit` to 5 stars and
+  checked it (bank 2 to 7); added `zz r3 cupcake` (cupcake, 5 stars,
+  Repeatable, Bryce). Redeem by **double tap**: one redemption, bank 7 to 2,
+  star rain, "Great work! zz r3 cupcake redeemed. By Bryce for 5 stars on
+  Wednesday, November 25.", bar restarted at "2 of 5". **Undo redeem**: bank
+  back to 7. Edited to One time, redeemed: **Earned** ring and word. **Hide
+  earned** on hides it and survives a reload (localStorage "1"; the dev
+  server paints the earned card for a moment before hydration). Un-checked
+  the chore: **bank -3** (below zero). Phone 375 wide: person chips, the
+  selected person's rewards, "Add reward for Bryce". All pass. Noted: R2
+  tests on the same dev branch (a `zz m32 together` 2-star log came and
+  went mid-test), so bank numbers move under us. Noted for Strange: with
+  Hide earned on, a column whose only reward is hidden says "No rewards
+  yet." **Test data left for the gates** (reward `zz r3 cupcake`, its one
+  redemption, the chore at 5 stars, now un-checked): Fury removes it after
+  the gates.
 
 ## Gate ledger
 
