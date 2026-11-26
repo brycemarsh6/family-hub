@@ -11,7 +11,9 @@
 # gauntlet never talks to a real database (tests are pure by design — the
 # loginRateLimitPolicy split exists exactly so `npm test` can't reach a
 # database), and every page is force-dynamic so `next build` renders no
-# data. If a future change makes any of these steps need a *real* secret,
+# data. The one exception is the "Fresh database" steps at the end of the job:
+# they talk to a throwaway empty Postgres that lives only for the run, on
+# port 5433 so the dummy DATABASE_URL above (port 5432) stays unreachable. If a future change makes any of these steps need a *real* secret,
 # treat that as a design smell to fix in the change, not a reason to add
 # secrets to CI.
 name: CI
@@ -27,11 +29,28 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Dummy values, never real. DATABASE_URL points at a host that does
-      # not exist in CI; nothing in the gauntlet connects to it.
+      # not exist in CI; only the "Fresh database" steps connect anywhere,
+      # and they set their own DATABASE_URL for the throwaway service.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
       SESSION_SECRET: "ci-dummy-session-secret-not-used-anywhere-real"
       VOICE_API_TOKEN: "ci-dummy-voice-token"
       ALEXA_SKILL_ID: "amzn1.ask.skill.00000000-0000-0000-0000-000000000000"
+    services:
+      # An empty Postgres, for proving the migrations build a working
+      # database from nothing (family copies start with one).
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fresh
+          POSTGRES_PASSWORD: fresh
+          POSTGRES_DB: fresh
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U fresh"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +85,34 @@ jobs:
         run: TZ=America/Los_Angeles node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts src/lib/rewards/*.test.ts
       - name: Build
         run: npm run build
+
+      # A family copy starts from an empty database, so prove every migration
+      # applies from zero, the result matches schema.prisma, and the cron
+      # reads survive empty data. Google values are dummies so the calendar
+      # pull really queries the database instead of returning early.
+      - name: "Fresh database: migrations from zero"
+        env:
+          DATABASE_URL: "postgresql://fresh:fresh@localhost:5433/fresh"
+        run: npx prisma migrate deploy
+      - name: "Fresh database: matches schema"
+        env:
+          DATABASE_URL: "postgresql://fresh:fresh@localhost:5433/fresh"
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+      - name: "Fresh database: crons on empty data"
+        env:
+          DATABASE_URL: "postgresql://fresh:fresh@localhost:5433/fresh"
+          GOOGLE_CLIENT_ID: "ci-dummy-google-client-id"
+          GOOGLE_CLIENT_SECRET: "ci-dummy-google-client-secret"
+          TOKEN_ENCRYPTION_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+        run: node --import tsx prisma/fresh-db-smoke.ts
+      # Positive and negative control for the build's time zone check.
+      - name: Time zone check
+        run: |
+          if NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE=Not/AZone node prisma/migrate-on-production.mjs; then
+            echo "a bad time zone name was accepted"
+            exit 1
+          fi
+          NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE=America/Los_Angeles node prisma/migrate-on-production.mjs
 
       # The record gets checked like the code does.
       #

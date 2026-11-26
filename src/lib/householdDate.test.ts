@@ -23,8 +23,14 @@ import {
   utcMidnightInstant,
   zoneMidnightInstant,
 } from "./householdDate";
+import { HOUSEHOLD_TIME_ZONE } from "./constants";
 
 const DENVER = "America/Denver";
+
+test("HOUSEHOLD_TIME_ZONE defaults to Denver when the env var is unset", () => {
+  assert.equal(process.env.NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE, undefined);
+  assert.equal(HOUSEHOLD_TIME_ZONE, DENVER);
+});
 
 test("zoneMidnightInstant: Denver offsets across the 2026 DST transitions", () => {
   const iso = (y: number, m: number, d: number) =>

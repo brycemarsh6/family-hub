@@ -1,5 +1,8 @@
 // Runs the database migrations during a Vercel *production* build, and
-// deliberately does nothing anywhere else.
+// deliberately does nothing else anywhere else, with one exception: it first
+// checks NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE (when set) is a real time zone name
+// and exits non-zero if not, on every build (preview and CI too), so a typo
+// in a family copy's zone fails the build instead of breaking its dates.
 //
 // Why this exists: since 2026-09-01 local dev runs against a Neon `dev`
 // branch, so migrating locally no longer migrates production. Something has
@@ -27,6 +30,19 @@
 // anything else in the project is guaranteed to be installed or generated.
 
 import { spawnSync } from "node:child_process";
+
+const zone = process.env.NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE;
+
+if (zone) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: zone });
+  } catch {
+    console.error(
+      `migrate-on-production: NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE is "${zone}", which is not a real time zone name. Use a name like America/Los_Angeles.`,
+    );
+    process.exit(1);
+  }
+}
 
 const env = process.env.VERCEL_ENV;
 
