@@ -1,5 +1,6 @@
 import { adjustmentBody, rewardCreateBody, rewardPatchBody, rewardsHistoryQuery, rewardsQuery } from "./schemasRewards";
 import type { Operation } from "./openapiTypes";
+import { COST_STEPS, STAR_STEPS } from "@/lib/rewardVocabulary";
 
 // The registry rows for the Rewards routes. Adding a route means
 // adding its row here; openapi.test.ts fails until you do.
@@ -53,7 +54,7 @@ export const rewardOperations: Operation[] = [
     action: "rewards.create",
     summary:
       "Add a reward or a wish for a person (personId). Give a cost and it is a reward; leave the cost out (or null) and it is a wish, a card waiting for a parent to set its cost. " +
-      "cost is a whole number from the app's list: 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000 (anything else is 400 with the app's words). " +
+      `cost is a whole number from the app's list: ${COST_STEPS.join(", ")} (anything else is 400 with the app's words). ` +
       "title is up to 60 letters; emoji is one picture or null; repeatable (default false) needs a cost (repeatable: true with no cost is 400). She never redeems it. " + NEVER + " Undoable (undo removes it, unless it has been redeemed).",
     body: rewardCreateBody,
     response:
@@ -83,7 +84,7 @@ export const rewardOperations: Operation[] = [
     path: "/rewards/adjustments",
     action: "rewards.adjust",
     summary:
-      "Give a person stars or take some away, with an optional note (up to 60 letters). direction is give or take; amount is a positive whole number from the star list: 1, 2, 3, 4, 5, 10, 15, 20, 25, 50. " +
+      `Give a person stars or take some away, with an optional note (up to 60 letters). direction is give or take; amount is a positive whole number from the star list: ${STAR_STEPS.join(", ")}. ` +
       "The family sees it in star history as coming from Winnie. A bank may go below zero. " + WHO + " Undoable (undo puts the bank back).",
     body: adjustmentBody,
     response:

@@ -173,7 +173,8 @@ files named beside it.
   for Bryce's Grok bot, Winnie (the plan calls it "Home Hub"). It covers the
   whole app except logins: inventory, leftovers, family, shopping and
   `GET /summary`, recipes, meal plan and cookbooks, habits and chores, plans
-  and goals; Rewards read and write, never redeem (missions 84, 85). Every write saves before/after
+  and goals; Rewards read and write (`/rewards`, `/rewards/{id}`,
+  `/rewards/adjustments`), never redeem (missions 84, 85). Every write saves before/after
   copies in the audit log and `POST /audit/{requestId}/undo` reverses a whole
   request for 30 days. Writes live in shared `src/lib/*Writes.ts` files used
   by both the family's Server Actions and the API. Winnie never deletes goals,

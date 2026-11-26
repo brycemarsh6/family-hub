@@ -2,7 +2,7 @@
 
 Part of [STRUCTURE.md](../../STRUCTURE.md)'s "One source of truth" list, split
 out of [rewards.md](rewards.md) by mission 85 (Winnie Rewards W2) when that
-file passed 300 lines. Every rule here binds exactly like STRUCTURE.md; a
+file passed 300 lines (Captain's mission-84 NOTE). Every rule here binds exactly like STRUCTURE.md; a
 second definition is a BLOCKER. Plan: `.avengers/plans/winnie-rewards-v1.md`.
 
 ## Winnie's Rewards reads (mission 84, W1)

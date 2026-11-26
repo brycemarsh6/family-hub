@@ -23,7 +23,7 @@ minutes) is a small function taking that number, and its caller passes
 the rule's constant (`pinLockedText`, `pinSheetHint`); the number is never
 typed in the sentence (Captain, mission 82). New reward words (R3 to R5) go here until it passes about 300
 code lines; past that a concern gets its own
-`reward<Concern>Vocabulary.ts`.
+`reward<Concern>Vocabulary.ts`. Words only Winnie is ever told (her API refusals) live in `src/lib/assistant/schemasRewards.ts`, the `schemasGoals.ts` precedent (rewards-winnie.md, "Input words"); the one Winnie word the family sees, `ASSISTANT_GIVER_NAME`, lives here.
 
 **Pure rules: `src/lib/rewards/`**, a domain subdirectory under the
 `src/lib/voice/` precedent. Every file there is pure: no `db`, no

@@ -5,14 +5,22 @@ import { readRewardAnswer } from "@/lib/assistant/rewardReads";
 import { REWARD_NOT_HERS, REWARD_REDEEMED, patchedRewardInput, rewardPatchBody } from "@/lib/assistant/schemasRewards";
 import { rewardChange } from "@/lib/assistant/serializeRewards";
 import { sameCopy, toCopy } from "@/lib/assistant/undoPlan";
+import { loadHouseholdPeople } from "@/lib/householdPeople";
+import { REWARD_GONE_REFUSAL } from "@/lib/rewardVocabulary";
 import { deleteReward, updateReward } from "@/lib/rewardWrites";
+import { missing } from "@/lib/writeError";
 import type { z } from "zod";
 
 export const PATCH = assistantRoute<{ id: string }, z.output<typeof rewardPatchBody>>({
   action: "rewards.update",
   body: rewardPatchBody,
   handler: async ({ params, body, changes }) => {
-    const result = await updateReward(params.id, (current) => patchedRewardInput(current, body));
+    // An owner who is not a household person (deactivated, or a device login)
+    // is refused inside the write, so nothing is saved and nothing is logged.
+    const household = new Set((await loadHouseholdPeople()).map((p) => p.id));
+    const result = await updateReward(params.id, (current) =>
+      household.has(current.ownerId) ? patchedRewardInput(current, body) : missing(REWARD_GONE_REFUSAL),
+    );
     if (!result) throw notFound();
     if ("error" in result) throw toWriteFailure(result);
     // A change that changes nothing records nothing.

@@ -1,7 +1,7 @@
 # Mission 85: Winnie Rewards W2, Winnie changes Rewards
 
 **Project:** family-hub (Marshee)
-**Status:** IN PROGRESS (C1, C2, C3 committed; C4 live test running)
+**Status:** GATES (F1 done; Vision pass 2)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/winnie-rewards-w2-writes-e68c3a` (worktree, cut from main 48f7c4f)
 
@@ -319,7 +319,7 @@ AGENTS.md in full. For this mission:
 
 ### C4 - Live test on the dev database
 
-- **Status:** DISPATCHED
+- **Status:** DONE (Stark, 2026-11-26): 73 of 73 checks pass. Counts before/after: Reward 0/0 extra, StarAdjustment 0/0, RewardRedemption 0/0, Habit 18/18, AssistantRequest 4/4; five banks equal. 55 AssistantRequest rows deleted by id from the response header. Family path (C1 script) re-run clean. Script: scratchpad `c4.ts`.
 - **Objective:** prove the Done-means list end to end over HTTP.
 - **Boundaries.** Scratchpad files only; no repo file changes.
 - **Work:** mission 40's "Live-test setup" (throwaway token, hash only in
@@ -344,10 +344,31 @@ AGENTS.md in full. For this mission:
   before and after counts; ids only.
 - **Done criteria:** every count and bank back to baseline; Vision re-runs.
 
+### F1 - Gate fixes, pass 1
+
+- **Status:** DONE (Stark, 2026-11-26): orphan script now 404, cost unchanged, 0 changes, counts back. Tests 2308 in Denver, UTC (10 pre-existing skips) and Los Angeles. Fury applied the doc NOTEs (STRUCTURE.md headline, pointer and size record; rewards.md words sentence; rewards-winnie.md provenance; CLAUDE.md names the routes, 250 lines).
+- **Objective:** close Vision's BLOCKER and the cheap NOTEs.
+- **Boundaries.** May touch: `src/app/api/assistant/v1/rewards/[id]/route.ts`,
+  `src/lib/assistant/openapiRewardPaths.ts`, `src/lib/assistant/openapiHabitPaths.ts`,
+  `src/lib/assistant/undoPlan.test.ts` (header comment only), scratchpad.
+  Must not touch: everything else (Fury edits the docs in parallel).
+- **Work:** 1. PATCH: load the household ids (`loadHouseholdPeople`) before
+  `updateReward`; the edit function returns `missing(REWARD_GONE_REFUSAL)`
+  when `current.ownerId` is not one, so nothing is written or logged and the
+  answer is 404. 2. OpenAPI text: the cost and star lists built from
+  `COST_STEPS` / `STAR_STEPS` (`join(", ")`), not typed. 3. `undoPlan.test.ts`
+  lines 1-2: Captain's header naming all four siblings.
+- **Verification:** gauntlet; Vision's `scratchpad/vision/orphan.ts`
+  expects 404, cost unchanged, 0 changes, counts back.
+- **Evidence:** gauntlet tails, orphan output, diff.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED (c35f9a4) | 1 | BLOCKER: PATCH /rewards/{id} on a reward whose owner is not a household person (deactivated or a device login) saves, then answers 404 at read-back; logged under a failed request so undo refuses (`failed_request`). Reproduced on dev. Gauntlet green both zones (10 UTC skips are pre-existing DST self-skips); own live run 102/102. NOTEs: same write-then-read-back race on POST /rewards and /adjustments (record only); DELETE guard's didAssistantCreate on a second connection (fine); OpenAPI cost and star lists typed by hand (build from COST_STEPS/STAR_STEPS); STRUCTURE.md has no pointer to rewards-winnie.md and no size record; CLAUDE.md does not name the routes. |
+| 1 | Captain | PASS (c35f9a4) | none | 8 NOTEs: STRUCTURE.md Rewards headline and pointer should name rewards-winnie.md; companion sizes unrecorded (rewards.md 300, rewards-winnie.md 78); rewards.md:13 "every rewards word" vs Winnie-only refusals in schemasRewards.ts (add a sentence); rewardVocabulary.ts 374/251 (watch); undoModels.ts 328/251 (watch); `RewardEdit` better homed in rewards/rewardRules.ts (next touch); hub `undoPlan.test.ts` header misses siblings; rewards-winnie.md provenance line optional. Doc NOTEs applied by Fury in the fix batch. |
+| 1 | Strange | PASS (c35f9a4) | none | Signed-in pane (Bryce), one test Winnie bonus via throwaway token, deleted by id (StarAdjustment 1 to 0, AssistantRequest 6 to 4). History sheet and Recent seen at 390, 820 portrait, 1180 landscape, light and dark: "Bonus from Winnie", "Bryce · +5 from Winnie · Today". NOTES: "Taken away by Winnie" not on screen (same path); a take in Recent reads "-5 from Winnie" (pre-existing pattern, "-5 from Dad"), a later wording look. |
 
 ## Delivery
 
