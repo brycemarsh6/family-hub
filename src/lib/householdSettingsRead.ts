@@ -12,3 +12,16 @@ export async function householdStores(): Promise<string[]> {
   const row = await db.householdSettings.findUnique({ where: { id: "household" } });
   return parseStoreList(row?.stores);
 }
+
+/** The family name saved in setup, or null when none is saved (or reading fails). */
+export async function savedFamilyName(): Promise<string | null> {
+  try {
+    const row = await db.householdSettings.findUnique({
+      where: { id: "household" },
+      select: { familyName: true },
+    });
+    return row?.familyName?.trim() || null;
+  } catch {
+    return null;
+  }
+}

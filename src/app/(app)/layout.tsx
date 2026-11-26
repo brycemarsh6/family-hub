@@ -4,6 +4,7 @@ import "../globals.css";
 import { AppChrome } from "@/components/AppChrome";
 import { StarFlightLayer } from "@/components/StarFlightLayer";
 import { getVerifiedUser } from "@/lib/dal";
+import { feedbackForwardsToOwner } from "@/lib/feedbackInbox";
 import { DEFAULT_NAV_MODE } from "@/lib/navMode";
 import { DEFAULT_TEXT_SIZE } from "@/lib/textSize";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
@@ -79,6 +80,8 @@ export default async function RootLayout({
   const user = await getVerifiedUser();
   // The wall tablet's screensaver is for a device login only; every other
   // login gets null, so no screensaver is mounted and no settings are read.
+  // True only on a relative's copy that is set up to pass feedback to Bryce.
+  const forwardsToOwner = user ? feedbackForwardsToOwner() : false;
   const screensaver = user?.isDevice ? await loadScreensaverSettings() : null;
 
   return (
@@ -92,6 +95,7 @@ export default async function RootLayout({
           navMode={user?.navMode ?? DEFAULT_NAV_MODE}
           screensaver={screensaver}
           startPage={user?.startPage}
+          forwardsToOwner={forwardsToOwner}
           user={
             user && {
               displayName: user.displayName,

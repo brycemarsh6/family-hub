@@ -44,6 +44,7 @@ export function AppChrome({
   navMode,
   screensaver = null,
   startPage,
+  forwardsToOwner = false,
   children,
 }: {
   user: DrawerUser | null;
@@ -52,6 +53,8 @@ export function AppChrome({
   screensaver?: ScreensaverSettings | null;
   /** The device login's start page, where a tap on the screensaver goes; unused for every other login. */
   startPage?: string;
+  /** True when feedback from this copy also reaches Bryce; the sheet then words itself to match. */
+  forwardsToOwner?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -123,6 +126,7 @@ export function AppChrome({
         <FeedbackSheet
           open={feedbackOpen}
           pagePath={pathname}
+          forwardsToOwner={forwardsToOwner}
           onClose={() => setFeedbackOpen(false)}
         />
       )}

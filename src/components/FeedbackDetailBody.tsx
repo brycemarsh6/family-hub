@@ -23,6 +23,7 @@ export function FeedbackDetailBody({
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">{item.authorName}</h2>
           <p className="text-sm text-muted">
+            {item.sourceFamily && `${item.sourceFamily} · `}
             {feedbackTimeLabel(item.createdAt)}
           </p>
         </div>

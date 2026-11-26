@@ -451,6 +451,18 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- **Feedback forwarding setup notes (mission 90, family copies PR 9)**, for
+  the runbook (PR 10). In each relative's Vercel project, Production only:
+  `FAMILY_NAME` written in full ("Smith family", not "Smith"; the inbox
+  prints it as is), `FEEDBACK_FORWARD_URL` (your copy's address plus
+  `/api/feedback-inbox`) and `FEEDBACK_FORWARD_KEY`. In your own project,
+  Production only: `FEEDBACK_INBOX_KEY`, the same secret. If forwarding
+  fails (your copy down, or the 10 per family / 30 total per hour cap), the
+  family still sees "Sent" and keeps their own copy; you just don't get it.
+  Wording to decide some day: the inbox subtitle "What the family sent from
+  Send feedback." now also covers relatives' reports. A family name saved in
+  `HouseholdSettings` wins over `FAMILY_NAME`; when the setup wizard (PR 6)
+  saves one, decide whether the inbox adds "family" after it.
 - Winnie's shopping store list is still the built-in six
   (`src/lib/assistant/schemasShopping.ts`, `z.enum(STORES)`). If Bryce edits
   his own store list, teach the Assistant API the saved list (family copies
