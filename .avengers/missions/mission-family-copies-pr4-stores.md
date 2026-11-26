@@ -234,7 +234,43 @@ items until they are bought (its chip shows while used, already S1's
 
 ## Gate log
 
-(S1 Vision pass 1 running)
+| Pass | Gate | Verdict | Findings |
+|---|---|---|---|
+| S1 / 1 | Vision (HEAD of S1, clean scratch checkout plus shared tree) | PASS | No blockers. Bryce's copy unchanged with no row. NOTES: `editIn` reads the list inside the locked transaction (two pool connections per edit); shopping page leaves a promise unhandled if the list query fails first; `serializeStoreList(["Other"])` is "" which reads back as the six defaults (S2 risk); store names "All"/"Unassigned" clash with chip labels (S2 risk); a removed store's chip vanishing while it is the active filter; `.slice` can split an emoji; `.env` line 13 holds a commented-out `DATABASE_URL` for another host (`ep-hidden-surf-`), for Bryce |
+
+F1 (below) fixes the S2-reachable notes before S2 is gated.
+
+### F1 — Fixes from Vision's S1 notes
+
+- **Objective:** close the store-list holes S2 makes reachable, before S2's gates.
+- **Boundaries:** may touch: `src/lib/storeList.ts`, `src/lib/storeList.test.ts`,
+  `src/components/GroceryList.tsx`, `src/lib/groceryWrites.ts`,
+  `src/app/(app)/kitchen/shopping/page.tsx`. Must not touch anything else.
+- **Fixes:**
+  1. `serializeStoreList` of a list with no real stores saves the text "Other"
+     (never ""), so removing every store keeps just "Other" instead of quietly
+     bringing back the six defaults. `parseStoreList("Other")` returns
+     `["Other"]`. Test both and the round trip.
+  2. `addStore` and `renameInList` refuse "All" and "Unassigned" (any case,
+     after cleaning) with "That name is used by the shopping list filters."
+     Export the two words from `storeList.ts` as the one definition and make
+     `GroceryList.tsx` use them for its `ALL` / `UNASSIGNED` constants.
+     `parseStoreList` drops those two names too (so hand-edited text can't
+     sneak them in). Tests.
+  3. `GroceryList.tsx`: if the active store filter is no longer among the chip
+     options (its last item bought or removed), fall back to "All". Derive it
+     during render (`const activeFilter = options.includes(storeFilter) ?
+     storeFilter : ALL`), no effect.
+  4. `groceryWrites.ts`: read `householdStores()` once before `db.$transaction`
+     in `patchGroceryItemWithCopies` and pass the list into `editIn`, so no
+     extra pool connection is held while the row is locked.
+  5. `kitchen/shopping/page.tsx`: load the rows and the store list with
+     `Promise.all`, like the other two kitchen pages.
+- **Verification:** full gauntlet (tsc, eslint, `npm test`, the direct TZ=UTC
+  command, `npm run build`).
+- **Evidence required:** test counts both timezones, tails of tsc/eslint/build,
+  `git diff --stat`.
+- **Done criteria:** Vision re-gate on S2 plus F1 passes.
 
 ## Notes and follow-ups
 

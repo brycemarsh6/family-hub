@@ -19,30 +19,30 @@ export default async function GroceriesPage() {
 
   // `select` lists exactly the fields we need. Asking for less means less data
   // travelling to the browser, and it's self-documenting.
-  // Started before the list query so the two database trips overlap.
-  const storesRequest = householdStores();
-  const rows = await db.groceryItem.findMany({
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      name: true,
-      quantity: true,
-      unit: true,
-      category: true,
-      checked: true,
-      note: true,
-      pantryItemId: true,
-      store: true,
-      location: true,
-      categoryEdited: true,
-      // Just enough to show "this lives in the Fridge right now" in the
-      // edit sheet — read fresh on every page load, so it can never go
-      // stale the way storing a copy on the grocery row would.
-      pantryItem: { select: { location: true } },
-    },
-  });
-
-  const stores = await storesRequest;
+  // Both queries run together so the two database trips overlap.
+  const [rows, stores] = await Promise.all([
+    db.groceryItem.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        quantity: true,
+        unit: true,
+        category: true,
+        checked: true,
+        note: true,
+        pantryItemId: true,
+        store: true,
+        location: true,
+        categoryEdited: true,
+        // Just enough to show "this lives in the Fridge right now" in the
+        // edit sheet — read fresh on every page load, so it can never go
+        // stale the way storing a copy on the grocery row would.
+        pantryItem: { select: { location: true } },
+      },
+    }),
+    householdStores(),
+  ]);
 
   const items = rows.map(({ pantryItem, ...row }) => ({
     ...row,

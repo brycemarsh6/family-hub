@@ -9,8 +9,16 @@ import { STORES } from "@/lib/constants";
 export const MAX_STORES = 12;
 export const MAX_STORE_NAME = 24;
 export const OTHER_STORE = "Other";
+// The shopping list's two built-in filter chips. A store can't take these
+// names or its chip would be confused with them.
+export const ALL_FILTER = "All";
+export const UNASSIGNED_FILTER = "Unassigned";
 
-/** Trim, collapse inner spaces, cut long names, drop blanks, drop repeats (any case), drop "Other". */
+const isFilterName = (name: string) =>
+  name.toLowerCase() === ALL_FILTER.toLowerCase() || name.toLowerCase() === UNASSIGNED_FILTER.toLowerCase();
+const FILTER_NAME_ERROR = "That name is used by the shopping list filters.";
+
+/** Trim, collapse inner spaces, cut long names, drop blanks, drop repeats (any case), drop "Other" and the two filter names. */
 function cleanNames(names: readonly string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -18,7 +26,7 @@ function cleanNames(names: readonly string[]): string[] {
     const name = raw.trim().replace(/\s+/g, " ").slice(0, MAX_STORE_NAME).trim();
     if (!name) continue;
     const key = name.toLowerCase();
-    if (key === OTHER_STORE.toLowerCase() || seen.has(key)) continue;
+    if (key === OTHER_STORE.toLowerCase() || isFilterName(name) || seen.has(key)) continue;
     seen.add(key);
     out.push(name);
   }
@@ -32,9 +40,13 @@ export function parseStoreList(text: string | null | undefined): string[] {
   return [...names, OTHER_STORE];
 }
 
-/** The text to save for a list of names (same cleaning as parseStoreList). */
+/**
+ * The text to save for a list of names (same cleaning as parseStoreList).
+ * A list with no real stores saves "Other", never "", because blank text
+ * reads back as the built-in six.
+ */
 export function serializeStoreList(names: readonly string[]): string {
-  return cleanNames(names).join("\n");
+  return cleanNames(names).join("\n") || OTHER_STORE;
 }
 
 /**
@@ -70,6 +82,7 @@ function cleanName(raw: string): string {
 export function addStore(list: readonly string[], name: string): StoreEdit {
   const clean = cleanName(name);
   if (!clean) return { ok: false, error: "Type a store name first." };
+  if (isFilterName(clean)) return { ok: false, error: FILTER_NAME_ERROR };
   if (list.some((existing) => existing.toLowerCase() === clean.toLowerCase())) {
     return { ok: false, error: "That store is already on the list." };
   }
@@ -90,6 +103,7 @@ export function renameInList(list: readonly string[], from: string, to: string):
   if (!list.includes(from)) return { ok: false, error: "That store isn't on the list." };
   const clean = cleanName(to);
   if (!clean) return { ok: false, error: "Type a store name first." };
+  if (isFilterName(clean)) return { ok: false, error: FILTER_NAME_ERROR };
   const clash = list.some((existing) => existing !== from && existing.toLowerCase() === clean.toLowerCase());
   if (clash || isOther(clean)) return { ok: false, error: "That store is already on the list." };
   return { ok: true, stores: list.map((existing) => (existing === from ? clean : existing)) };

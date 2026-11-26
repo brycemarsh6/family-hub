@@ -12,7 +12,7 @@ import {
   categoryOrder,
   STORE_ICON as StoreIcon,
 } from "@/lib/constants";
-import { storeFilterOptions } from "@/lib/storeList";
+import { ALL_FILTER, UNASSIGNED_FILTER, storeFilterOptions } from "@/lib/storeList";
 import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
 import { useContainerWidth } from "@/lib/useContainerWidth";
 import type { GroceryItemView } from "@/lib/types";
@@ -59,8 +59,8 @@ function applyChange(
 // checking off rows can still move a group, because the weights are the
 // unchecked counts. The measured wrapper (gridRef) holds the list only: the
 // edit sheet at the bottom is its sibling, never inside it (Wide pages rule 1).
-const ALL = "All";
-const UNASSIGNED = "Unassigned";
+const ALL = ALL_FILTER;
+const UNASSIGNED = UNASSIGNED_FILTER;
 
 export function GroceryList({
   items,
@@ -76,7 +76,7 @@ export function GroceryList({
   // and quietly replaces it. Without this, every tap would feel laggy.
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
-  const [storeFilter, setStoreFilter] = useState<string>(ALL);
+  const [chosenFilter, setStoreFilter] = useState<string>(ALL);
   // Which item (if any) has its edit sheet open. Just an id, not the item
   // itself, so the sheet always reads the latest optimistic data for it —
   // same reasoning as PantryList.
@@ -96,6 +96,11 @@ export function GroceryList({
       await serverAction();
     });
   }
+
+  // If the chosen store's chip is gone (its last item was bought or removed),
+  // fall back to All instead of showing an empty list with no chip lit.
+  const filterOptions = [ALL, UNASSIGNED, ...storeFilterOptions(stores, optimisticItems.map((i) => i.store))];
+  const storeFilter = filterOptions.includes(chosenFilter) ? chosenFilter : ALL;
 
   const filteredByStore =
     storeFilter === ALL
@@ -156,7 +161,7 @@ export function GroceryList({
       */}
       <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
-          {[ALL, UNASSIGNED, ...storeFilterOptions(stores, optimisticItems.map((i) => i.store))].map((option) => {
+          {filterOptions.map((option) => {
             const active = storeFilter === option;
             const count =
               option === ALL

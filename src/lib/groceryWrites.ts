@@ -224,12 +224,15 @@ export async function patchGroceryItemWithCopies(
   edits: GroceryEdits,
   checked: boolean | undefined,
 ): Promise<GroceryCopies | null> {
+  // Read before the transaction opens so no second connection is held while
+  // the row is locked.
+  const stores = await householdStores();
   return db.$transaction(async (tx) => {
     await lockGroceryRows(tx, [id]);
     const current = await tx.groceryItem.findUnique({ where: { id } });
     if (!current) return null;
     let after = current;
-    if (Object.keys(edits).length > 0) after = await editIn(tx, id, edits, current);
+    if (Object.keys(edits).length > 0) after = await editIn(tx, id, edits, current, stores);
     if (checked !== undefined) {
       await setCheckedIn(tx, [id], checked);
       after = (await tx.groceryItem.findUnique({ where: { id } })) ?? after;
@@ -243,6 +246,7 @@ async function editIn(
   id: string,
   edits: GroceryEdits,
   current: GroceryItem,
+  stores: readonly string[],
 ): Promise<GroceryItem> {
   const category =
     edits.category === undefined ? undefined : toCategory(edits.category);
@@ -253,7 +257,7 @@ async function editIn(
       ? undefined
       : current.store !== null && edits.store === current.store
         ? current.store
-        : toStore(edits.store, await householdStores());
+        : toStore(edits.store, stores);
 
   return tx.groceryItem.update({
     where: { id },

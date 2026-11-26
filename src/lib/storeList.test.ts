@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { STORES, toStore } from "./constants";
 import {
+  ALL_FILTER,
   MAX_STORES,
+  UNASSIGNED_FILTER,
   addStore,
   removeStore,
   renameInList,
@@ -133,4 +135,27 @@ test("reorderStores: refuses a different set, a repeat, or Other moved up", () =
   assert.equal(error(reorderStores(BASE, ["Kroger", "Aldi", "Extra"])), message);
   assert.equal(error(reorderStores(BASE, ["Kroger", "Kroger"])), message);
   assert.equal(error(reorderStores(BASE, ["Other", "Kroger", "Aldi"])), message);
+});
+
+test("serializeStoreList: no real stores saves Other, and it round trips", () => {
+  assert.equal(serializeStoreList([]), "Other");
+  assert.equal(serializeStoreList(["Other"]), "Other");
+  assert.deepEqual(parseStoreList("Other"), ["Other"]);
+  assert.deepEqual(parseStoreList(serializeStoreList([])), ["Other"]);
+  assert.deepEqual(parseStoreList(serializeStoreList(["Aldi", "Other"])), ["Aldi", "Other"]);
+});
+
+test("parseStoreList: drops the filter names All and Unassigned in any case", () => {
+  assert.deepEqual(parseStoreList("all\nAldi\nUNASSIGNED"), ["Aldi", "Other"]);
+  assert.deepEqual(parseStoreList("All"), ["Other"]);
+});
+
+test("addStore and renameInList refuse the filter names in any case", () => {
+  const message = "That name is used by the shopping list filters.";
+  assert.equal(ALL_FILTER, "All");
+  assert.equal(UNASSIGNED_FILTER, "Unassigned");
+  assert.equal(error(addStore(BASE, "All")), message);
+  assert.equal(error(addStore(BASE, "  unassigned ")), message);
+  assert.equal(error(renameInList(BASE, "Aldi", "ALL")), message);
+  assert.equal(error(renameInList(BASE, "Aldi", "Unassigned")), message);
 });
