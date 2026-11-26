@@ -503,3 +503,14 @@ recovery code reuse · two setup submits at once (only one admin).
   - Inter/Manrope set up in four root layouts; a shared `fonts.ts` if a fifth appears.
   - Continue's sign-in after setup was not tried live (dev has users); the
     throwaway-copy dress rehearsal covers it.
+
+## Follow-up: offline wording (branch `claude/family-copies-pr6-offline-wording`)
+
+- **D7 (Bryce, 2026-11-26, in the PR 6 chat: "Yes"):** a dropped connection on
+  "Create my family" says "Couldn't reach Marshee. Check your connection, then
+  tap Create my family again." (Strange's pass-2 note). The link-check line (D5)
+  is unchanged. PR 7 merged before the hand-over, so it ships here.
+- Change: `SETUP_WORDS.createFailed` and SetupWizard's create catch uses it
+  (typed values were already kept). New `src/lib/setupVocabulary.test.ts` pins both
+  lines and no dashes. Gate: Vision. Strange skipped (one sentence in an existing
+  alert Strange already reviewed).

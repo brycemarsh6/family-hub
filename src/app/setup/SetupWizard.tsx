@@ -141,7 +141,7 @@ export function SetupWizard() {
         result = await createFamily({ code: setupCode, familyName, displayName, password, passwordAgain });
       } catch {
         // A dropped connection: keep what was typed and say what to do.
-        setError(SETUP_WORDS.linkCheckFailed);
+        setError(SETUP_WORDS.createFailed);
         return;
       }
       if ("error" in result) {
