@@ -4,6 +4,7 @@ import type { AiUsageCardData } from "@/lib/aiUsageRead";
 import {
   AI_CARD_TITLE,
   AI_LOCKED_TEXT,
+  AI_USED_BAR_LABEL,
   aiUsedPercentText,
   aiUsedUpText,
 } from "@/lib/aiMeterVocabulary";
@@ -41,7 +42,7 @@ export function AiUsageCard({ data }: { data: AiUsageCardData }) {
             <div className="mt-3">
               <ProgressBar
                 fraction={data.percent / 100}
-                label="This month's AI used"
+                label={AI_USED_BAR_LABEL}
                 tone={data.state === "used-up" ? "warn" : "accent"}
               />
             </div>

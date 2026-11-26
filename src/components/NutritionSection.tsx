@@ -265,14 +265,24 @@ function ConfirmServingsSheet({
           )
         )}
 
-        <button
-          type="button"
-          onClick={handleCalculate}
-          disabled={pending}
-          className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-        >
-          {pending ? "Calculating…" : error ? "Try again" : "Calculate"}
-        </button>
+        {aiBlocked ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 w-full rounded-xl border border-line px-4 text-sm font-semibold transition-colors active:bg-surface-2"
+          >
+            Close
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCalculate}
+            disabled={pending}
+            className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
+          >
+            {pending ? "Calculating…" : error ? "Try again" : "Calculate"}
+          </button>
+        )}
       </div>
     </div>
   );

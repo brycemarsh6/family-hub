@@ -24,9 +24,12 @@ export function aiUsedUpText(resetsOn: CalendarDate): string {
   return `All of this month's AI is used. Resets ${resetsLabel(resetsOn)}.`;
 }
 
+/** The progress bar's spoken label. */
+export const AI_USED_BAR_LABEL = "This month's AI used";
+
 /** A copy with no allowance. */
 export const AI_LOCKED_TEXT =
-  "Recipe import from photos and links, meal ideas and nutrition estimates come with the AI upgrade.";
+  "Recipe import, meal ideas, nutrition estimates and grocery sorting come with the AI upgrade.";
 
 /** "$1.42": micro-dollars rounded to the nearest cent. */
 export function formatUsd(microUsd: number): string {

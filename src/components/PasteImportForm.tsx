@@ -78,7 +78,10 @@ export function PasteImportForm({
             <span className="mb-1 block">Recipe text</span>
             <textarea
               value={text}
-              onChange={(event) => setText(event.target.value)}
+              onChange={(event) => {
+                setText(event.target.value);
+                setAiBlocked(null);
+              }}
               rows={14}
               placeholder="Paste here…"
               className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none placeholder:text-muted"
@@ -101,7 +104,7 @@ export function PasteImportForm({
           <button
             type="button"
             onClick={handleExtract}
-            disabled={isPending || !text.trim()}
+            disabled={isPending || !text.trim() || aiBlocked !== null}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
             {isPending ? "Extracting…" : "Extract recipe"}

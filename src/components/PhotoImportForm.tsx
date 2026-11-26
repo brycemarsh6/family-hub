@@ -55,6 +55,7 @@ export function PhotoImportForm({
     if (files.length === 0) return;
 
     setError(null);
+    setAiBlocked(null);
     setIsReadingFile(true);
     try {
       // Sequential, not Promise.all: each downscale decodes a full-size
@@ -73,6 +74,7 @@ export function PhotoImportForm({
   }
 
   function removePhoto(index: number) {
+    setAiBlocked(null);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -199,7 +201,7 @@ export function PhotoImportForm({
           <button
             type="button"
             onClick={handleExtract}
-            disabled={isPending || photos.length === 0}
+            disabled={isPending || photos.length === 0 || aiBlocked !== null}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
             {isPending ? "Extracting…" : "Extract recipe"}
