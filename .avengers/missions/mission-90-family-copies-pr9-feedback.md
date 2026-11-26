@@ -193,3 +193,9 @@ plan's dress rehearsal step before the first family.
   eslint 0, `npm test` 2333 pass, TZ=UTC 2323 pass 10 skipped.
 - Fury wrote Captain's STRUCTURE.md amendments and the new companion file,
   and the setup notes in `.avengers/status.md`.
+- Vision pass 2 **PASS**, Strange pass 2 **PASS**, Captain pass 2 **PASS**.
+- Update from main: PR 4 (#141) had merged, so the brief's rule applies:
+  the family label now prefers `HouseholdSettings.familyName` (new reader
+  `savedFamilyName()` in `householdSettingsRead.ts`, never throws) and
+  falls back to `FAMILY_NAME`. Nothing saves a family name yet (PR 6's
+  setup will). Read inside `after()`, so the family's save is unaffected.

@@ -6,11 +6,6 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
-- **Owner copy switch (mission 87, family copies PR 3)**, about 1 minute,
-  on your iPhone. Settings, scroll to the bottom: the Winnie card and its
-  "Send test to Winnie" button are still there. Say one Siri shortcut
-  command: it works as before. (Claude already proved production treats
-  your copy as the owner's: voice and Alexa answer past the new switch.)
 - **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
   your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
   tap one of his chores: the edit page opens (it used to say 404). Who
@@ -36,11 +31,13 @@ it is done. The pre-cleanup text is in
   else reads "A private habit"), "Any wishes waiting for a cost?" and "Who
   redeemed something lately?". She cannot redeem and never sees the PIN:
   ask her to redeem something and she should say it happens in the app.
-- **Check your `.env` (found by Vision, mission 84):** the main checkout's
-  `.env` has a commented-out `DATABASE_URL` line whose host is not the dev
-  branch. If it is the production connection string, delete that line
-  (AGENTS.md: no dev environment should hold it). The active line is the
-  dev branch, so nothing used it.
+- **Stores (family copies PR 4)**, about 3 minutes, on your iPhone and the
+  iPad. Before touching anything: Shopping chips, the add bar's Store list,
+  an item's edit sheet and Inventory's cart sheet still read Walmart, Costco,
+  Amazon, Target, Maceys, Other. Then Settings, Stores (under Wall tablet):
+  add a test store, rename it (an item tagged with it moves to the new name),
+  drag it, swipe left and tap the gray Remove (an item keeps its chip until
+  bought). On the iPad the list stays phone-width. Remove the test store.
 - **Parent PIN, kid and tablet redeem, wishes (mission 82, R4)**, about
   6 minutes, on the iPad (as the Tablet) and your iPhone, light and dark.
   As a parent: Settings, Rewards, Parent PIN, set a 4-digit PIN. Sign the
@@ -453,8 +450,18 @@ it is done. The pre-cleanup text is in
   fails (your copy down, or the 10 per family / 30 total per hour cap), the
   family still sees "Sent" and keeps their own copy; you just don't get it.
   Wording to decide some day: the inbox subtitle "What the family sent from
-  Send feedback." now also covers relatives' reports. When PR 4 merges, the
-  family name can come from `HouseholdSettings` instead of `FAMILY_NAME`.
+  Send feedback." now also covers relatives' reports. A family name saved in
+  `HouseholdSettings` wins over `FAMILY_NAME`; when the setup wizard (PR 6)
+  saves one, decide whether the inbox adds "family" after it.
+- Winnie's shopping store list is still the built-in six
+  (`src/lib/assistant/schemasShopping.ts`, `z.enum(STORES)`). If Bryce edits
+  his own store list, teach the Assistant API the saved list (family copies
+  PR 4 follow-up).
+- Store list edits read, change and save with no row lock: two parents
+  editing in the same second, the last save wins (Vision, PR 4; rare).
+- `SwipeActions` danger buttons are white on a light red in dark mode,
+  about 2.4:1, under the 4.5:1 floor, on every danger swipe app-wide
+  (Strange, PR 4; pre-existing).
 - Parent PIN follow-ups (mission 82 gate NOTEs): the PIN check's catch
   logs nothing; the lock panel is taller, so the keys drop 8px when a lock
   starts; RewardSheet's plain refusal branch does not clear the PIN error;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QuantityStepper } from "./QuantityStepper";
-import { CATEGORIES, LOCATIONS, STORES } from "@/lib/constants";
+import { CATEGORIES, LOCATIONS } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
 export type GroceryItemEdits = {
@@ -30,11 +30,14 @@ export type GroceryItemEdits = {
  */
 export function GroceryItemEditSheet({
   item,
+  stores,
   onClose,
   onSave,
   onDelete,
 }: {
   item: GroceryItemView;
+  /** The household's saved store list, in order. */
+  stores: string[];
   onClose: () => void;
   onSave: (edits: GroceryItemEdits) => void;
   onDelete: () => void;
@@ -46,6 +49,10 @@ export function GroceryItemEditSheet({
   // "" stands for "no store chosen", which is a normal state — an item can
   // sit on the list before anyone decides where it's being bought.
   const [store, setStore] = useState(item.store ?? "");
+  // The item's own store stays pickable even if the household has since
+  // removed it from the list, so opening and saving never blanks it.
+  const storeOptions =
+    item.store && !stores.includes(item.store) ? [item.store, ...stores] : stores;
 
   // What "no opinion" resolves to: a linked item's current shelf (read live
   // on every page load, in pantryItemLocation), or "" for an item with
@@ -172,7 +179,7 @@ export function GroceryItemEditSheet({
               {/* Blank is a real choice, not a prompt to pick something —
                   it's how the item looks under the "Unassigned" chip. */}
               <option value="">No store yet</option>
-              {STORES.map((option) => (
+              {storeOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>

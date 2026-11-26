@@ -17,6 +17,7 @@ import {
 import { familyName } from "@/lib/feedbackForward";
 import { createFeedbackRow } from "@/lib/feedbackWrites";
 import { feedbackForwardsToOwner, forwardFeedbackToOwner } from "@/lib/feedbackInbox";
+import { savedFamilyName } from "@/lib/householdSettingsRead";
 
 export type SendFeedbackResult = { ok: true } | { ok: false; error: string };
 
@@ -67,9 +68,10 @@ export async function sendFeedback(input: {
   // A relative's copy also tells Bryce, after the family's own save is done.
   if (feedbackForwardsToOwner()) {
     const shared = input.shareScreenshotWithOwner === true && screenshot ? input.screenshot : null;
-    after(() =>
+    // The saved family name wins; FAMILY_NAME covers copies set up before it.
+    after(async () =>
       forwardFeedbackToOwner({
-        family: familyName(process.env.FAMILY_NAME),
+        family: familyName((await savedFamilyName()) ?? process.env.FAMILY_NAME),
         authorName: user.displayName,
         message: message.message,
         pagePath,

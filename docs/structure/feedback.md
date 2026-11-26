@@ -51,5 +51,7 @@ anything here is a BLOCKER.
 - Forwarding runs in `after()` once the family's own row is saved, so it
   never slows or fails their send. The owner's screenshot copy is sent only
   when `shareScreenshotWithOwner === true`.
-- `FAMILY_NAME` is read only through `familyName()` until the family name
-  moves to `HouseholdSettings` (family copies PR 4), which then replaces it.
+- The family label is `familyName(savedFamilyName() ?? FAMILY_NAME)`, built
+  only in `sendFeedback`'s `after()`: the name saved in `HouseholdSettings`
+  (read by `householdSettingsRead.ts`, the table's one reader) wins, and the
+  `FAMILY_NAME` setting covers copies set up before setup saves one.

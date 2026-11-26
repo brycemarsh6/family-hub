@@ -4,6 +4,7 @@ import { PutAwayButton } from "@/components/PutAwayButton";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import { StoreSelect } from "@/components/StoreSelect";
 import { getVerifiedUser } from "@/lib/dal";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { CATEGORY_NAMES, DEFAULT_CATEGORY, MANAGER_ROLES } from "@/lib/constants";
 import { addGroceryItem, clearCheckedGroceryItems } from "@/app/actions/groceries";
 
@@ -18,26 +19,30 @@ export default async function GroceriesPage() {
 
   // `select` lists exactly the fields we need. Asking for less means less data
   // travelling to the browser, and it's self-documenting.
-  const rows = await db.groceryItem.findMany({
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      name: true,
-      quantity: true,
-      unit: true,
-      category: true,
-      checked: true,
-      note: true,
-      pantryItemId: true,
-      store: true,
-      location: true,
-      categoryEdited: true,
-      // Just enough to show "this lives in the Fridge right now" in the
-      // edit sheet — read fresh on every page load, so it can never go
-      // stale the way storing a copy on the grocery row would.
-      pantryItem: { select: { location: true } },
-    },
-  });
+  // Both queries run together so the two database trips overlap.
+  const [rows, stores] = await Promise.all([
+    db.groceryItem.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        quantity: true,
+        unit: true,
+        category: true,
+        checked: true,
+        note: true,
+        pantryItemId: true,
+        store: true,
+        location: true,
+        categoryEdited: true,
+        // Just enough to show "this lives in the Fridge right now" in the
+        // edit sheet — read fresh on every page load, so it can never go
+        // stale the way storing a copy on the grocery row would.
+        pantryItem: { select: { location: true } },
+      },
+    }),
+    householdStores(),
+  ]);
 
   const items = rows.map(({ pantryItem, ...row }) => ({
     ...row,
@@ -86,7 +91,7 @@ export default async function GroceriesPage() {
         )}
       </div>
 
-      <GroceryList items={items} />
+      <GroceryList items={items} stores={stores} />
 
       {/* Keeps the last row clear of the floating add bar. */}
       <div aria-hidden="true" className="h-28" />
@@ -98,7 +103,7 @@ export default async function GroceriesPage() {
           options={CATEGORY_NAMES}
           defaultValue={DEFAULT_CATEGORY}
         />
-        <StoreSelect />
+        <StoreSelect stores={stores} />
       </AddItemBar>
     </div>
   );
