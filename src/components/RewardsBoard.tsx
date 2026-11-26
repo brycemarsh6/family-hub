@@ -91,14 +91,16 @@ export function RewardsBoard({
                 aria-label={person.displayName}
                 className={`min-w-0 rounded-2xl @min-[48rem]:bg-surface-2/40 @min-[48rem]:p-3 ${person.id === selectedId ? "" : "hidden @min-[48rem]:block"}`}
               >
-                <div className="mb-3 hidden items-center gap-3 @min-[48rem]:flex">
-                  <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} />
-                  <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{person.displayName}</h2>
+                <div className="mb-3 hidden @min-[48rem]:block">
+                  <div className="flex items-center gap-3">
+                    <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} />
+                    <h2 className="min-w-0 flex-1 text-lg font-bold">{person.displayName}</h2>
+                  </div>
                   <button
                     type="button"
                     aria-label={historyBankLabelText(person.displayName, bank)}
                     onClick={() => setHistory({ userId: person.id, name: person.displayName })}
-                    className="flex min-h-12 items-center gap-1 rounded-xl border border-line px-2 active:bg-surface-2"
+                    className="mt-1 flex min-h-12 w-fit items-center gap-1 rounded-xl border border-line px-2 active:bg-surface-2"
                   >
                     <StarBank userId={person.id} stars={bank} />
                     <ChevronRight aria-hidden="true" size={16} className="text-muted" />

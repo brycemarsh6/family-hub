@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useOptimistic, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gift, Star } from "lucide-react";
 import { undoRedeem } from "@/app/actions/rewards";
@@ -12,27 +12,26 @@ import { useOptimisticRun } from "@/lib/useOptimisticRun";
 /**
  * Manage's Recent list: redemptions and bonus or taken stars from the last 30
  * days, each with a one-tap Undo (no confirmation). The row leaves at once and
- * comes back with a message if the undo fails. R3's undo does not refresh
+ * comes back with a message if the undo fails (useOptimistic drops the hide;
+ * `gone` keeps it hidden after a success until the refreshed lines arrive). R3's undo does not refresh
  * this page, so it refreshes itself after a success.
  */
 export function RewardActivityList({ lines }: { lines: RecentLine[] }) {
   const router = useRouter();
   const keyOf = (line: RecentLine) => `${line.kind}-${line.id}`;
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
-  const { run, error } = useOptimisticRun<string>((key) => setGone((current) => new Set(current).add(key)));
-  const shown = lines.filter((line) => !gone.has(keyOf(line)));
+  const [optimisticLines, hide] = useOptimistic<RecentLine[], string>(lines, (list, key) => list.filter((line) => keyOf(line) !== key));
+  const { run, error } = useOptimisticRun<string>(hide);
+  const shown = optimisticLines.filter((line) => !gone.has(keyOf(line)));
 
   function handleUndo(line: RecentLine) {
     run(
       keyOf(line),
       () => (line.kind === "redeem" ? undoRedeem(line.id) : undoStarAdjustment(line.id)),
-      () => router.refresh(),
-      () =>
-        setGone((current) => {
-          const next = new Set(current);
-          next.delete(keyOf(line));
-          return next;
-        }),
+      () => {
+        setGone((current) => new Set(current).add(keyOf(line)));
+        router.refresh();
+      },
     );
   }
 
