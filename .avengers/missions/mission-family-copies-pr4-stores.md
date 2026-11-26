@@ -1,7 +1,7 @@
 # Mission: Family copies PR 4, household settings and stores
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (contract S1 dispatched; S2 waits for Bryce's yes on the screen mock)
+**Status:** AT-THE-GATES (S1 committed and with Vision; S2 built, uncommitted, gates next)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr4-stores` (cut from `main` at 183f02e)
 **Plan:** `.avengers/plans/family-copies-v1.md`, "PR 4" and "Running order"
@@ -220,9 +220,21 @@ items until they are bought (its chip shows while used, already S1's
   `git diff --stat`; what you clicked and what reloaded.
 - **Done criteria:** Strange PASS on screenshots against DESIGN.md; Vision PASS.
 
+## Build log
+
+- S1, Stark: DONE. Committed by Fury as the commit "Household settings table
+  and saved store list". Migration applied to dev branch only. `npm test`
+  2283 to 2293; TZ=UTC 2293 tests, 2283 pass, 10 skipped (Denver-only, same
+  before). tsc, eslint, build clean.
+- S2, Stark: DONE for code; browser check not done (no test login in seed or
+  example files). `renameStore` takes the already-computed next list as its
+  first argument (the action runs the pure helper first). Rename sheet lives in
+  `StoreListEditor.tsx`. `npm test` 2302; TZ=UTC 2302 tests, 2292 pass, 10
+  skipped. Build lists `/settings/stores`.
+
 ## Gate log
 
-(none yet)
+(S1 Vision pass 1 running)
 
 ## Notes and follow-ups
 

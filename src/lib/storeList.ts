@@ -51,3 +51,59 @@ export function storeFilterOptions(
   }
   return out;
 }
+
+// The edits behind the Stores screen. Each takes the household's current list
+// (as parseStoreList returns it, "Other" last) and gives back the next list or
+// a plain-words reason it was refused. "Other" can't be added, removed,
+// renamed or moved, so it stays last after every edit.
+
+export type StoreEdit = { ok: true; stores: string[] } | { ok: false; error: string };
+
+const isOther = (name: string) => name.toLowerCase() === OTHER_STORE.toLowerCase();
+
+/** One typed name, cleaned the same way the saved list is. */
+function cleanName(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").slice(0, MAX_STORE_NAME).trim();
+}
+
+/** Put a new store just before "Other". */
+export function addStore(list: readonly string[], name: string): StoreEdit {
+  const clean = cleanName(name);
+  if (!clean) return { ok: false, error: "Type a store name first." };
+  if (list.some((existing) => existing.toLowerCase() === clean.toLowerCase())) {
+    return { ok: false, error: "That store is already on the list." };
+  }
+  if (list.length >= MAX_STORES) return { ok: false, error: `You can have up to ${MAX_STORES} stores.` };
+  const names = list.filter((existing) => !isOther(existing));
+  return { ok: true, stores: [...names, clean, OTHER_STORE] };
+}
+
+export function removeStore(list: readonly string[], name: string): StoreEdit {
+  if (isOther(name)) return { ok: false, error: "Other can't be removed." };
+  if (!list.includes(name)) return { ok: false, error: "That store isn't on the list." };
+  return { ok: true, stores: list.filter((existing) => existing !== name) };
+}
+
+/** Rename in place. Only capitals may change on their own; any other clash is refused. */
+export function renameInList(list: readonly string[], from: string, to: string): StoreEdit {
+  if (isOther(from)) return { ok: false, error: "Other can't be renamed." };
+  if (!list.includes(from)) return { ok: false, error: "That store isn't on the list." };
+  const clean = cleanName(to);
+  if (!clean) return { ok: false, error: "Type a store name first." };
+  const clash = list.some((existing) => existing !== from && existing.toLowerCase() === clean.toLowerCase());
+  if (clash || isOther(clean)) return { ok: false, error: "That store is already on the list." };
+  return { ok: true, stores: list.map((existing) => (existing === from ? clean : existing)) };
+}
+
+/** The new order must name exactly the stores on the list ("Other" may be left off, or last). */
+export function reorderStores(list: readonly string[], orderedNames: readonly string[]): StoreEdit {
+  const movable = list.filter((existing) => !isOther(existing));
+  const ordered = [...orderedNames];
+  if (ordered.length > 0 && isOther(ordered[ordered.length - 1])) ordered.pop();
+  const sameSet =
+    ordered.length === movable.length &&
+    new Set(ordered).size === ordered.length &&
+    ordered.every((existing) => movable.includes(existing));
+  if (!sameSet) return { ok: false, error: "That order doesn't match the stores on the list." };
+  return { ok: true, stores: [...ordered, OTHER_STORE] };
+}
