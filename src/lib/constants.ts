@@ -339,4 +339,11 @@ export function toAvatarColor(value: unknown): AvatarColor {
 // has no browser clock to ask and so must name the household's "today"
 // explicitly. K1's calendar date logic still gets "today" from the browser
 // (useToday()); K5/K6 (recurrence, notifications) will need this too.
-export const HOUSEHOLD_TIME_ZONE = "America/Denver";
+//
+// Family copies (.avengers/plans/family-copies-v1.md): the zone is an env var
+// so each copy fixes its own before any data exists (day columns are stored as
+// household days, so changing it later would shift them). Unset or empty means
+// Denver. It must be this literal `process.env.NEXT_PUBLIC_...` access so Next
+// inlines it into client code. prisma/migrate-on-production.mjs fails the
+// build when the name is not a real time zone.
+export const HOUSEHOLD_TIME_ZONE = process.env.NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE || "America/Denver";
