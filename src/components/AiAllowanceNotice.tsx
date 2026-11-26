@@ -3,6 +3,7 @@ import type { AiBlocked } from "@/lib/aiBlocked";
 import {
   AI_ASK_ADMIN_TEXT,
   AI_BLOCKED_TITLE,
+  AI_LOCKED_TEXT,
   AI_UPGRADE_BUTTON,
   aiBlockedResetsLine,
 } from "@/lib/aiMeterVocabulary";
@@ -16,8 +17,14 @@ import {
 export function AiAllowanceNotice({ aiBlocked }: { aiBlocked: AiBlocked }) {
   return (
     <div role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-left text-warn">
-      <p className="text-sm font-semibold">{AI_BLOCKED_TITLE}</p>
-      <p className="mt-1 text-sm">{aiBlockedResetsLine(aiBlocked.resetsLabel)}</p>
+      {aiBlocked.reason === "locked" ? (
+        <p className="text-sm font-semibold">{AI_LOCKED_TEXT}</p>
+      ) : (
+        <>
+          <p className="text-sm font-semibold">{AI_BLOCKED_TITLE}</p>
+          <p className="mt-1 text-sm">{aiBlockedResetsLine(aiBlocked.resetsLabel)}</p>
+        </>
+      )}
       {aiBlocked.isAdmin ? (
         aiBlocked.upgradeUrl && (
           <a

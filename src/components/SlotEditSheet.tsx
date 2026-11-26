@@ -191,13 +191,15 @@ export function SlotEditSheet({
                 ) : (
                   <p className="text-sm text-danger">{suggestError}</p>
                 )}
-                <button
-                  type="button"
-                  onClick={askAi}
-                  className="mt-3 min-h-11 rounded-xl border border-line px-4 text-sm font-semibold transition-colors active:bg-surface-2"
-                >
-                  Try again
-                </button>
+                {!aiBlocked && (
+                  <button
+                    type="button"
+                    onClick={askAi}
+                    className="mt-3 min-h-11 rounded-xl border border-line px-4 text-sm font-semibold transition-colors active:bg-surface-2"
+                  >
+                    Try again
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-2">

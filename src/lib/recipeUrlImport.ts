@@ -6,6 +6,7 @@ import {
   hasRecipeContent,
   type ExtractedRecipe,
 } from "@/lib/recipeExtract";
+import { AiAllowanceError } from "@/lib/aiMeter";
 
 // The flaky import path, built last on purpose so nothing else depends on
 // it. Three routes depending on the host:
@@ -85,6 +86,7 @@ export async function importRecipeFromUrl(
     if (isPinterest(host)) return await importFromPinterest(url.toString());
     return await importFromBlog(url.toString());
   } catch (e) {
+    if (e instanceof AiAllowanceError) throw e;
     if (e instanceof UnsafeUrlError) return { error: UNSAFE_LINK_ERROR };
     return {
       error: `Couldn't read that link. ${SCREENSHOT_HINT}`,

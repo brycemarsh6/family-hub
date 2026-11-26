@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import { ProgressBar } from "@/components/ProgressBar";
 import type { AiUsageCardData } from "@/lib/aiUsageRead";
 import {
   AI_CARD_TITLE,
@@ -14,8 +15,7 @@ import {
  * no limit. A relative's copy shows a percent bar and the reset day, never
  * dollars; used up turns the bar warn (amber, not red: nothing is wrong, it
  * just resets). Only an admin with an Upgrade link sees the button. Plain
- * server markup, no state. The bar is its own markup, not `ProgressBar`,
- * because the used-up state needs the warn color and `ProgressBar` is accent only.
+ * server markup, no state.
  */
 export function AiUsageCard({ data }: { data: AiUsageCardData }) {
   return (
@@ -39,17 +39,11 @@ export function AiUsageCard({ data }: { data: AiUsageCardData }) {
                 ? aiUsedUpText(data.resetsOn)
                 : aiUsedPercentText(data.percent, data.resetsOn)}
             </p>
-            <div
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={data.percent}
-              aria-label="This month's AI used"
-              className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-2"
-            >
-              <div
-                className={`h-full rounded-full ${data.state === "used-up" ? "bg-warn" : "bg-accent"}`}
-                style={{ width: `${data.percent}%` }}
+            <div className="mt-3">
+              <ProgressBar
+                fraction={data.percent / 100}
+                label="This month's AI used"
+                tone={data.state === "used-up" ? "warn" : "accent"}
               />
             </div>
           </>
