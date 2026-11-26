@@ -15,7 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { canEditHabit } from "@/lib/habits/access";
+import { canEditHabit, canReorderListOf } from "@/lib/habits/access";
 import { canSetStars } from "@/lib/rewards/access";
 import { INCLUDE_YOURSELF, checkHabitInput, type HabitInput } from "@/lib/habitInput";
 import {
@@ -28,6 +28,7 @@ import {
 import { recomputeAllStreaks as rebuildAllStreaks } from "@/lib/habits/streakWrites";
 import { householdParticipantIds, reorderHabits as reorderHabitRows } from "@/lib/habits/participantWrites";
 import { loadHabitForAction } from "@/lib/habitsRead";
+import { loadHouseholdPersonRole } from "@/lib/householdPeople";
 
 export type RecomputeResult = { error?: string; habits?: number };
 
@@ -175,20 +176,28 @@ export async function deleteHabit(habitId: string): Promise<HabitActionResult> {
 }
 
 /**
- * Save the order of the signed-in person's own list. Guards: session, the
- * tablet refused (it holds no list), the ids as claims. The writer only ever
- * touches this person's own participant rows and ignores ids they are not in,
- * so there is no per-row policy to read.
+ * Save the order of a list on Manage: the signed-in person's own, or (with
+ * `personId`) another person's. Guards: session, the tablet refused (it holds
+ * no list), the ids as claims, `personId` a string when given, and for
+ * someone else's list `canReorderListOf` (a parent or admin for a kid's list
+ * only). The writer only ever touches the subject's own participant rows and
+ * ignores ids they are not in, so there is no per-row policy to read.
  */
-export async function reorderHabits(ids: string[]): Promise<HabitActionResult> {
+export async function reorderHabits(ids: string[], personId?: string): Promise<HabitActionResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: NOT_SIGNED_IN };
   if (user.isDevice) return { error: DEVICE_REFUSAL };
   if (!Array.isArray(ids) || ids.length > MAX_REORDER_IDS || ids.some((id) => typeof id !== "string")) {
     return { error: "Couldn't save the order." };
   }
+  if (personId !== undefined && typeof personId !== "string") return { error: "Couldn't save the order." };
+  const subjectId = personId ?? user.userId;
   try {
-    await reorderHabitRows(user.userId, ids);
+    if (subjectId !== user.userId) {
+      const role = await loadHouseholdPersonRole(subjectId);
+      if (!role || !canReorderListOf({ userId: user.userId, role: user.role }, subjectId, role)) return { error: "Couldn't save the order." };
+    }
+    await reorderHabitRows(subjectId, ids);
     revalidateHabits();
     return {};
   } catch (err) {

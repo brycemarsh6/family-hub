@@ -1,4 +1,4 @@
-import { MANAGER_ROLES } from "../constants";
+import { MANAGER_ROLES, type Role } from "../constants";
 import type { HabitAccess, HabitActor } from "./types";
 
 // Who may see, edit and check a habit (decisions 78 and 79): one policy in
@@ -59,6 +59,25 @@ export function canEditChart(actor: HabitActor, personId: string): boolean {
  */
 export function canSeeHabitReport(actor: HabitActor, personId: string): boolean {
   return actor.role !== "device" && (actor.userId === personId || isManager(actor));
+}
+
+/**
+ * Whose Manage list a person may open (mission 89): yourself; a parent or
+ * admin for anyone. Never the tablet.
+ */
+export function canOpenManageOf(actor: HabitActor, personId: string): boolean {
+  return actor.role !== "device" && (actor.userId === personId || isManager(actor));
+}
+
+/**
+ * Whose Manage order a person may change (mission 89): yourself; a parent or
+ * admin for a kid's list only (a kid has no login to set their own order).
+ * Another adult keeps their own order. Never the tablet. `personRole` is the
+ * list owner's role.
+ */
+export function canReorderListOf(actor: HabitActor, personId: string, personRole: Role): boolean {
+  if (actor.role === "device") return false;
+  return actor.userId === personId || (isManager(actor) && personRole === "kid");
 }
 
 /**

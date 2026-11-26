@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor, HabitLogDay } from "./habits/types";
-import { buildChoreChart, choreCacheFromRow, choreHeader, orderVacations, overrideWindowStart } from "./choreChart";
+import { buildChoreChart, choreCacheFromRow, choreHeader, orderVacations, overrideWindowStart, personChipsFor } from "./choreChart";
 import { buildFamilyPage } from "./habitsFamily";
 import { buildTodayPage, type TodayHabitInput } from "./habitsToday";
 
@@ -148,7 +148,7 @@ test("buildChoreChart: This week runs Sunday to Saturday with no changes, and a 
   assert.equal(tuesday.chores[0].canChange, false); // Nov 3 is past
   const thursday = chart.thisWeek.days[4];
   assert.equal(thursday.isToday, true);
-  assert.deepEqual(thursday.chores[0], { id: "sheets", title: "sheets", icon: null, who: null, fromWeekday: 4, state: "required", tag: null, changed: false, canChange: true, askParent: false, originalDayPast: false, moveTargets: [5, 6] });
+  assert.deepEqual(thursday.chores[0], { id: "sheets", title: "sheets", icon: null, who: null, fromWeekday: 4, state: "required", tag: null, changed: false, canChange: true, askParent: false, canEdit: true, originalDayPast: false, moveTargets: [5, 6] });
 });
 
 test("buildChoreChart: a move shows on both days, a skip on its own, with the tags", () => {
@@ -200,6 +200,20 @@ test("buildChoreChart: a kid on a shared chore is told to ask a parent; a parent
   const flagsFor = (viewer: HabitActor) => buildChoreChart(viewer, "ben", people, [shared, solo], today)!.thisWeek.days[4].chores.map((c) => [c.id, c.askParent]);
   assert.deepEqual(flagsFor(ben), [["shared", true], ["solo", false]]);
   assert.deepEqual(flagsFor(amy), [["shared", false], ["solo", false]]);
+});
+
+test("buildChoreChart: canEdit is canEditHabit and not askParent (mission 89, D4)", () => {
+  const shared = chore("shared", TUE_THU, { who: ["ben", "cat"] });
+  const solo = chore("solo", TUE_THU, { who: ["ben"] });
+  const secret = chore("secret", TUE_THU, { who: ["ben"], isPrivate: true });
+  const editFor = (viewer: HabitActor) => buildChoreChart(viewer, "ben", people, [shared, solo, secret], today)!.thisWeek.days[4].chores.map((c) => [c.id, c.canEdit]);
+  assert.deepEqual(editFor(amy), [["shared", true], ["solo", true]]); // a parent edits any chore they see; another's private one never shows
+  assert.deepEqual(editFor(ben), [["shared", false], ["solo", true], ["secret", true]]); // a kid on a shared chore is told to ask a parent
+});
+
+test("personChipsFor: the viewer first, then the given order, first names, the selected one marked", () => {
+  const chips = personChipsFor(amy, [people[1], people[2], people[0]], "cat");
+  assert.deepEqual(chips.map((c) => [c.id, c.name, c.selected]), [["amy", "Amy", false], ["ben", "Ben", false], ["cat", "Cat", true]]);
 });
 
 test("overrideWindowStart: two weeks back, or the Sunday of the oldest cache's day when that is earlier", () => {

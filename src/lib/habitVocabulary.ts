@@ -283,6 +283,25 @@ export const CHORE_CHART_LABELS = {
   askParent: "Ask a parent to change a shared chore.",
   /** The page subtitle: "Emily's week". */
   personWeek: (name: string) => `${name}'s week`,
+  /** The sheet's link to the chore's edit page (mission 89). */
+  editChore: "Edit chore",
+} as const;
+
+// ---- Manage (mission 89) ----
+
+export const MANAGE_LABELS = {
+  /** The subtitle when the list can be dragged, and when it cannot (another adult's, decision D2). */
+  subtitleReorder: "Tap a row to edit. Drag the grip to reorder.",
+  subtitleTap: "Tap a row to edit.",
+  /** The aria label of the person chips under it. */
+  personAria: "Whose habits",
+  /** The empty list's title, and its hint on your own list. */
+  emptyTitle: "Nothing here yet",
+  emptyOwn: "Add a habit or chore to start your list.",
+  /** The empty list of someone else: "Add a habit or chore to start Ledger's list." */
+  emptyOther: (name: string) => `Add a habit or chore to start ${name}'s list.`,
+  /** The habit page's link to its edit page (decision D3). */
+  editHabit: "Edit",
 } as const;
 
 // ---- Dashboard tiles (decisions 132, 133) ----
