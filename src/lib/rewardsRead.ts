@@ -27,3 +27,12 @@ export async function loadRewards(ownerIds: string[]): Promise<RewardView[]> {
   });
   return rows.map(({ _count, ...row }) => ({ ...row, redeemedCount: _count.redemptions }));
 }
+
+/**
+ * The second reader of `Reward` rows (the first builds the page's `RewardView`):
+ * just who owns one and whether it has a cost, so an action can work out the
+ * gate (a wish has no cost) before it writes.
+ */
+export async function loadRewardFacts(id: string): Promise<{ ownerId: string; cost: number | null } | null> {
+  return db.reward.findUnique({ where: { id }, select: { ownerId: true, cost: true } });
+}

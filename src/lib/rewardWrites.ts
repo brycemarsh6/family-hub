@@ -5,14 +5,18 @@ import "server-only";
 // Server Actions in actions/rewards.ts carry the login and role gate and
 // `revalidatePath` (route strings never live in lib), and a later caller (a
 // Winnie route) brings its own gate. Input is checked by `checkRewardInput`
-// before it gets here.
+// before it gets here. Rewards R4 (mission 82) also moved every
+// `RewardSettings` write here, and added the parent PIN's check.
 
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { isWriteConflictError } from "@/lib/prismaErrors";
 import { loadStarBanks } from "@/lib/starBankRead";
-import { redeemRefusal, type RewardInput } from "@/lib/rewards/rewardRules";
-import { REWARD_GONE_REFUSAL, REWARD_SAVE_FAILED } from "@/lib/rewardVocabulary";
+import { isPinShaped, pinLockActive, pinLockAfterWrong, pinLockEnded } from "@/lib/rewards/pinPolicy";
+import { redeemRefusal, type RewardInput, type WishInput } from "@/lib/rewards/rewardRules";
+import { loadPinCheck } from "@/lib/rewardSettingsRead";
+import { REWARD_GONE_REFUSAL, REWARD_SAVE_FAILED, type LateStars } from "@/lib/rewardVocabulary";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 /** Add a reward at the end of its owner's list. */
 export async function createReward(value: RewardInput, createdById: string): Promise<{ id: string }> {
@@ -29,9 +33,24 @@ export async function updateReward(id: string, value: RewardInput): Promise<{ id
   return result.count === 0 ? null : { id };
 }
 
-/** Delete a reward. Its redemptions stay (their `rewardId` goes null). Already gone is not an error. */
-export async function deleteReward(id: string): Promise<void> {
-  await db.reward.deleteMany({ where: { id } });
+/** Delete a reward. Its redemptions stay (their `rewardId` goes null). Already gone is not an error. `wishOnly` deletes only while it still has no cost. */
+export async function deleteReward(id: string, wishOnly = false): Promise<void> {
+  await db.reward.deleteMany({ where: wishOnly ? { id, cost: null } : { id } });
+}
+
+/** Add a wish: a reward with no cost, one time, at the end of its owner's list. */
+export async function createWish(value: WishInput, createdById: string): Promise<{ id: string }> {
+  const last = await db.reward.aggregate({ where: { ownerId: value.ownerId }, _max: { sortOrder: true } });
+  return db.reward.create({
+    data: { ...value, cost: null, repeatable: false, createdById, sortOrder: (last._max.sortOrder ?? -1) + 1 },
+    select: { id: true },
+  });
+}
+
+/** Change a wish's picture and name only. Null when it is gone or already has a cost (it is a reward now). */
+export async function updateWish(id: string, value: { title: string; emoji: string | null }): Promise<{ id: string } | null> {
+  const result = await db.reward.updateMany({ where: { id, cost: null }, data: { title: value.title, emoji: value.emoji } });
+  return result.count === 0 ? null : { id };
 }
 
 export type Redeemed = { id: string; title: string; emoji: string | null; cost: number; ownerName: string; redeemedAt: Date };
@@ -85,7 +104,90 @@ export async function redeemReward(rewardId: string, redeemedById: string): Prom
   }
 }
 
-/** Undo a redeem: delete the row, which puts the stars back. Already gone is not an error. */
-export async function undoRedemption(id: string): Promise<void> {
-  await db.rewardRedemption.deleteMany({ where: { id } });
+/**
+ * Undo a redeem: delete the row, which puts the stars back. The row is read
+ * inside the same transaction as the delete, and `may` (access.ts's
+ * `canUndoRedeem`, bound to the login) decides. Already gone is not an error.
+ */
+export async function undoRedemption(
+  id: string,
+  may: (redemption: { redeemedById: string | null; redeemedAt: Date }) => boolean,
+): Promise<{ ok: true } | { ok: false }> {
+  return db.$transaction(async (tx) => {
+    const row = await tx.rewardRedemption.findUnique({ where: { id }, select: { redeemedById: true, redeemedAt: true } });
+    if (!row) return { ok: true as const };
+    if (!may(row)) return { ok: false as const };
+    await tx.rewardRedemption.deleteMany({ where: { id } });
+    return { ok: true as const };
+  });
+}
+
+/** Save the Late checks setting (the one `RewardSettings` row). */
+export async function writeLateStars(lateStars: LateStars, userId: string): Promise<void> {
+  await db.rewardSettings.upsert({
+    where: { id: "household" },
+    create: { id: "household", lateStars, updatedById: userId },
+    update: { lateStars, updatedById: userId },
+  });
+}
+
+/** Set or change the parent PIN: store only its hash, and clear the wrong-try count and any lock. */
+export async function writeRewardPin(pin: string, userId: string): Promise<void> {
+  const pinHash = await hashPassword(pin);
+  await db.rewardSettings.upsert({
+    where: { id: "household" },
+    create: { id: "household", pinHash, pinFailCount: 0, pinLockedUntil: null, updatedById: userId },
+    update: { pinHash, pinFailCount: 0, pinLockedUntil: null, updatedById: userId },
+  });
+}
+
+/** The "Ask for the PIN" switch. */
+export async function writePinRequired(pinRequired: boolean, userId: string): Promise<void> {
+  await db.rewardSettings.upsert({
+    where: { id: "household" },
+    create: { id: "household", pinRequired, updatedById: userId },
+    update: { pinRequired, updatedById: userId },
+  });
+}
+
+export type PinCheck = { ok: true } | { ok: false; reason: "wrong" | "locked" | "notSet"; lockMs?: number };
+
+/**
+ * Check a PIN a kid or the tablet typed. An ended lock is cleared first (the
+ * count goes back to 0); a live lock refuses before any bcrypt work; a badly
+ * shaped PIN is a wrong try without bcrypt; a wrong try adds 1 with an atomic
+ * increment and, at the limit, sets the lock (and answers "locked" at once);
+ * a right one resets the count. This is the PIN's own lock, separate from the
+ * sign-in lock (no sign-in table is touched). Nothing stays unlocked afterwards.
+ */
+export async function checkRewardPin(pin: unknown, now: Date): Promise<PinCheck> {
+  const row = await loadPinCheck();
+  if (row.pinHash === null) return { ok: false, reason: "notSet" };
+
+  let failCount = row.pinFailCount;
+  let lockedUntil = row.pinLockedUntil;
+  if (pinLockEnded(lockedUntil, now)) {
+    await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0, pinLockedUntil: null } });
+    failCount = 0;
+    lockedUntil = null;
+  }
+  if (lockedUntil !== null && pinLockActive(lockedUntil, now)) {
+    return { ok: false, reason: "locked", lockMs: lockedUntil.getTime() - now.getTime() };
+  }
+
+  const right = isPinShaped(pin) && (await verifyPassword(pin, row.pinHash));
+  if (right) {
+    if (failCount !== 0) await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0 } });
+    return { ok: true };
+  }
+
+  const updated = await db.rewardSettings.update({
+    where: { id: "household" },
+    data: { pinFailCount: { increment: 1 } },
+    select: { pinFailCount: true },
+  });
+  const lock = pinLockAfterWrong(updated.pinFailCount, now);
+  if (lock === null) return { ok: false, reason: "wrong" };
+  await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinLockedUntil: lock } });
+  return { ok: false, reason: "locked", lockMs: lock.getTime() - now.getTime() };
 }

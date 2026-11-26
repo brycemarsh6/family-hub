@@ -146,7 +146,7 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 
 ### C1 - PIN and wish rules, reads, writes and actions (no UI)
 
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Every R4 rule, read, write and Server Action exists,
   tested, with the PIN checked on the server, so C2 and C3 only draw.
 - **Boundaries:** may touch: new `src/lib/rewards/pinPolicy.ts`,
@@ -276,7 +276,16 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   final row printed (no hash printed in full, first 7 characters only).
 - **Done criteria:** Fury reads the diff against the boundaries, re-runs
   the tests, and sees every rule in exactly one place.
-- **Report:** (pending)
+- **Report:** DONE (2026-11-25). Tests 2224 to 2246 (Denver), UTC 2236 +
+  10 DST skips; tsc, eslint, build clean; the three greps clean; dev probe:
+  right PIN ok, wrong 1 to 4 "wrong", the 5th answers "locked" with
+  lockMs 300000 (so the pad greys at once), right PIN while locked still
+  refused, a new PIN clears the lock; PIN columns put back (null, 0,
+  null, true). Stark's calls: a wish is refused "needs a cost first"
+  before a PIN try is spent; `deleteReward(id, wishOnly)` deletes only
+  while the cost is still null (a parent setting a cost in between wins);
+  `undoRedemption` returns `{ ok }`; three extra words for Bryce to see
+  ("Enter the PIN.", "The PIN must be 4 digits.", "Pick on or off.").
 
 ### C2 - The PIN pad and the Parent PIN card in Settings
 
@@ -381,6 +390,14 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 - 2026-11-25 - Mission opened. `.env` linked (dev branch host confirmed),
   `npm ci` done. Banner dispatched for the research brief. Next: mock and
   questions to Bryce.
+- 2026-11-25 - Banner's brief back (no PIN pad exists; the tablet cannot
+  edit habits at all; `checkRewardInput` refuses a null cost; the
+  sign-in lock is `LoginAttempt`, shared with tablet sign-out). Mock sent;
+  Bryce approved every recommendation. Migration written, diffed
+  (identical) and applied to dev. Committed as 86cd308. C1 dispatched to
+  Stark at 86cd308.
+  **Resume:** if C1's files exist in `git status`, wait for or re-read
+  Stark's report; otherwise re-dispatch C1.
 
 ## Delivery
 

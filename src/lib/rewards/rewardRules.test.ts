@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   celebrationLines,
   checkRewardInput,
+  checkWishInput,
   isEarned,
   nextCostStep,
   orderRewards,
@@ -131,4 +132,28 @@ test("redeemConfirmLines are the mock's words", () => {
     question: "Redeem Cupcake for Ellie?",
     spend: "This spends 20 of Ellie's 55 stars. 35 left after.",
   });
+});
+
+test("checkWishInput returns title, emoji and owner only, dropping any cost or repeat setting", () => {
+  assert.deepEqual(checkWishInput({ title: "  Cupcake ", emoji: "🧁", ownerId: "u1", cost: 20, repeatable: true }), {
+    ok: true,
+    value: { title: "Cupcake", emoji: "🧁", ownerId: "u1" },
+  });
+  assert.deepEqual(checkWishInput({ title: "Bike", emoji: "", ownerId: "u1" }), { ok: true, value: { title: "Bike", emoji: null, ownerId: "u1" } });
+  assert.deepEqual(checkWishInput({ title: "Bike", ownerId: "u1" }), { ok: true, value: { title: "Bike", emoji: null, ownerId: "u1" } });
+});
+
+test("checkWishInput refuses with the same words as checkRewardInput", () => {
+  const good = { title: "Cupcake", emoji: "🧁", ownerId: "u1", cost: 20, repeatable: false };
+  for (const bad of [{ ...good, title: " " }, { ...good, title: "x".repeat(61) }, { ...good, emoji: 5 }, { ...good, emoji: "ab" }]) {
+    assert.deepEqual(checkWishInput(bad), checkRewardInput(bad));
+  }
+  for (const raw of [null, "x", undefined, { title: "Bike" }, { title: "Bike", ownerId: "" }, { title: "Bike", ownerId: 3 }]) {
+    assert.equal(checkWishInput(raw).ok, false);
+  }
+});
+
+test("a wish has no cost, so it can't be redeemed", () => {
+  assert.equal(rewardStatus({ repeatable: false, redeemedCount: 0, cost: null }, 999).kind, "wish");
+  assert.equal(redeemRefusal({ repeatable: false, redeemedCount: 0, cost: null }, 999, "Ellie") !== null, true);
 });

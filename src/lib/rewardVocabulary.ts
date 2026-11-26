@@ -120,6 +120,47 @@ export const REWARD_EARNED_REFUSAL = "Already earned.";
 export const REWARD_NEEDS_COST_REFUSAL = "This reward needs a cost first.";
 export const REWARD_SAVE_FAILED = "That didn't save. Please try again.";
 
+/** The parent PIN (mission 82, Rewards R4). */
+export const PIN_TITLE = "Parent PIN";
+export const PIN_SWITCH_LABEL = "Ask for the PIN";
+export const PIN_HELP = "Kids and the wall tablet need the PIN to redeem. A parent's own login is never asked.";
+export const PIN_IS_SET = "PIN is set";
+export const PIN_NOT_SET = "No PIN yet";
+export const PIN_CHANGE_LABEL = "Change PIN";
+export const PIN_SET_LABEL = "Set PIN";
+export const PIN_SHEET_HEADING = "Set a new PIN";
+export const PIN_SHEET_HINT = "Pick 4 digits. Kids shouldn't know it.";
+export const PIN_CONFIRM_HEADING = "Enter it again";
+export const PIN_MISMATCH = "Those didn't match. Start again.";
+export const PIN_SAVED = "PIN saved.";
+export const PIN_WRONG = "That PIN isn't right.";
+export const PIN_LOCKED_TITLE = "Too many wrong tries.";
+export const PIN_NOT_SET_TITLE = "A parent needs to set a PIN first.";
+export const PIN_NOT_SET_HINT = "Settings, then Rewards, then Set PIN.";
+export const PIN_NEEDED = "Enter the PIN.";
+export const PIN_SHAPE_REFUSAL = "The PIN must be 4 digits.";
+export const PIN_SWITCH_REFUSAL = "Pick on or off.";
+export const REDEEM_UNDO_REFUSAL = "Only a parent can undo this now.";
+
+/** "A parent enters the PIN to redeem Cupcake for Ellie." */
+export function pinRedeemText(title: string, name: string): string {
+  return `A parent enters the PIN to redeem ${title} for ${name}.`;
+}
+
+/** "Try again in 5 minutes, or set a new PIN in Settings." ("in 1 minute") */
+export function pinLockedText(minutes: number): string {
+  return `Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}, or set a new PIN in Settings.`;
+}
+
+/** Wishes: a reward with no cost yet. */
+export const WISH_ADD_LABEL = "Add a wish";
+export const WISH_TAG = "Wish";
+export const WISH_KID_WAITING = "Waiting for a parent to set the cost";
+export const WISH_SET_COST_LABEL = "Set cost";
+export const WISH_SHEET_HINT = "A parent will set how many stars it costs.";
+export const WISH_SUBMIT_LABEL = "Add wish";
+export const WISH_SET_COST_HEADING = "Set a cost";
+
 /** "Ellie needs 15 more stars." */
 export function notEnoughStarsText(name: string, short: number): string {
   return `${name} needs ${short} more ${short === 1 ? "star" : "stars"}.`;
