@@ -5,6 +5,7 @@ import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import type { HabitActor } from "@/lib/habits/types";
 import { addCalendarDays, calendarDateInZone, formatCalendarDate, utcMidnightInstant, zoneMidnightInstant } from "@/lib/householdDate";
 import { recentLines, starHistory, type HistoryDay, type RecentLine } from "@/lib/rewards/starHistory";
+import { loadStarLogs } from "@/lib/habitsStatsRead";
 import { toHistoryEntries, toRecentEntries } from "@/lib/starHistoryRows";
 
 // The star history's readers (mission 83). No login check: callers check who
@@ -24,13 +25,7 @@ export async function loadStarHistory(userId: string, viewer: HabitActor, now: D
   const { todayKey, yesterdayKey, first } = windowStart(now);
   const since = zoneMidnightInstant(first, HOUSEHOLD_TIME_ZONE);
   const [logs, redemptions, adjustments] = await Promise.all([
-    db.habitLog.findMany({
-      where: { userId, stars: { not: null }, day: { gte: utcMidnightInstant(first) } },
-      select: {
-        id: true, day: true, status: true, stars: true, createdAt: true,
-        habit: { select: { title: true, isPrivate: true, participants: { select: { userId: true } } } },
-      },
-    }),
+    loadStarLogs(userId, utcMidnightInstant(first)),
     db.rewardRedemption.findMany({
       where: { userId, redeemedAt: { gte: since } },
       select: { id: true, title: true, emoji: true, cost: true, redeemedAt: true },
