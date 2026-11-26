@@ -1,7 +1,7 @@
 # Mission: Rewards R5, Manage rewards, bonus stars and star history
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-11-25 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r5-manage-history-b55a63`, cut from main at
 b4e32c8 (R1 PR #124, R2 PR #125, R3 PR #126 merged). R4 (mission 82) runs at
@@ -329,7 +329,7 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   the habitLog grep empty.
 
 ### F1 - One "Sat, Nov 21" formatter (Fury's pre-gate catch)
-- **Status:** DISPATCHED
+- **Status:** DONE, commit d2ac530
 - **Objective:** `feedbackTimeLabel` builds its date with C1's
   `formatWeekdayShortDate` instead of its own copy of the same pattern
   (STRUCTURE.md's date-formatter homes; the R3 screensaver precedent).
@@ -339,7 +339,17 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   unchanged and passing in both zones.
 - **Evidence required:** the diff and the Gauntlet tails.
 - **Done criteria:** output unchanged (the existing tests pin it).
-- **Report:** (pending)
+- **Report:** DONE at d2ac530: one import line and one return line;
+  `feedbackTime.test.ts` unchanged and passing in both zones; same counts.
+- **Fury's in-app check (2026-11-25, dev server on 3000, dev branch,
+  signed in as Bryce, a parent):** Rewards shows Manage and "Bryce's star
+  history" under the chips (phone width). Manage renders the three
+  sections; Give Ledger 5 with note "zz r5 fury": Recent shows "Bonus: zz r5
+  fury / Ledger · +5 from Bryce · Today" with Undo, and Ledger's chip bank
+  went 0 to 5. Ledger's history sheet: "Ledger's stars", "5 stars", Today,
+  "Bonus from Bryce" / "zz r5 fury" +5, the footer, Done. **Test data left
+  for the gates:** that one adjustment (note "zz r5 fury"); Fury removes it
+  after the gates.
 
 ## Gate ledger
 
