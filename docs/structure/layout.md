@@ -316,8 +316,7 @@ Wide pages: the
 
 ### A measured dimension of app chrome
 
-**Closed in mission-23:** the header now exists only on `/`
-  and `/login`, and the dimension pages position against is the floating
+**Closed in mission-23:** the header now exists only on `/`, `/login` and `/setup` (mission-91), and the dimension pages position against is the floating
   hamburger's row, `HAMBURGER_ROW_HEIGHT` (a CSS length in rem, so it
   follows Text size; mission-58), plus the measuring hooks
   `useHamburgerRowHeight` and `useHamburgerInsetPx` (the inset and live root

@@ -1,7 +1,7 @@
 # Mission 91: Family copies PR 6, setup link and recovery code
 
 **Project:** family-hub (Marshee)
-**Status:** EXECUTE (C1 done; C2 server, then C3 screens)
+**Status:** GATES (C1 to C3 committed; draft PR #145)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr6-setup` (cut from `main` at 6436299)
 **Plan:** `.avengers/plans/family-copies-v1.md`, "PR 6", "How a copy is configured"
@@ -88,6 +88,9 @@ recovery code reuse · two setup submits at once (only one admin).
 ## Progress
 
 - C1 DONE (Stark, 2026-11-26). Fury re-ran: after `npx prisma generate` (stale client in the new worktree) `tsc` exits 0; the two new test files run 28 tests, 28 pass. Gates still to come.
+- C2 DONE (Stark): gauntlet green locally; smoke script runs only in CI. Committed with C1, pushed, draft PR #145 opened so CI runs the attack step.
+- C3 DONE (Stark): tsc, eslint, npm test, build green. Committed and pushed.
+- Gates pass 1: Vision and Captain dispatched in parallel; Strange after them (it runs the dev server).
 
 ## Contracts
 
@@ -324,3 +327,78 @@ recovery code reuse · two setup submits at once (only one admin).
 - **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, `npm run build`.
 - **Evidence:** command tails, diff stat, and a list mapping each mock screen to its file.
 - **Done:** all green, boundaries kept, nothing committed.
+
+## Gate log
+
+- **Captain pass 1: BLOCKED.** BLOCKER: `FAMILY_NAME_MAX` defined twice
+  (`setupGate.ts:13` and `feedbackForward.ts:15`). NOTES taken into the fix
+  batch (Fury's structure calls): import the cap from `feedbackForward.ts`;
+  move `/setup` into `showsWordmarkHeader` (`src/lib/appChrome.ts`) with a test
+  and docstrings; STRUCTURE.md text for the `(app)` row, "named exceptions",
+  the prisma row, the Household settings entry, the vocabulary line and the
+  `…Flow.ts` naming line; `docs/structure/layout.md` header line; `tagWrites.ts`
+  header names the setup exception; one `newRecoveryCode()` helper; recovery
+  reuses a shared `checkNewPassword`. Left as notes: `DISPLAY_NAME_MAX` only on
+  setup; move the Household settings entry to `docs/structure/family-copies.md`
+  in PR 7.
+- **Vision pass 1: PASS.** Re-ran the full gauntlet including the `TZ=UTC`
+  line; CI run 45887741957 on 4756260 printed `ok 1` to `ok 15`. NOTES taken
+  into C4: case 8 should drive the write directly so the conflict path is
+  likely exercised; case 14 should assert the winner's password; add
+  non-admin, deactivated-admin and no-stored-code recovery cases; a `.catch`
+  on the link check; drop the `#code` from the address bar after a successful
+  create. Left as notes: the skipped bcrypt reveals "is an eligible admin"
+  (already visible by role on the login page); lockout nuisance on the global
+  "setup" key and the account's login budget (by design); recovery does not end
+  other sessions (matches `resetPassword`); one family code across admins (by
+  design).
+
+### C4. Fix batch (Captain pass 1 + Vision notes)
+
+- **May touch:** `src/lib/setupGate.ts`, `src/lib/setupGate.test.ts`, `src/lib/recoveryCode.ts`,
+  `src/lib/recoveryCode.test.ts`, `src/lib/setupFlow.ts`, `src/lib/recoveryFlow.ts`,
+  `src/lib/appChrome.ts`, `src/lib/appChrome.test.ts`, `src/components/AppChrome.tsx`,
+  `src/lib/tagWrites.ts` (header comment only), `src/lib/setupVocabulary.ts`,
+  `src/app/(app)/setup/SetupWizard.tsx`, `prisma/setup-attack-smoke.ts`,
+  `STRUCTURE.md`, `docs/structure/layout.md`. Must not touch anything else.
+1. `FAMILY_NAME_MAX`: delete it from `setupGate.ts`; `setupGate.ts`, `SetupWizard.tsx`
+   and `setupGate.test.ts` import it from `feedbackForward.ts` (setupGate does not
+   re-export it). `DISPLAY_NAME_MAX` stays.
+2. `showsWordmarkHeader` in `src/lib/appChrome.ts` covers `/setup`; add a `/setup`
+   assertion in `appChrome.test.ts`; remove the OR and its comment from
+   `AppChrome.tsx`; update the docstrings at `appChrome.ts` that say "the dashboard
+   and /login".
+3. One pure `newRecoveryCode(): { code: string; plain: string }` in `recoveryCode.ts`
+   (with a test) replaces the three generate-normalize-throw copies.
+4. Export `checkNewPassword(password, again): string | null` from `setupGate.ts`
+   (the two password errors live only there); `checkSetupInput` and
+   `resetWithRecoveryCodeFlow` both call it. Tests still pass unchanged.
+5. `SetupWizard`: `.catch` on `checkSetupLink` shows a new "offline" state with
+   `SETUP_WORDS.linkCheckFailed = "Couldn't check your link. Check your connection, then reload this page."`
+   (in `setupVocabulary.ts`). After a successful create, `history.replaceState`
+   drops the `#…` from the address bar (keep the code already in state).
+6. `prisma/setup-attack-smoke.ts`: case 8 calls `createFamilyAndFirstAdmin` twice
+   at once with hashes made in advance (plain recovery code known to the script),
+   then asserts as now; keep one sequential `createFamilyFlow` with the right code
+   after it as the replay. Case 14 asserts the stored password verifies against the
+   winner's new password and not the loser's. New recovery cases after 15 (clear the
+   script's own `LoginAttempt` rows first): a kid account (created in the CI
+   database with a password) → `RECOVERY_WRONG`; a second admin that is
+   deactivated → `RECOVERY_WRONG`; stored code hash set to null → `RECOVERY_WRONG`
+   with the right old code; each with nothing changed. The script still never
+   deletes a `User` row.
+7. STRUCTURE.md and `docs/structure/layout.md`: apply Captain's exact texts (in the
+   Gate log's source: the `(app)` row, "Unguarded exports outside those named
+   exceptions", the prisma row, the Household settings entry two sentences, the
+   `setupVocabulary.ts` line, the `…Flow.ts` naming line, layout.md's header line).
+   `tagWrites.ts` header: one line naming the setup exception.
+- **Verification:** tsc, eslint, `npm test`, the direct `TZ=UTC` line, `npm run build`.
+- **Done:** all green, boundaries kept, nothing committed.
+- **Captain's exact texts for item 7:**
+  - `src/app/actions/` row, "never" column: "Unguarded exports outside that one named exception" → "Unguarded exports outside those named exceptions".
+  - Household settings entry: replace "a second `db.householdSettings` read is a BLOCKER, so later PRs add their readers there." with "a second `db.householdSettings` read in `src/` is a BLOCKER, so later PRs add their readers there (the CI check `prisma/setup-attack-smoke.ts` reads the row directly on purpose, to verify the writes independently)." After "`revalidatePath`)." add: "`createFamilyAndFirstAdmin` there also creates the first `User` and the `MEAL_SLOTS` tags, by design: setup is one serializable transaction gated by the user count. It is the only write outside `tagWrites.ts` that makes a `Tag`."
+  - Beside that entry: "- `src/lib/setupVocabulary.ts` (no imports) holds every word of first-run setup, the recovery code screens and the Settings recovery card. Server refusal messages stay with their rule (`setupGate.ts`, `recoveryFlow.ts`). (Mission-91.)"
+  - Naming: "A `server-only` lib module that runs a whole multi-step server sequence for an action with no session (setup, recovery) is named `<thing>Flow.ts` and takes the caller's IP as a parameter so a CI script can drive it (mission-91)."
+  - Layout map `(app)` row: "Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/`, `/login` and `/setup`). `/login` and `/setup` deliberately live here too and get no drawer (`AppChrome` is handed no user; `/setup` 404s unless `isSetupOpen()`), rather than moving to a separate layout" (keep any tail of the existing row that this does not restate).
+  - prisma row: name "the CI-only empty-database checks (`fresh-db-smoke.ts`, and `setup-attack-smoke.ts`, which also refuses a non-empty `User` table and deletes only `LoginAttempt` rows; both refuse any host but localhost)" where it names only `fresh-db-smoke.ts`.
+  - `docs/structure/layout.md` around lines 319-320: "the header now exists only on `/`, `/login` and `/setup` (mission-91)".

@@ -1,14 +1,15 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { isLoginRateLimited, recordLoginAttempt } from "@/lib/loginRateLimit";
 import { recoveryCodeHash } from "@/lib/householdSettingsRead";
 import {
   replaceRecoveryCodeAndPassword,
   saveRecoveryCodeHash,
 } from "@/lib/householdSettingsWrites";
-import { generateRecoveryCode, normalizeRecoveryCode } from "@/lib/recoveryCode";
+import { newRecoveryCode, normalizeRecoveryCode } from "@/lib/recoveryCode";
+import { checkNewPassword } from "@/lib/setupGate";
 
 // Forgot-password for admins, and making a new recovery code. No login check:
 // someone who forgot their password has no session, so the recovery code is
@@ -24,12 +25,8 @@ export async function resetWithRecoveryCodeFlow(
   input: { userId: string; code: string; newPassword: string; newPasswordAgain: string },
   ip: string,
 ): Promise<RecoveryResult> {
-  if (input.newPassword.length < MIN_PASSWORD_LENGTH) {
-    return { error: `Passwords must be at least ${MIN_PASSWORD_LENGTH} characters.` };
-  }
-  if (input.newPassword !== input.newPasswordAgain) {
-    return { error: "Those passwords don't match." };
-  }
+  const passwordError = checkNewPassword(input.newPassword, input.newPasswordAgain);
+  if (passwordError) return { error: passwordError };
 
   const limit = await isLoginRateLimited(input.userId, ip);
   if (limit.limited) return { error: RECOVERY_LIMITED };
@@ -46,25 +43,21 @@ export async function resetWithRecoveryCodeFlow(
   await recordLoginAttempt({ userId: input.userId, ip, success: ok });
   if (!ok || !hash) return { error: RECOVERY_WRONG };
 
-  const recoveryCode = generateRecoveryCode();
-  const plain = normalizeRecoveryCode(recoveryCode);
-  if (!plain) throw new Error("A fresh recovery code did not normalize.");
+  const fresh = newRecoveryCode();
   const swapped = await replaceRecoveryCodeAndPassword({
     userId: input.userId,
     oldCodeHash: hash,
-    newCodeHash: await hashPassword(plain),
+    newCodeHash: await hashPassword(fresh.plain),
     newPasswordHash: await hashPassword(input.newPassword),
   });
   if (!swapped) return { error: RECOVERY_WRONG };
-  return { recoveryCode };
+  return { recoveryCode: fresh.code };
 }
 
 /** Makes a new recovery code for a signed-in admin (the caller checked who
  * is asking) and saves its hash, which retires the old code. */
 export async function makeRecoveryCodeFlow(actorUserId: string): Promise<{ recoveryCode: string }> {
-  const recoveryCode = generateRecoveryCode();
-  const plain = normalizeRecoveryCode(recoveryCode);
-  if (!plain) throw new Error("A fresh recovery code did not normalize.");
-  await saveRecoveryCodeHash(await hashPassword(plain), actorUserId);
-  return { recoveryCode };
+  const fresh = newRecoveryCode();
+  await saveRecoveryCodeHash(await hashPassword(fresh.plain), actorUserId);
+  return { recoveryCode: fresh.code };
 }

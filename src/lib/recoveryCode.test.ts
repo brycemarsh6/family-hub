@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   generateRecoveryCode,
+  newRecoveryCode,
   normalizeRecoveryCode,
   RECOVERY_ALPHABET,
 } from "./recoveryCode";
@@ -55,4 +56,11 @@ test("normalizeRecoveryCode: excluded characters are null", () => {
 test("normalizeRecoveryCode: round-trips a generated code", () => {
   const code = generateRecoveryCode();
   assert.equal(normalizeRecoveryCode(code), code.replace(/-/g, ""));
+});
+
+test("newRecoveryCode: the dashed code and its plain form agree", () => {
+  const { code, plain } = newRecoveryCode();
+  assert.match(code, /^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$/);
+  assert.equal(plain, code.replace(/-/g, ""));
+  assert.equal(normalizeRecoveryCode(code), plain);
 });

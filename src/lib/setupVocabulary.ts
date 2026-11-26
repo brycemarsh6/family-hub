@@ -4,6 +4,7 @@
 
 export const SETUP_WORDS = {
   checking: "Checking your link…",
+  linkCheckFailed: "Couldn't check your link. Check your connection, then reload this page.",
   badLinkTitle: "This setup link doesn't work",
   badLinkBody: "Ask the person who sent it for a new link.",
   limited: "Too many tries. Wait about 15 minutes, then open your link again.",

@@ -8,9 +8,9 @@
 // SETUP_CODE and counts users, then asks these functions what to do.
 
 import { createHash, timingSafeEqual } from "node:crypto";
+import { FAMILY_NAME_MAX } from "./feedbackForward";
 import { MIN_PASSWORD_LENGTH } from "./password";
 
-export const FAMILY_NAME_MAX = 60;
 export const DISPLAY_NAME_MAX = 40;
 
 /** The LoginAttempt.userId value that setup tries are counted under. */
@@ -51,6 +51,17 @@ export function setupIsOpen(params: {
   return true;
 }
 
+/** The two rules for a new password, in one place: long enough, typed the
+ * same twice. Returns the message to show, or null when it is fine. The
+ * passwords are left exactly as typed. */
+export function checkNewPassword(password: string, again: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Passwords must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+  if (password !== again) return "Those passwords don't match.";
+  return null;
+}
+
 /** Checks the setup form. Names are trimmed, passwords are left exactly as
  * typed. Returns the first problem found, in the order the form is read. */
 export function checkSetupInput(input: {
@@ -77,14 +88,7 @@ export function checkSetupInput(input: {
       error: `Keep your name under ${DISPLAY_NAME_MAX} characters.`,
     };
   }
-  if (input.password.length < MIN_PASSWORD_LENGTH) {
-    return {
-      ok: false,
-      error: `Passwords must be at least ${MIN_PASSWORD_LENGTH} characters.`,
-    };
-  }
-  if (input.password !== input.passwordAgain) {
-    return { ok: false, error: "Those passwords don't match." };
-  }
+  const passwordError = checkNewPassword(input.password, input.passwordAgain);
+  if (passwordError) return { ok: false, error: passwordError };
   return { ok: true, familyName, displayName };
 }

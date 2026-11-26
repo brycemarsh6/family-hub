@@ -3,11 +3,12 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { FAMILY_NAME_MAX } from "./feedbackForward";
 import {
   setupCodeMatches,
   setupIsOpen,
   checkSetupInput,
-  FAMILY_NAME_MAX,
+  checkNewPassword,
   DISPLAY_NAME_MAX,
   SETUP_RATE_LIMIT_KEY,
 } from "./setupGate";
@@ -173,4 +174,10 @@ test("checkSetupInput: errors come in the documented order", () => {
 
 test("SETUP_RATE_LIMIT_KEY is 'setup'", () => {
   assert.equal(SETUP_RATE_LIMIT_KEY, "setup");
+});
+
+test("checkNewPassword: short, mismatch, and fine", () => {
+  assert.equal(checkNewPassword("short", "short"), "Passwords must be at least 8 characters.");
+  assert.equal(checkNewPassword("long enough 1", "long enough 2"), "Those passwords don't match.");
+  assert.equal(checkNewPassword("long enough 1", "long enough 1"), null);
 });

@@ -5,9 +5,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { HAMBURGER_ROW_HEIGHT, NAV_RAIL_WIDTH, NAV_SIDEBAR_WIDTH, pinnedNavWidth, showsWordmarkHeader } from "./appChrome";
 
-test("showsWordmarkHeader: the dashboard and /login show it", () => {
+test("showsWordmarkHeader: the dashboard, /login and /setup show it", () => {
   assert.equal(showsWordmarkHeader("/"), true);
   assert.equal(showsWordmarkHeader("/login"), true);
+  assert.equal(showsWordmarkHeader("/setup"), true);
 });
 
 test("showsWordmarkHeader: every other page does not", () => {

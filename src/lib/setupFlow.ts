@@ -6,7 +6,7 @@ import { hashPassword } from "@/lib/password";
 import { isLoginRateLimited, recordLoginAttempt } from "@/lib/loginRateLimit";
 import { setupFinished } from "@/lib/householdSettingsRead";
 import { createFamilyAndFirstAdmin } from "@/lib/householdSettingsWrites";
-import { generateRecoveryCode, normalizeRecoveryCode } from "@/lib/recoveryCode";
+import { newRecoveryCode } from "@/lib/recoveryCode";
 import {
   checkSetupInput,
   setupCodeMatches,
@@ -71,10 +71,8 @@ export async function createFamilyFlow(
   if (!checked.ok) return { error: checked.error };
 
   const passwordHash = await hashPassword(input.password);
-  const recoveryCode = generateRecoveryCode();
-  const plain = normalizeRecoveryCode(recoveryCode);
-  if (!plain) throw new Error("A fresh recovery code did not normalize.");
-  const recoveryCodeHash = await hashPassword(plain);
+  const fresh = newRecoveryCode();
+  const recoveryCodeHash = await hashPassword(fresh.plain);
 
   const made = await createFamilyAndFirstAdmin({
     familyName: checked.familyName,
@@ -83,5 +81,5 @@ export async function createFamilyFlow(
     recoveryCodeHash,
   });
   if ("closed" in made) return { status: "bad" };
-  return { userId: made.userId, recoveryCode };
+  return { userId: made.userId, recoveryCode: fresh.code };
 }

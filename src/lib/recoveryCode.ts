@@ -33,3 +33,12 @@ export function normalizeRecoveryCode(input: string): string | null {
   }
   return cleaned;
 }
+
+/** A fresh code in both forms: `code` as shown to a person (dashed), `plain`
+ * as hashed and stored. The one place the two are made together. */
+export function newRecoveryCode(): { code: string; plain: string } {
+  const code = generateRecoveryCode();
+  const plain = normalizeRecoveryCode(code);
+  if (!plain) throw new Error("A fresh recovery code did not normalize.");
+  return { code, plain };
+}

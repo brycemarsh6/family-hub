@@ -6,10 +6,11 @@ import { login } from "@/app/actions/auth";
 import { checkSetupLink, createFamily } from "@/app/actions/setup";
 import { RecoveryCodeReveal } from "@/components/RecoveryCodeReveal";
 import { MIN_PASSWORD_LENGTH } from "@/lib/password";
-import { DISPLAY_NAME_MAX, FAMILY_NAME_MAX } from "@/lib/setupGate";
+import { FAMILY_NAME_MAX } from "@/lib/feedbackForward";
+import { DISPLAY_NAME_MAX } from "@/lib/setupGate";
 import { SETUP_WORDS, setupStep2Intro } from "@/lib/setupVocabulary";
 
-type LinkState = { code: string; status: "ok" | "bad" | "limited" };
+type LinkState = { code: string; status: "ok" | "bad" | "limited" | "offline" };
 type Created = { userId: string; recoveryCode: string };
 
 const FIELD = "min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none";
@@ -61,9 +62,13 @@ export function SetupWizard() {
   useEffect(() => {
     if (code === null || code === "") return;
     let live = true;
-    checkSetupLink(code).then((status) => {
-      if (live) setLink({ code, status });
-    });
+    checkSetupLink(code)
+      .then((status) => {
+        if (live) setLink({ code, status });
+      })
+      .catch(() => {
+        if (live) setLink({ code, status: "offline" });
+      });
     return () => {
       live = false;
     };
@@ -72,29 +77,14 @@ export function SetupWizard() {
   if (code === null) return null;
   const setupCode: string = code;
 
-  const status = code === "" ? "bad" : link?.code === code ? link.status : null;
-
-  if (status === null) {
-    return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.checking}</p>;
-  }
-  if (status === "bad") {
-    return (
-      <div className="mt-6 text-center">
-        <h2 className="text-xl font-bold">{SETUP_WORDS.badLinkTitle}</h2>
-        <p className="mt-2 text-base text-muted">{SETUP_WORDS.badLinkBody}</p>
-      </div>
-    );
-  }
-  if (status === "limited") {
-    return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.limited}</p>;
-  }
-
   const errorLine = error && (
     <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
       {error}
     </p>
   );
 
+  // The success screen comes first: replaceState below empties the address
+  // bar, so the hash no longer says "bad" for a link that just worked.
   if (created) {
     return (
       <div className="mt-6">
@@ -121,6 +111,26 @@ export function SetupWizard() {
     );
   }
 
+  const status = code === "" ? "bad" : link?.code === code ? link.status : null;
+
+  if (status === null) {
+    return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.checking}</p>;
+  }
+  if (status === "bad") {
+    return (
+      <div className="mt-6 text-center">
+        <h2 className="text-xl font-bold">{SETUP_WORDS.badLinkTitle}</h2>
+        <p className="mt-2 text-base text-muted">{SETUP_WORDS.badLinkBody}</p>
+      </div>
+    );
+  }
+  if (status === "offline") {
+    return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.linkCheckFailed}</p>;
+  }
+  if (status === "limited") {
+    return <p className="mt-6 text-center text-base text-muted">{SETUP_WORDS.limited}</p>;
+  }
+
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -132,6 +142,8 @@ export function SetupWizard() {
         setLink({ code: setupCode, status: result.status });
       } else {
         setCreated(result);
+        // The code is already in state; take it out of the address bar and history.
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
       }
     });
   }

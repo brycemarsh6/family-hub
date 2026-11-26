@@ -63,15 +63,14 @@ export function AppChrome({
   // only <main>, which the drawer (portaled to body) is never part of.
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const openFeedback = () => setFeedbackOpen(true);
-  // /setup is a signed-out page like /login, so it gets /login's chrome.
-  const wordmark = showsWordmarkHeader(pathname) || pathname === "/setup";
+  const wordmark = showsWordmarkHeader(pathname);
   const pinnedMode = user && navMode !== "hamburger" ? navMode : null;
 
   const page = (
     <>
       {wordmark ? (
         /*
-          This header only exists on the dashboard and /login. What other
+          This header only exists on the dashboard, /login and /setup. What other
           files position against is the floating hamburger's row,
           `HAMBURGER_ROW_HEIGHT` / `useHamburgerRowHeight` in
           `src/lib/appChrome.ts`, which carries the dependents list.

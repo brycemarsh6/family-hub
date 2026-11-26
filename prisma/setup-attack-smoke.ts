@@ -50,7 +50,9 @@ async function main(): Promise<void> {
   const { resetWithRecoveryCodeFlow, RECOVERY_WRONG, RECOVERY_LIMITED } = await import(
     "../src/lib/recoveryFlow"
   );
-  const { verifyPassword } = await import("../src/lib/password");
+  const { verifyPassword, hashPassword } = await import("../src/lib/password");
+  const { newRecoveryCode } = await import("../src/lib/recoveryCode");
+  const { createFamilyAndFirstAdmin } = await import("../src/lib/householdSettingsWrites");
 
   const counts = async () => ({
     users: await db.user.count(),
@@ -153,24 +155,48 @@ async function main(): Promise<void> {
     });
     line(7, "bad input refused");
 
-    // 8. two creates at once
-    const [a, b] = await Promise.all([
-      createFamilyFlow(input({ familyName: "Winner A", displayName: "Admin A" }), "10.0.0.5"),
-      createFamilyFlow(input({ familyName: "Winner B", displayName: "Admin B" }), "10.0.0.6"),
-    ]);
-    const winners = [a, b].filter((r) => "userId" in r);
-    const losers = [a, b].filter((r) => "status" in r && r.status === "bad");
-    check(winners.length === 1 && losers.length === 1, "two at once: not exactly one winner", [a, b]);
+    // 8. two creates at once. Drives the write itself, with hashes made in
+    // advance, so both transactions start together and the conflict path is
+    // the one that decides (the flow's bcrypt time would spread them out).
+    const hashes = await Promise.all(
+      ["A", "B"].map(async (tag) => {
+        const fresh = newRecoveryCode();
+        return {
+          tag,
+          code: fresh.code,
+          passwordHash: await hashPassword(PASSWORD),
+          recoveryCodeHash: await hashPassword(fresh.plain),
+        };
+      }),
+    );
+    const results = await Promise.all(
+      hashes.map((h) =>
+        createFamilyAndFirstAdmin({
+          familyName: `Winner ${h.tag}`,
+          displayName: `Admin ${h.tag}`,
+          passwordHash: h.passwordHash,
+          recoveryCodeHash: h.recoveryCodeHash,
+        }),
+      ),
+    );
+    const winners = results.filter((r) => "userId" in r);
+    const losers = results.filter((r) => "closed" in r);
+    check(winners.length === 1 && losers.length === 1, "two at once: not exactly one winner", results);
     const afterCreate = await counts();
     check(
       afterCreate.users === 1 && afterCreate.settings === 1 && afterCreate.tags === MEAL_SLOTS.length,
       "two at once: counts",
       afterCreate,
     );
-    const winner = winners[0] as { userId: string; recoveryCode: string };
+    const winnerIndex = results.findIndex((r) => "userId" in r);
+    const winnerTag = hashes[winnerIndex].tag;
+    const winner = {
+      userId: (results[winnerIndex] as { userId: string }).userId,
+      recoveryCode: hashes[winnerIndex].code,
+    };
     const settings = await db.householdSettings.findUnique({ where: { id: "household" } });
     check(
-      !!settings && settings.setupFinishedAt !== null && (settings.familyName === "Winner A" || settings.familyName === "Winner B"),
+      !!settings && settings.setupFinishedAt !== null && settings.familyName === `Winner ${winnerTag}`,
       "two at once: settings row",
       settings,
     );
@@ -178,7 +204,7 @@ async function main(): Promise<void> {
     check(admin?.role === "admin" && !!admin.passwordHash, "winner is an admin with a password");
     line(8, "two at once made exactly one admin");
 
-    // 9. replay
+    // 9. replay, sequentially through the whole flow with the right code
     await expectRefusedUnchanged("replay", () => createFamilyFlow(input({ familyName: "Winner A", displayName: "Admin A" }), "10.0.0.5"), {
       status: "bad",
     });
@@ -236,6 +262,15 @@ async function main(): Promise<void> {
     const okOnes = [r1, r2].filter((r) => "recoveryCode" in r);
     check(okOnes.length === 1, "two at once: not exactly one success", [r1, r2]);
     currentCode = (okOnes[0] as { recoveryCode: string }).recoveryCode;
+    const winnerPassword = "recoveryCode" in r1 ? "parallel password 1" : "parallel password 2";
+    const loserPassword = "recoveryCode" in r1 ? "parallel password 2" : "parallel password 1";
+    const state14 = await adminState(adminId);
+    check(
+      !!state14.passwordHash &&
+        (await verifyPassword(winnerPassword, state14.passwordHash)) &&
+        !(await verifyPassword(loserPassword, state14.passwordHash)),
+      "two at once: stored password is not the winner's alone",
+    );
     line(14, "same recovery code twice at once worked once");
 
     // 15. recovery flood
@@ -255,6 +290,43 @@ async function main(): Promise<void> {
     check("error" in got && got.error === RECOVERY_LIMITED, "right code while limited", got);
     await unchanged("recovery flood", before);
     line(15, "recovery flood limited, right code refused while limited");
+
+    // 16 to 18: accounts that must never recover, each with the right current
+    // code and nothing changed. Users made here are never deleted (the CI
+    // database is thrown away); the script only deletes LoginAttempt rows.
+    await clearAttempts(adminId);
+    const otherHash = await hashPassword("some other pw 9");
+    const refusedRecovery = async (n: number, text: string, userId: string, code: string) => {
+      await clearAttempts(userId);
+      const settingsBefore = await adminState(adminId);
+      const targetBefore = await db.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+      const countsBefore = await counts();
+      const r = await recover(userId, code);
+      check("error" in r && r.error === RECOVERY_WRONG, `${text}: result`, r);
+      const targetAfter = await db.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+      check(targetAfter?.passwordHash === targetBefore?.passwordHash, `${text}: password changed`);
+      check(JSON.stringify(await counts()) === JSON.stringify(countsBefore), `${text}: counts changed`);
+      await unchanged(text, settingsBefore);
+      line(n, text);
+    };
+
+    // 16. a kid with a password
+    const kid = await db.user.create({
+      data: { displayName: "ZZZ Kid", role: "kid", passwordHash: otherHash, avatarColor: "blue" },
+      select: { id: true },
+    });
+    await refusedRecovery(16, "recovery for a kid account refused", kid.id, currentCode);
+
+    // 17. a second admin, deactivated
+    const gone = await db.user.create({
+      data: { displayName: "ZZZ Gone", role: "admin", passwordHash: otherHash, avatarColor: "blue", deactivatedAt: new Date() },
+      select: { id: true },
+    });
+    await refusedRecovery(17, "recovery for a deactivated admin refused", gone.id, currentCode);
+
+    // 18. no stored code at all, with the right old code in hand
+    await db.householdSettings.update({ where: { id: "household" }, data: { recoveryCodeHash: null } });
+    await refusedRecovery(18, "recovery with no stored code refused", adminId, currentCode);
   } finally {
     await db.$disconnect();
   }
