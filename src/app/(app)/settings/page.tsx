@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Store, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
+import { AiUsageCard } from "@/components/AiUsageCard";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { RecoveryCodeCard } from "@/components/RecoveryCodeCard";
 import { RewardsSettings } from "@/components/RewardsSettings";
@@ -25,6 +26,7 @@ import { formatCalendarDate } from "@/lib/householdDate";
 import { hasRecoveryCode, householdStores } from "@/lib/householdSettingsRead";
 import { isOwnerCopy } from "@/lib/copyConfig";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
+import { loadAiUsageCard } from "@/lib/aiUsageRead";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -41,10 +43,10 @@ export const dynamic = "force-dynamic";
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
  * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Stores, Feedback, Sign out. Right:
- * Habits & Chores, Vacation then Rewards, Winnie. A phone keeps one column in this order:
+ * Habits & Chores, Vacation then Rewards, AI features (parents and admins), Winnie. A phone keeps one column in this order:
  * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos, Wall tablet and Stores (they
  * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
- * 7 Winnie, 8 Sign out. The column divs dissolve (`contents`) below 48rem and
+ * 7 AI features (parents and admins) then Winnie (they share order-7, so source order decides), 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
  * the tablet's Sign out) portal to the body, so the container holds none.
  */
@@ -61,6 +63,8 @@ export default async function SettingsPage() {
   const canSetRewards = canSetStars(user.role);
   const lateStars = canSetRewards ? await loadLateStars() : "full";
   const pinStatus = canSetRewards ? await loadPinStatus() : { pinSet: false, pinRequired: true };
+  const isManagerLogin = canSyncCalendars;
+  const aiCard = isManagerLogin ? await loadAiUsageCard(user.role === "admin") : null;
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
   const recoveryCodeSaved = user.role === "admin" ? await hasRecoveryCode() : false;
 
@@ -228,6 +232,12 @@ export default async function SettingsPage() {
                   {canSetRewards && <RewardsSettings lateStars={lateStars} pinStatus={pinStatus} />}
                 </div>
               </>
+            )}
+
+            {aiCard && (
+              <div className="order-7">
+                <AiUsageCard data={aiCard} />
+              </div>
             )}
 
             {user.role === "admin" && isOwnerCopy() && (

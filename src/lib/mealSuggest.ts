@@ -1,5 +1,5 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { meteredCreate } from "@/lib/aiMeter";
 
 // Asks Claude what the household could actually make right now, given what's
 // really in the kitchen.
@@ -184,11 +184,7 @@ function resolveSuggestions(
 export async function suggestMeals(
   input: SuggestInput,
 ): Promise<MealSuggestion[]> {
-  // Constructed per call, same reasoning as voice/parse.ts: a missing API key
-  // should fail this one request with a clear message, not crash the app.
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await meteredCreate("meal-ideas", {
     model: "claude-sonnet-5-5",
     max_tokens: 4096,
     system: SYSTEM,

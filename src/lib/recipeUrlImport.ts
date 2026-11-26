@@ -6,6 +6,7 @@ import {
   hasRecipeContent,
   type ExtractedRecipe,
 } from "@/lib/recipeExtract";
+import { AiAllowanceError } from "@/lib/aiMeter";
 
 // The flaky import path, built last on purpose so nothing else depends on
 // it. Three routes depending on the host:
@@ -61,8 +62,8 @@ function isPinterest(host: string): boolean {
 
 /**
  * Entry point: figure out what kind of link this is and route accordingly.
- * Never throws — a fetch failure, timeout, or anything else unexpected
- * lands as a normal error result, same as every other outcome here.
+ * Throws only AiAllowanceError (the AI allowance is spent); everything
+ * else unexpected lands as a normal error result, like every other outcome.
  */
 export async function importRecipeFromUrl(
   rawUrl: string,
@@ -85,6 +86,7 @@ export async function importRecipeFromUrl(
     if (isPinterest(host)) return await importFromPinterest(url.toString());
     return await importFromBlog(url.toString());
   } catch (e) {
+    if (e instanceof AiAllowanceError) throw e;
     if (e instanceof UnsafeUrlError) return { error: UNSAFE_LINK_ERROR };
     return {
       error: `Couldn't read that link. ${SCREENSHOT_HINT}`,

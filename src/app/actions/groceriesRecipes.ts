@@ -7,13 +7,15 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { getVerifiedUser } from "@/lib/dal";
 import { toCategory } from "@/lib/constants";
 import {
   classifyRecipe,
   IngredientAiError,
   type RecipeIngredientSuggestion,
 } from "@/lib/recipeIngredientMatch";
+import { AiAllowanceError } from "@/lib/aiMeter";
+import { aiBlockedResult, type AiBlocked } from "@/lib/aiBlocked";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -41,6 +43,8 @@ function refreshGroceryViews() {
 export type ClassifyIngredientsResult = {
   suggestions?: RecipeIngredientSuggestion[];
   error?: string;
+  /** Set when this copy's AI allowance blocked the call (mission 92). */
+  aiBlocked?: AiBlocked;
 };
 
 /**
@@ -54,12 +58,14 @@ export type ClassifyIngredientsResult = {
 export async function classifyRecipeIngredients(
   recipeId: string,
 ): Promise<ClassifyIngredientsResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   let result;
   try {
     result = await classifyRecipe(recipeId);
   } catch (error) {
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     if (!(error instanceof IngredientAiError)) throw error;
     // Never let a Claude outage look like a data problem, the recipe is
     // fine, the parse isn't. Same shape as suggestMealsForSlot's guard.

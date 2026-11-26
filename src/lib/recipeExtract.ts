@@ -1,5 +1,6 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import { meteredCreate } from "@/lib/aiMeter";
 
 // Turns raw pasted text — usually copy-pasted straight off a recipe blog,
 // life story and ads included — into structured recipe fields. Same
@@ -146,11 +147,7 @@ function parseResponse(response: Anthropic.Message): ExtractedRecipe {
 export async function extractRecipeFromText(
   text: string,
 ): Promise<ExtractedRecipe> {
-  // Constructed per call, not at module load — a missing key should fail
-  // this one request with a clear message, not crash the whole app at boot.
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await meteredCreate("recipe-text", {
     model: "claude-sonnet-5-5",
     max_tokens: 8192,
     system: SYSTEM_TEXT,
@@ -179,9 +176,7 @@ export type PhotoInput = {
 export async function extractRecipeFromPhotos(
   photos: PhotoInput[],
 ): Promise<ExtractedRecipe> {
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await meteredCreate("recipe-photos", {
     model: "claude-sonnet-5-5",
     max_tokens: 8192,
     system: SYSTEM_PHOTO,

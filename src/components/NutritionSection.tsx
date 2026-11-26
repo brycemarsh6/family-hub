@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { Sparkles, RotateCcw } from "lucide-react";
 import { QuantityStepper } from "./QuantityStepper";
+import { AiAllowanceNotice } from "./AiAllowanceNotice";
+import type { AiBlocked } from "@/lib/aiBlocked";
 import { computeNutrition } from "@/app/actions/recipes";
 
 type Nutrition = {
@@ -183,6 +185,7 @@ function ConfirmServingsSheet({
 }) {
   const [servings, setServings] = useState(defaultServings);
   const [error, setError] = useState<string | null>(null);
+  const [aiBlocked, setAiBlocked] = useState<AiBlocked | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -195,9 +198,11 @@ function ConfirmServingsSheet({
 
   function handleCalculate() {
     setError(null);
+    setAiBlocked(null);
     startTransition(async () => {
       const result = await computeNutrition(recipeId, servings);
       if (result.error || !result.nutrition) {
+        setAiBlocked(result.aiBlocked ?? null);
         setError(result.error ?? "Something went wrong.");
         return;
       }
@@ -248,20 +253,36 @@ function ConfirmServingsSheet({
           />
         </div>
 
-        {error && (
-          <p role="alert" className="mb-3 text-sm text-danger">
-            {error}
-          </p>
+        {aiBlocked ? (
+          <div className="mb-3">
+            <AiAllowanceNotice aiBlocked={aiBlocked} />
+          </div>
+        ) : (
+          error && (
+            <p role="alert" className="mb-3 text-sm text-danger">
+              {error}
+            </p>
+          )
         )}
 
-        <button
-          type="button"
-          onClick={handleCalculate}
-          disabled={pending}
-          className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-        >
-          {pending ? "Calculating…" : error ? "Try again" : "Calculate"}
-        </button>
+        {aiBlocked ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 w-full rounded-xl border border-line px-4 text-sm font-semibold transition-colors active:bg-surface-2"
+          >
+            Close
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCalculate}
+            disabled={pending}
+            className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
+          >
+            {pending ? "Calculating…" : error ? "Try again" : "Calculate"}
+          </button>
+        )}
       </div>
     </div>
   );

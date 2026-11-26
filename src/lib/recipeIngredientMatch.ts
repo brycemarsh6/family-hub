@@ -8,6 +8,7 @@ import "server-only";
 // An AI outage is a typed error the caller maps to its own wording; it must
 // never look like a data problem (the recipe is fine, the parse isn't).
 
+import { AiAllowanceError } from "@/lib/aiMeter";
 import { db } from "@/lib/db";
 import { DEFAULT_CATEGORY } from "@/lib/constants";
 import { matchItem } from "@/lib/match";
@@ -61,7 +62,7 @@ export type ClassifyLinesResult =
 /**
  * Parse `lines` into shoppable names and check each against the real
  * inventory and the unchecked shopping list. Throws IngredientAiError when
- * the parse call fails.
+ * the parse call fails; an AiAllowanceError passes through unchanged.
  */
 export async function classifyIngredientLines(
   lines: string[],
@@ -70,6 +71,8 @@ export async function classifyIngredientLines(
   try {
     parsed = await parseIngredientNames(lines);
   } catch (error) {
+    // A blocked call is not an outage: the caller shows its own message.
+    if (error instanceof AiAllowanceError) throw error;
     throw new IngredientAiError(error);
   }
 

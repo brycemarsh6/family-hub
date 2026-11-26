@@ -1,3 +1,4 @@
+import { AiAllowanceError } from "@/lib/aiMeter";
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { aiUnavailable } from "@/lib/assistant/errors";
 import { mealPlanWeekQuery } from "@/lib/assistant/schemasMealPlan";
@@ -30,6 +31,7 @@ export const GET = assistantRoute<Record<string, never>, undefined, z.output<typ
     try {
       result = await classifyIngredientLines(lines);
     } catch (error) {
+      if (error instanceof AiAllowanceError) throw aiUnavailable();
       if (!(error instanceof IngredientAiError)) throw error;
       // Nothing is guessed on an AI outage.
       throw aiUnavailable();
