@@ -1,5 +1,6 @@
 // Marshee's public privacy policy (the Google consent screen needs this URL).
-// Plain static text. Wording approved by Bryce 2026-11-08. Keep it true to the
+// Plain static text. Wording approved by Bryce 2026-11-08;
+// "What Marshee is" wording approved by Bryce 2026-11-26. Keep it true to the
 // code: unlinking is src/app/actions/linkedCalendars.ts (asks Google to revoke
 // the token, then deletes the stored account and its calendars).
 
@@ -11,12 +12,13 @@ export default function PrivacyPage() {
       <h1 className="mb-1 text-3xl font-bold tracking-tight md:text-4xl">
         Marshee privacy policy
       </h1>
-      <p className="text-sm text-muted">Last updated: November 9, 2026</p>
+      <p className="text-sm text-muted">Last updated: November 26, 2026</p>
 
       <h2 className={sectionTitle}>What Marshee is</h2>
       <p>
-        Marshee is a private app for one family. It is not a public product,
-        and it is not sold or marketed to anyone.
+        Marshee is a private app. Each family that uses it has its own copy,
+        with its own data that no other family can see. There is no public
+        sign-up.
       </p>
 
       <h2 className={sectionTitle}>If you link Google Calendar</h2>

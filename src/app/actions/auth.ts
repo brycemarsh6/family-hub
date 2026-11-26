@@ -29,9 +29,9 @@ export type LoginState = { error?: string };
 const WRONG_PASSWORD_ERROR = "That password isn't right.";
 
 const RATE_LIMIT_ERROR =
-  "Too many tries. Wait about 15 minutes, or ask Dad to reset your password.";
+  "Too many tries. Wait about 15 minutes, or ask an admin to reset your password.";
 
-// The tablet's sign-out has its own lockout copy: the "ask Dad" line in
+// The tablet's sign-out has its own lockout copy: the "ask an admin" line in
 // RATE_LIMIT_ERROR makes no sense when the thing being guessed is an admin's
 // password, not the tablet's own.
 const ADMIN_RATE_LIMIT_ERROR = "Too many tries. Wait about 15 minutes, then try again.";
