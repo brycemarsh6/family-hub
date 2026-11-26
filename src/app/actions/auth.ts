@@ -9,6 +9,8 @@
 // thing `logout` does read is whether the session is a device (the wall
 // tablet): a device may not sign itself out with one tap, so it is sent to
 // `logoutWithAdminPassword` instead, which IS guarded like everything else.
+// `resetPasswordWithRecoveryCode` is the third unguarded export: an admin who
+// forgot their password has no session, so the recovery code is the gate.
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -19,6 +21,8 @@ import { verifyPassword } from "@/lib/password";
 import { matchesAnyHash } from "@/lib/adminPasswordMatch";
 import { isLoginRateLimited, recordLoginAttempt } from "@/lib/loginRateLimit";
 import { toStartPage } from "@/lib/startPage";
+import { clientIp } from "@/lib/clientIp";
+import { resetWithRecoveryCodeFlow, type RecoveryResult } from "@/lib/recoveryFlow";
 
 export type LoginState = { error?: string };
 
@@ -35,14 +39,6 @@ const RATE_LIMIT_ERROR =
 // RATE_LIMIT_ERROR makes no sense when the thing being guessed is an admin's
 // password, not the tablet's own.
 const ADMIN_RATE_LIMIT_ERROR = "Too many tries. Wait about 15 minutes, then try again.";
-
-/** First hop of x-forwarded-for — best-effort, not a guarantee (see the
- * plan's "honest limits": the per-user cap is the real bound). Empty
- * string locally, where there's no proxy in front of the dev server to
- * set the header at all. */
-function clientIp(headerList: Awaited<ReturnType<typeof headers>>): string {
-  return headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
-}
 
 export async function login(
   _previous: LoginState,
@@ -167,4 +163,27 @@ export async function logoutWithAdminPassword(
 
   await deleteSession();
   redirect("/login");
+}
+
+/**
+ * An admin who forgot their password sets a new one with the recovery code.
+ * Unguarded by design (no session exists); rate limited per account, one
+ * message for every failure, and the code works once. Does not sign in: the
+ * screen calls `login` with the new password. See src/lib/recoveryFlow.ts.
+ */
+export async function resetPasswordWithRecoveryCode(input: {
+  userId: string;
+  code: string;
+  newPassword: string;
+  newPasswordAgain: string;
+}): Promise<RecoveryResult> {
+  return resetWithRecoveryCodeFlow(
+    {
+      userId: String(input?.userId ?? ""),
+      code: String(input?.code ?? ""),
+      newPassword: String(input?.newPassword ?? ""),
+      newPasswordAgain: String(input?.newPasswordAgain ?? ""),
+    },
+    clientIp(await headers()),
+  );
 }
