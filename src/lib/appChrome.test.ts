@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HAMBURGER_ROW_HEIGHT, NAV_RAIL_WIDTH, NAV_SIDEBAR_WIDTH, pinnedNavWidth, showsWordmarkHeader } from "./appChrome";
+import { HAMBURGER_ROW_HEIGHT, NAV_RAIL_WIDTH, NAV_SIDEBAR_WIDTH, hidesMenu, pinnedNavWidth, showsWordmarkHeader } from "./appChrome";
 
 test("showsWordmarkHeader: the dashboard and /login show it", () => {
   assert.equal(showsWordmarkHeader("/"), true);
@@ -13,6 +13,13 @@ test("showsWordmarkHeader: the dashboard and /login show it", () => {
 test("showsWordmarkHeader: every other page does not", () => {
   assert.equal(showsWordmarkHeader("/calendar"), false);
   assert.equal(showsWordmarkHeader("/kitchen/inventory"), false);
+});
+
+test("hidesMenu: only exactly /welcome", () => {
+  assert.equal(hidesMenu("/welcome"), true);
+  assert.equal(hidesMenu("/"), false);
+  assert.equal(hidesMenu("/settings"), false);
+  assert.equal(hidesMenu("/welcome/x"), false);
 });
 
 test("pinnedNavWidth: 0px for the menu button, 72px for the rail, 256px for the sidebar", () => {

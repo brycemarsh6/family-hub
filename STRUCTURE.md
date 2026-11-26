@@ -322,24 +322,8 @@ amendment id.
   `storeList.ts`, below),
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
-- **Household settings and the store list (family copies PR 4; PRs 6 and 7
-  add fields).** `HouseholdSettings` is one row (`id` "household"; a missing
-  row reads as defaults; `updatedById` is a plain id, like
-  `ScreensaverSettings`). `src/lib/householdSettingsRead.ts` (`server-only`,
-  no auth, callers check) is the only reader (it also holds `setupFinished`, `recoveryCodeHash`, `hasRecoveryCode`); a second `db.householdSettings`
-  read in `src/` is a BLOCKER, so later PRs add their readers there (the CI check `prisma/setup-attack-smoke.ts` reads the row directly on purpose, to verify the writes independently). Its writes live in
-  `src/lib/householdSettingsWrites.ts` (`server-only`, no auth, no
-  `revalidatePath`). `createFamilyAndFirstAdmin` there also creates the first `User` and the `MEAL_SLOTS` tags, by design: setup is one serializable transaction gated by the user count. It is the only write outside `tagWrites.ts` that makes a `Tag`. The store list rules are pure in `src/lib/storeList.ts`
-  and nowhere else: cleaning, `MAX_STORES` / `MAX_STORE_NAME`, "Other"
-  always last, the shopping filter words ("All", "Unassigned"),
-  `storeFilterOptions`, and the add, remove, rename and reorder helpers.
-  `STORES` is only the built-in default (read by `storeList.ts`,
-  `storeBreakdown`'s default and the Assistant schema until Winnie learns the
-  saved list). Every screen, write and check takes the list from
-  `householdStores()` and validates with `toStore(value, stores)`; offering
-  or validating against `STORES` anywhere else is a BLOCKER. A store rename
-  moves grocery items in the same transaction as the list save.
-- `src/lib/setupVocabulary.ts` (no imports) holds every word of first-run setup, the recovery code screens and the Settings recovery card. Server refusal messages stay with their rule (`setupGate.ts`, `recoveryFlow.ts`). (Mission-91.)
+- **Household settings, the store list, setup and the setup checklist (family copies PRs 4, 6, 7).**
+  The rules live in [docs/structure/family-copies.md](docs/structure/family-copies.md). Headline: `householdSettingsRead.ts` is the only reader of `db.householdSettings` and `householdSettingsWrites.ts` the only writer (a second caller in `src/` is a BLOCKER); every store list check uses `householdStores()` and `toStore`, never `STORES`.
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
   Since mission-38 `NAV_FOOTER_ITEMS` is Settings alone: Profile has no row,
   `activeNavHref` lights Settings for `/profile`, and Settings' top card
@@ -988,7 +972,7 @@ amendment id.
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
   `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
-  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new). (Added
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new); 2026-11-26 (mission-94) `family-copies.md` 50 (new). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

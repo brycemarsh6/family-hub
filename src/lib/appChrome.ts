@@ -149,6 +149,11 @@ export function showsWordmarkHeader(pathname: string): boolean {
   return pathname === "/" || pathname === "/login";
 }
 
+/** True on `/welcome`, which shows no menu button and no pinned menu (like /setup, a first-run page with nowhere to go yet). */
+export function hidesMenu(pathname: string): boolean {
+  return pathname === "/welcome";
+}
+
 /**
  * The icons-only pinned menu's width. Dependents (check each when this
  * changes): `AppChrome.tsx`'s `--app-nav-width` variable, which the fixed
