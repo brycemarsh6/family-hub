@@ -1,4 +1,6 @@
 import "server-only";
+import { safeFetch, UnsafeUrlError } from "@/lib/safeFetch";
+import { checkUrl } from "@/lib/urlSafety";
 import {
   extractRecipeFromText,
   hasRecipeContent,
@@ -31,13 +33,15 @@ export type UrlImportResult = {
   error?: string;
 };
 
-const FETCH_TIMEOUT_MS = 10_000;
 const MAX_STRIPPED_TEXT_LENGTH = 15_000;
+
+const UNSAFE_LINK_ERROR =
+  "That link points somewhere Marshee can't open. Try a regular recipe website.";
 
 const SCREENSHOT_HINT =
   "Screenshot the recipe and use photo import instead.";
 
-const BROWSER_HEADERS: HeadersInit = {
+const BROWSER_HEADERS: Record<string, string> = {
   // A real browser UA — some recipe sites (AllRecipes, SimplyRecipes, at
   // minimum) return a flat 403 to Node's default fetch UA. This is a
   // household app fetching one page a family member explicitly linked to,
@@ -46,19 +50,6 @@ const BROWSER_HEADERS: HeadersInit = {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 };
-
-async function fetchWithTimeout(
-  url: string,
-  headers?: HeadersInit,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    return await fetch(url, { signal: controller.signal, headers, redirect: "follow" });
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 function isTikTok(host: string): boolean {
   return host.endsWith("tiktok.com");
@@ -86,12 +77,15 @@ export async function importRecipeFromUrl(
     return { error: "That doesn't look like a valid link." };
   }
 
+  if (!checkUrl(url).ok) return { error: UNSAFE_LINK_ERROR };
+
   try {
     const host = url.hostname.toLowerCase();
     if (isTikTok(host)) return await importFromTikTok(url.toString());
     if (isPinterest(host)) return await importFromPinterest(url.toString());
     return await importFromBlog(url.toString());
-  } catch {
+  } catch (e) {
+    if (e instanceof UnsafeUrlError) return { error: UNSAFE_LINK_ERROR };
     return {
       error: `Couldn't read that link. ${SCREENSHOT_HINT}`,
     };
@@ -100,7 +94,7 @@ export async function importRecipeFromUrl(
 
 async function importFromTikTok(pageUrl: string): Promise<UrlImportResult> {
   const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(pageUrl)}`;
-  const response = await fetchWithTimeout(oembedUrl);
+  const response = await safeFetch(oembedUrl);
   if (!response.ok) {
     return {
       error: `Couldn't read that TikTok. If the recipe is only spoken in the video, there's nothing to read — ${SCREENSHOT_HINT.toLowerCase()}`,
@@ -130,7 +124,7 @@ async function importFromPinterest(pinUrl: string): Promise<UrlImportResult> {
     error: `Couldn't find a source link on that pin. ${SCREENSHOT_HINT}`,
   };
 
-  const response = await fetchWithTimeout(pinUrl, BROWSER_HEADERS);
+  const response = await safeFetch(pinUrl, { headers: BROWSER_HEADERS });
   if (!response.ok) return pinterestFallback;
 
   const html = await response.text();
@@ -212,7 +206,7 @@ function isExternalLink(link: string): boolean {
 }
 
 async function importFromBlog(pageUrl: string): Promise<UrlImportResult> {
-  const response = await fetchWithTimeout(pageUrl, BROWSER_HEADERS);
+  const response = await safeFetch(pageUrl, { headers: BROWSER_HEADERS });
   if (!response.ok) {
     return {
       error: `Couldn't load that page (error ${response.status}). Try pasting the recipe text instead.`,
