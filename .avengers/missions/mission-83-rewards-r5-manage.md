@@ -408,6 +408,33 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   2238 + 10 skips; tsc clean; eslint run on `src` only and build not run
   (pass-2 Vision runs both).
 
+### F3 - Gate fixes, pass 2 (Vision, Strange; Bryce's header call)
+- **Status:** DISPATCHED
+- **Objective:** Recent's Undo hides the row the moment it is tapped, and
+  the wide column header never cuts a name.
+- **Boundaries:** may touch: `src/components/RewardActivityList.tsx`,
+  `src/components/RewardsBoard.tsx` · must not touch: everything else
+  (`src/lib/useOptimisticRun.ts` included).
+- **What to fix:**
+  1. (Vision BLOCKER) `RewardActivityList.tsx`: `const [optimisticLines,
+     hide] = useOptimistic<RecentLine[], string>(lines, (list, key) =>
+     list.filter((l) => keyOf(l) !== key))`; pass `hide` to
+     `useOptimisticRun<string>(hide)`; render `optimisticLines` minus the
+     `gone` set; `run(key, action, () => { add key to gone;
+     router.refresh(); })` with no `onError` restore (useOptimistic drops the
+     hide itself when the transition ends on an error or a throw). The
+     `gone` set, added to only on success, keeps the row hidden until the
+     refreshed lines arrive.
+  2. (Strange BLOCKER, Bryce's call 2026-11-25: "Bank on its own line")
+     `RewardsBoard.tsx` wide header: first line avatar and the full name
+     (wrapping, never truncated); second line the bank button (outline,
+     48px, `StarBank` plus `ChevronRight`, its label unchanged), left
+     aligned under the name. Phone layout unchanged.
+- **Verification:** the Gauntlet green, same counts.
+- **Evidence required:** the diff, the Gauntlet tails, `git show --stat HEAD`.
+- **Done criteria:** pass-3 gates (each gate's last pass).
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -415,6 +442,9 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 | 1 | Vision (HEAD 1c11de5; Denver 2248/2248, UTC 2238 + 10 DST skips) | PASS | none | Read-only dev probes: bank counts adjustments (Ledger 0 + 5 - 10 = -5, below zero works); forged and non-string ids refused; device/unknown targets refused by HOUSEHOLD_PERSON_WHERE; note 60 code points ok, 61 refused; 30-day edges right in both zones; Recent 100 cap merge correct; the redeem transaction sees adjustments (same tx client). NOTES: RewardActivityList Undo does not restore the row if the action call itself rejects (offline); Done item 8 only partly met while R4 is open, plan file not updated yet; minus shown as ASCII hyphen; the wide bank button's label hides "N stars" from screen readers; `nextAdjustStep(Infinity)` gives 5; sync schema.prisma with R4 before merging; dev rows "zz r5 fury" (+5) and "zz r5 strange take" (-10) to clean |
 | 1 | Captain (HEAD 1c11de5) | BLOCKED | (1) RewardActivityList.tsx:19-42 hand-writes the optimistic tap (STRUCTURE.md: `useOptimisticRun` is its only home), and loses the row on a network throw; (2) rewards.md:30 "nextStarStep is the only stepper walk" and :200 "HabitStarsField is the only stars stepper" now false (doc, Fury); (3) layout.md "Wide pages" lacks Manage rewards (doc, Fury) | Homes all correct; one bank sum holds; no loading.tsx needed in manage/; amendments: formatWeekdayShortDate needs "zone-explicit" plus CalendarSearch's browser twin; "one write module per table" wrong (rewardWrites writes two); DESIGN.md emoji wording to name Recent rows exactly; NOTES: outline star in text-star by the stepper; `ADJUSTING_LABEL` duplicates `REWARD_SAVING_LABEL`; `ADJUST_NOTE_MAX` vs the typed "60" in the refusal; StarAdjustForm could use `run(null, ...)`; three person-chip drawings; vocabulary is 194 code lines. Fury's doc fixes (2), (3) and the amendments made, uncommitted while Strange runs |
 | 1 | Strange (HEAD 1c11de5; 390, 820 portrait, 1180; light and dark forced and verified) | BLOCKED | (1) note placeholder 2.39:1 (no `placeholder:text-muted`); (2) wide bank is the iPad's only door to history but looks like a plain number (tappable looks tappable); (3) DESIGN.md does not record `--danger` for history minus amounts (doc, Fury) | Flows seen: stepper 1 to 50, take -10 to a -5 bank and Undo, a redeem in history and Recent and Undo, Escape and dim close; targets 48px (BackLink 44); amounts 5.75/6.44 light, 8.39/6.41 dark; empty states true. NOTES: Manage chips at 820 hide two people (wrap from 48rem); no-picture redeem uses Star like a bonus (Gift); stepper star outline in --star; ASCII minus; optimistic Undo needs a named exception; bank button label hides the count; Undo labels all "Undo"; wishes and kid/tablet not exercisable. Strange's test rows made and removed through the app |
+| 2 | Captain (HEAD c60fed8) | PASS | none | Pass-1 blocker fixed (RewardActivityList on useOptimisticRun); doc fixes and amendments all true. NOTES (Fury applied): rewards.md "a third is a BLOCKER" scoped to STAR_STEPS steppers (RewardSheet's cost stepper is not one); Words paragraph names ADJUST_NOTE_MAX; DESIGN.md wish wording. Others: the hook comment could say "or a state setter"; rewardVocabulary.ts 200 code lines (R4 words next); rewards.md 193 to 237; sync shared files with main before merging |
+| 2 | Vision (HEAD c60fed8; Denver 2248/2248, UTC 2238 + 10 skips; eslint whole repo, build OK) | BLOCKED | RewardActivityList.tsx:21-22 feeds `useOptimisticRun` a plain `useState` setter; inside the async transition React 19.2.4 holds that update until the action ends, so the row stays (Undo still live) for the whole round trip, breaking "instant optimistic updates" and DESIGN.md's new Undo exception. Fix: `useOptimistic` hide plus a `gone` set added on success | All doc claims true; StarAdjustForm's `run(null, ...)` correct; bank button opens history, data-star-bank unchanged; word functions right |
+| 2 | Strange (HEAD c60fed8; 390, 820 portrait, 1180; light and dark verified) | BLOCKED | F2's wider bank button (52 to 74px) truncates names in wide column headers ("Led…", "Elea…" at 820 and 1180); names tell people apart (two L and two E avatars) | Pass-1 blockers fixed (placeholder 5.38/6.12; bank button outlined and opens history; colours recorded). Chips wrap, all 5 show; Gift on a no-picture redeem; aria-labels right; the Undo row left at once on a local server (Vision's finding is about the round trip; local is near-instant). Even Strange's tighter one-row fix truncates once banks reach 3 digits: **Bryce chose (2026-11-25) the bank on its own line under the name.** DESIGN.md wording notes applied by Fury. Out of scope: R3's Add button looks pale with a name typed. Test reward "zz r5 gift" made, redeemed, undone and deleted |
 
 ## Handoff log
 

@@ -12,7 +12,8 @@ mission-79 ruling; Bryce approved.
 
 **Words.** `src/lib/rewardVocabulary.ts` holds every rewards word and
 list except the picture list (`rewards/rewardEmoji.ts`, below): `STAR_STEPS` (the only star values; a star value list or a 50 cap
-typed anywhere else is a BLOCKER), `toStarValue` (the only repair: off
+typed anywhere else is a BLOCKER), `ADJUST_NOTE_MAX` (the give or take note
+limit; `ADJUST_NOTE_REFUSAL` is built from it), `toStarValue` (the only repair: off
 the list, 0 included, is null), `LATE_STARS` with `LATE_STARS_LABELS` and
 `toLateStars`, `starCountText` / `starStepText`, and the field, section,
 help and refusal words. It has **no imports** (the `habitVocabulary.ts`
@@ -199,7 +200,9 @@ nothing below 1); rows pass `rowStars(...)` and never test the number
 themselves.
 `HabitStarsField.tsx` is the habit form's stars stepper and
 `StarAdjustForm.tsx` the give or take amount (mission 83), both
-`LadderStepper`s; a third is a BLOCKER.
+`LadderStepper`s over `STAR_STEPS`; a third `STAR_STEPS` stepper is a
+BLOCKER (`RewardSheet`'s cost stepper walks `COST_STEPS` through
+`nextCostStep` in `rewardRules.ts`, and is not one).
 `RewardsSettings.tsx` is the Settings section. R3's page components
 follow the flat `src/components/` rule.
 
