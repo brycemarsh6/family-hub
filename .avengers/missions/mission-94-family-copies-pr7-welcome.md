@@ -1,6 +1,6 @@
 # Mission 94: family copies PR 7, welcome steps, install help, checklist
 
-**Status:** EXECUTE (D1 answered; contracts C1 then C2).
+**Status:** GATES (C1, C2, C3 built and committed; Vision and Captain pass 1 running, Strange after).
 **Branch:** `claude/family-copies-pr7-welcome`, cut from `origin/main` at d85d5b0 (PR 6 merged).
 **Plan:** `.avengers/plans/family-copies-v1.md`, section "PR 7".
 **Mock:** `.avengers/mocks/family-copies-pr7-welcome-mock.html` (questions Q1 to Q6, each with a recommendation).
@@ -116,3 +116,19 @@ line from AGENTS.md, `npm run build`.
 - **Must not touch:** `/settings/calendars`, dashboard registry/layout files, `CreatePersonSheet`.
 - **Verification:** gauntlet + `npm run build`; screenshots on a 390px viewport of each mock frame.
 - **Done:** matches the mock, rem sizes, 48px targets, DESIGN.md rules.
+
+### C3. No menu on /welcome (Stark report gap found in C2)
+
+- **Objective:** D1 says welcome has no menu button. `hidesMenu(pathname)` in
+  `src/lib/appChrome.ts` (exactly "/welcome") + test; `AppChrome.tsx` drops both hamburger
+  renders and the pinned menu there; `<main>` padding unchanged.
+
+## Progress log
+
+- C1 DONE (Stark): 2432 tests pass both zones, tsc and lint clean, icons 192 and 512.
+- C2 DONE (Stark): build green; no screenshots (worktree has no `.env`, pages need a login;
+  left to Strange). Count reads "x of 4" when the Google row is hidden. Mock logo above
+  welcome steps not drawn.
+- C3 DONE (Stark): 2433 tests pass.
+- Docs: Household settings entry and setup words moved to `docs/structure/family-copies.md`
+  (Captain's mission-91 recommendation) with PR 7's rules.
