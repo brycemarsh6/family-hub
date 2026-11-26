@@ -1,7 +1,7 @@
 # Mission 84: Winnie Rewards W1, Winnie reads Rewards
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERED (PR opened 2026-11-26; merge and the production check follow it)
 **Started:** 2026-11-25 · **Updated:** 2026-11-25
 
 ## Brief
@@ -231,7 +231,7 @@ AGENTS.md in full. For this mission specifically:
 |---|---|---|---|---|
 | 1 | Vision | PASS (de1a2da) | none | 6 NOTEs: 404 via `loadHouseholdPeople` filter instead of `requireHouseholdPerson` (same rule, fine); Recent's WHO wording too broad; summary stars are live whatever `date`; W2 must audit creates under model "Reward"; Stark's time-window cleanup; `.env` holds a commented second DB host (to Bryce). Live re-run by Vision on the dev branch, cleanup by id from `x-assistant-request-id`. |
 | 1 | Captain | PASS (de1a2da) | none | NOTEs: rewards.md paragraph misplaced two rules (rewritten to Captain's text); `RewardPerson` now `Pick<HouseholdPerson>`; today row `stars` is the raw value (OpenAPI now says so; `rowStars` if a late pay is ever wanted); fifth copy of the batched created-ids query (proposed `assistantCreatedIds` in `audit.ts`, for W2); rewards.md now 309 lines; STRUCTURE.md headline names mission 84. |
-| 2 | Vision | — | — | fix batch F1 (strings, doc, type alias) |
+| 2 | Vision | PASS (bef387c) | none | NOTE for W2: rewards.md's new BLOCKER sentence bans Reward and StarAdjustment reads under `src/lib/assistant/`, which W2's planned `undoModels.ts` / `undoWrites.ts` work needs; W2 must add that exception first. |
 
 **F1 (Fury, fix batch after pass 1, all NOTEs):** `docs/structure/rewards.md`
 paragraph replaced with Captain's text; `openapiRewardPaths.ts` Recent row
@@ -251,9 +251,38 @@ Denver, UTC 2281 (2271 pass, 10 skipped, 0 fail), build 0, lib grep empty.
   and Captain pass 1 next.
 - 2026-11-26: Vision and Captain pass 1 both PASS with NOTEs. F1 fix batch
   committed; Vision pass 2 on the F1 delta next.
+- 2026-11-26: Vision pass 2 PASS. CLAUDE.md (Assistant API paragraph and
+  "Winnie next", still 249 lines) and Bryce's lines in `.avengers/status.md`
+  done. Push, PR, merge next.
 
 ## Delivery
 
-- **Shipped:** (pending)
-- **Shipped check:** (pending)
-- **Deliberate leftovers:** (pending)
+- **Shipped:** `GET /api/assistant/v1/rewards` (optional `personId`),
+  `/rewards/history?personId=`, `/rewards/recent`; `stars` on every habit
+  answer and today row; `/summary` `stars: { banks, wishesWaiting }`;
+  OpenAPI rows; 8 new tests (2273 to 2281). Commits de1a2da (C1) and
+  bef387c (F1), plus the plan (761d778) and this record. Evidence: C1's
+  report, Vision's two live runs (pass 1) and the gate ledger above.
+- **Gates:** Vision PASS (passes 1 and 2), Captain PASS (pass 1).
+- **Shipped check:** run after the merge; the result goes in the handoff
+  note to the planning chat and in `.avengers/status.md` if anything is
+  left.
+- **Deliberate leftovers (for W2, mission 85):**
+  - `docs/structure/rewards.md`'s "Winnie's Rewards reads" BLOCKER sentence
+    needs an exception for the undo machinery before `undoModels.ts` /
+    `undoWrites.ts` learn `Reward` and `StarAdjustment` (Vision pass 2).
+  - W2 must record reward creates under the model name `"Reward"`, or
+    `createdByAssistant` stays false (Vision pass 1).
+  - A shared `assistantCreatedIds(model, ids)` in `audit.ts` would replace
+    five copies of the batched created-ids query (Captain).
+  - Live tests: collect `AssistantRequest` ids from the
+    `x-assistant-request-id` header and delete by id (Stark used a time
+    window here; dev only, counts back to baseline).
+  - The today row's `stars` is the habit's raw value; if Winnie should ever
+    say what a carried row pays, use `rowStars` (Captain).
+  - `docs/structure/rewards.md` is 309 lines; a split is a housekeeping
+    candidate (Captain).
+- **For Bryce:** how Winnie picks up new endpoints (she reads
+  `GET /openapi.json`; she may need telling to refresh), and the commented
+  second database host in the main checkout's `.env` (Vision), both in
+  `.avengers/status.md`.

@@ -173,12 +173,12 @@ files named beside it.
   for Bryce's Grok bot, Winnie (the plan calls it "Home Hub"). It covers the
   whole app except logins: inventory, leftovers, family, shopping and
   `GET /summary`, recipes, meal plan and cookbooks, habits and chores, plans
-  and goals. Every write saves before/after copies in the audit log and
-  `POST /audit/{requestId}/undo` reverses a whole request for 30 days.
-  Writes live in shared `src/lib/*Writes.ts` files used by both the family's
-  Server Actions and the API. Winnie never deletes goals, vision statements,
-  plan items or habits; she may hard-delete only what she created.
-  Scope and rules: `.avengers/missions/mission-40-assistant-undo.md`.
+  and goals; Rewards read only (mission 84). Every write saves before/after
+  copies in the audit log and `POST /audit/{requestId}/undo` reverses a whole
+  request for 30 days. Writes live in shared `src/lib/*Writes.ts` files used
+  by both the family's Server Actions and the API. Winnie never deletes goals,
+  vision statements, plan items or habits; she may hard-delete only what she
+  created. Scope and rules: `.avengers/missions/mission-40-assistant-undo.md`.
 - **Winnie notifications**: Marshee pushes events to Winnie's Grok webhook
   (one way). `src/lib/winnieNotify.ts` is the only sender; it reads
   `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` (Vercel only, both set) and
@@ -242,7 +242,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Winnie next:** calendar and tasks, then her replacing the app's Claude features (parked).
+- **Winnie next:** Rewards writes (W2, `.avengers/plans/winnie-rewards-v1.md`), then calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
 
