@@ -6,6 +6,18 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Manage rewards and star history (mission 83, R5)**, about 5 minutes,
+  on your iPhone and the iPad, light and dark. On Rewards (as a parent) tap
+  Manage at the top. Give or take stars: pick a person, Give, step to 10,
+  type "zz test" as the note, tap "Give (name) 10 stars"; their bank goes
+  up 10. Take 5 the same way. Both show in Recent with Undo; Undo one and
+  the bank goes back. A wish (a reward with no cost) shows with Set cost.
+  Back on Rewards: on the iPad tap a person's star bank, on the phone the
+  "(name)'s star history" link under the chips. The sheet lists the last
+  30 days by day: checks with their stars, "Late" under a late one, your
+  bonus and take-away with the note, redeems with the picture. Sign in as
+  a kid: no Manage button, and a private habit of yours reads "A private
+  habit" in your history. Undo your test lines when done.
 - **Rewards page (mission 81, R3)**, about 5 minutes, on your iPhone and
   the iPad, light and dark. Open Rewards in the side menu. As a parent,
   tap Add reward under your name: pick a picture (or Any emoji for your

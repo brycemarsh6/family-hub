@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manage rewards mock (R5)</title>
+<style>
+:root{--bg:#f6f0e8;--fg:#4e5256;--muted:#6f6a60;--line:#e2d9c9;--surface:#fff;--surface2:#ede6d9;--accent:#5a6b4f;--accent-fg:#f6f0e8;--accent-soft:#e4e9dc;--star:#a87500;--star-soft:#faebc3}
+*{box-sizing:border-box}
+body{margin:0;background:#ddd6ca;color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:0 0 4px}
+h2.q{font-size:17px;margin:28px 0 6px;color:#2e3236}
+p.note{margin:0 0 12px;font-size:14px;line-height:1.5;max-width:760px}
+.rec{background:#fff;border-left:4px solid var(--accent);padding:8px 12px;margin:0 0 12px;font-size:14px;max-width:760px;line-height:1.5}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.frame h3{font-size:14px;margin:0 0 6px;max-width:330px}
+.dev{width:330px;height:680px;background:var(--bg);border:6px solid #222;border-radius:28px;overflow:hidden;position:relative}
+.pad{width:1020px;height:640px;background:var(--bg);border:6px solid #222;border-radius:22px;overflow:hidden;position:relative}
+.top{height:52px;display:flex;align-items:center;gap:10px;padding:0 12px;font-weight:700;font-size:20px}
+.ham{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.sp{flex:1}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--muted)}
+.tog{width:40px;height:24px;border-radius:12px;background:var(--surface2);position:relative;border:1px solid var(--line)}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003}
+.tog.on{background:var(--accent)}.tog.on::after{left:18px}
+.person{display:flex;align-items:center;gap:10px;padding:10px 14px 6px}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:none}
+.pname{font-weight:700;font-size:17px}
+.bank{margin-left:auto;display:flex;align-items:center;gap:4px;font-weight:800;font-size:18px}
+.st{color:var(--star)}
+.card{margin:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;gap:12px;align-items:center;min-height:64px}
+.pic{width:46px;height:46px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px;flex:none}
+.pic.none{font-size:13px;color:var(--muted)}
+.body{flex:1;min-width:0}
+.ttl{font-weight:600;margin-bottom:5px;display:flex;gap:6px;align-items:center}
+.tag{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+.bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.of{font-size:13px;color:var(--muted);margin-top:4px}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;font-size:15px}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.wide{width:100%}
+.earned{box-shadow:0 0 0 2px var(--star),0 0 14px 2px #e8c25a88;background:#fffaf0}
+.earnword{font-size:13px;font-weight:800;color:#7a5600;letter-spacing:.04em}
+.ask{font-size:13px;color:var(--muted);font-style:italic}
+.add{margin:6px 12px;border:2px dashed var(--line);border-radius:14px;min-height:52px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-weight:600}
+.chips{display:flex;gap:8px;padding:6px 12px 8px;overflow:hidden}
+.chip{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:999px;border:1px solid var(--line);background:var(--surface);min-height:48px;flex:none}
+.chip .av{width:32px;height:32px;font-size:13px}
+.chip.sel{border:2px solid var(--accent);background:var(--accent-soft)}
+.cols{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 10px}
+.col{background:#ffffff66;border-radius:16px;padding-bottom:8px}
+.col .card{margin:6px 8px}
+.col .add{margin:6px 8px}
+.sheetwrap{width:330px;height:680px;border:6px solid #222;border-radius:28px;overflow:hidden;position:relative;background:#0007;display:flex;align-items:flex-end}
+.sheet{background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:14px 16px 20px}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.sh{font-size:18px;font-weight:700;margin:0 0 10px}
+.lab{font-size:13px;font-weight:700;margin:12px 0 6px}
+.field{min-height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;padding:0 12px}
+.step{display:flex;align-items:center;gap:8px}
+.step b{flex:1;text-align:center;font-size:16px}
+.sbtn{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg div{min-height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.seg .on{border:2px solid var(--accent);background:var(--accent-soft)}
+.del{color:#a63a2a;font-weight:700;text-align:center;margin-top:14px}
+.celebrate{text-align:center;padding:24px 18px}
+.rain{position:absolute;inset:0;pointer-events:none;font-size:20px;color:var(--star)}
+.rain span{position:absolute}
+.big{font-size:56px}
+.gw{font-size:24px;font-weight:800;margin:6px 0}
+.small{font-size:14px;color:var(--muted);line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(6,48px);gap:6px;margin:4px 0 10px}
+.grid div{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:26px;background:#fff}
+.grid .sel{border:2px solid var(--accent);background:var(--accent-soft)}
+.glab{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:8px}
+.panel{background:#fff;border-radius:14px;padding:14px 16px;max-width:760px}
+.steps{display:flex;flex-wrap:wrap;gap:6px}
+.steps span{border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-weight:600}
+.sec{margin:10px 12px 4px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.box{margin:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.li{display:flex;align-items:center;gap:10px;min-height:52px;border-top:1px solid var(--line);padding:6px 0}
+.li:first-child{border-top:0}
+.li .body{font-size:14px}
+.li .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.mini{width:36px;height:36px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.amt{font-weight:800;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+.plus{color:#3f6a2f}.minus{color:#a63a2a}
+.ubtn{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);font-weight:700;font-size:14px;display:inline-flex;align-items:center}
+.day{font-size:12px;font-weight:800;color:var(--muted);margin:10px 0 2px;text-transform:uppercase;letter-spacing:.05em}
+.hist{max-height:420px;overflow:hidden}
+.pcol{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.link{color:var(--accent);font-weight:700;font-size:14px;display:flex;align-items:center;gap:4px;min-height:44px;padding:0 14px}
+.ta{min-height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;padding:0 12px;color:var(--muted)}
+table.q5{border-collapse:collapse;font-size:14px;background:#fff;border-radius:12px;max-width:760px}
+table.q5 td{padding:7px 10px;border-top:1px solid var(--line)}
+</style></head><body><div class="wrap">
+<h1>Manage rewards, bonus stars and star history (R5) mock</h1>
+<p class="note">Last Rewards PR. Three things: a Manage page for parents, give or take stars with a note, and a star history for each person. Everything below is a proposal; tell me what to change. Numbers are picked with the +/&#8722; stepper only.</p>
+
+<h2 class="q">Question 1: how a parent gets to Manage, and its layout</h2>
+<div class="rec"><b>My recommendation: a "Manage" button at the top of Rewards (parents and admins only), opening one page with three sections: Give or take stars, Wishes waiting for a cost, Recent.</b> Give or take sits right on the page (no sheet) because it is the thing a parent does most. On the iPad it becomes two columns so nothing scrolls. Kids and the Tablet never see the button, and the page itself turns them away.</div>
+<div class="row">
+<div class="frame"><h3>Rewards page (parent): the new Manage button</h3>
+<div class="dev">
+ <div class="top"><div class="ham">&#9776;</div>Rewards<div class="sp"></div><div class="btn ghost" style="min-height:40px;padding:0 12px;font-size:14px">&#9881; Manage</div></div>
+ <div class="chips"><div class="chip sel"><div class="av" style="background:#5a6b4f">B</div>Bryce <span class="st">&#9733;</span><b>42</b></div><div class="chip"><div class="av" style="background:#8a5a7a">E</div><span class="st">&#9733;</span><b>118</b></div><div class="chip"><div class="av" style="background:#4f6b8a">L</div><span class="st">&#9733;</span><b>65</b></div></div>
+ <div class="link">&#9733; Bryce's star history &#8250;</div>
+ <div class="card"><div class="pic">&#129473;</div><div class="body"><div class="ttl">Cupcake</div><div class="bar"><i style="width:70%"></i></div><div class="of">42 of 60</div></div></div>
+ <div class="card"><div class="pic">&#129409;</div><div class="body"><div class="ttl">Zoo trip</div><div class="bar"><i style="width:28%"></i></div><div class="of">42 of 150</div></div></div>
+</div></div>
+
+<div class="frame"><h3>Manage rewards (phone)</h3>
+<div class="dev" style="overflow:hidden">
+ <div class="top" style="font-size:14px;color:var(--accent);height:40px">&#8249; Rewards</div>
+ <div style="padding:0 12px;font-weight:700;font-size:20px">Manage rewards</div>
+ <div class="sec">Give or take stars</div>
+ <div class="box">
+  <div class="chips" style="padding:0 0 8px"><div class="chip"><div class="av" style="background:#5a6b4f">B</div></div><div class="chip"><div class="av" style="background:#8a5a7a">E</div></div><div class="chip sel"><div class="av" style="background:#4f6b8a">L</div>Lucy</div><div class="chip"><div class="av" style="background:#8a7a4f">J</div></div></div>
+  <div class="seg"><div class="on">Give</div><div>Take away</div></div>
+  <div class="step" style="margin-top:8px"><div class="sbtn">&#8722;</div><b><span class="st">&#9733;</span> 10 stars</b><div class="sbtn">+</div></div>
+  <div class="ta" style="margin-top:8px">What for? (optional)</div>
+  <div class="btn wide" style="margin-top:8px">Give Lucy 10 stars</div>
+ </div>
+ <div class="sec">Wishes waiting for a cost (1)</div>
+ <div class="box"><div class="li"><div class="mini">&#127952;</div><div class="body" style="flex:1">Lego set<div class="sub">Lucy's wish</div></div><div class="ubtn">Set cost</div></div></div>
+ <div class="sec">Recent</div>
+ <div class="box"><div class="li"><div class="mini">&#129473;</div><div class="body" style="flex:1">Cupcake redeemed<div class="sub">Emily &middot; 60 stars &middot; Today</div></div><div class="ubtn">Undo</div></div></div>
+</div></div>
+</div>
+
+<h2 class="q">iPad: Manage in two columns</h2>
+<div class="pad">
+ <div class="top"><div class="ham">&#9776;</div><span style="font-size:14px;color:var(--accent)">&#8249; Rewards</span></div>
+ <div style="padding:0 16px 6px;font-weight:700;font-size:22px">Manage rewards</div>
+ <div class="pcol" style="padding:0 6px">
+  <div>
+   <div class="sec">Give or take stars</div>
+   <div class="box">
+    <div class="chips" style="padding:0 0 8px"><div class="chip"><div class="av" style="background:#5a6b4f">B</div>Bryce</div><div class="chip"><div class="av" style="background:#8a5a7a">E</div>Emily</div><div class="chip sel"><div class="av" style="background:#4f6b8a">L</div>Lucy</div><div class="chip"><div class="av" style="background:#8a7a4f">J</div>Jack</div></div>
+    <div class="seg"><div>Give</div><div class="on">Take away</div></div>
+    <div class="step" style="margin-top:8px"><div class="sbtn">&#8722;</div><b><span class="st">&#9733;</span> 5 stars</b><div class="sbtn">+</div></div>
+    <div class="ta" style="margin-top:8px;color:var(--fg)">Left toys on the stairs</div>
+    <div class="btn wide" style="margin-top:8px">Take 5 stars from Lucy</div>
+   </div>
+   <div class="sec">Wishes waiting for a cost (1)</div>
+   <div class="box"><div class="li"><div class="mini">&#127952;</div><div class="body" style="flex:1">Lego set<div class="sub">Lucy's wish</div></div><div class="ubtn">Set cost</div></div></div>
+  </div>
+  <div>
+   <div class="sec">Recent (last 30 days)</div>
+   <div class="box">
+    <div class="li"><div class="mini">&#129473;</div><div class="body" style="flex:1">Cupcake redeemed<div class="sub">Emily &middot; 60 stars &middot; Today</div></div><div class="ubtn">Undo</div></div>
+    <div class="li"><div class="mini"><span class="st">&#9733;</span></div><div class="body" style="flex:1">Bonus: helped with dishes<div class="sub">Jack &middot; +10 from Bryce &middot; Yesterday</div></div><div class="ubtn">Undo</div></div>
+    <div class="li"><div class="mini"><span class="st">&#9733;</span></div><div class="body" style="flex:1">Taken away: left toys on the stairs<div class="sub">Lucy &middot; &#8722;5 from Bryce &middot; Mon, Nov 23</div></div><div class="ubtn">Undo</div></div>
+    <div class="li"><div class="mini">&#129409;</div><div class="body" style="flex:1">Zoo trip redeemed<div class="sub">Lucy &middot; 150 stars &middot; Sat, Nov 21</div></div><div class="ubtn">Undo</div></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<h2 class="q">Question 2: give or take stars</h2>
+<div class="rec"><b>My recommendation:</b> pick the person (opens on the first kid), Give or Take away, the amount on the same star steps a chore uses (<b>1, 2, 3, 4, 5, 10, 15, 20, 25, 50</b>, starting at 5), and an optional short note (up to 60 letters). One tap on the green button saves it, the bank changes at once, and it shows in Recent with an Undo (one tap, like every delete in the app). A take-away can push a bank below zero, the same as un-checking does today. With no note, history just says "Bonus stars" or "Stars taken away".</div>
+<p class="note"><b>Your calls:</b> (a) the steps above, or bigger ones too (75, 100)? (b) note optional, or required? (c) Undo on bonus stars in Recent, yes or no?</p>
+
+<h2 class="q">Question 3: star history, its wording and look</h2>
+<div class="rec"><b>My recommendation: a sheet that slides up, titled with the person's name and their bank, listing the last 30 days newest first, grouped by day.</b> Earned stars show green with a plus, spent or taken stars red with a minus. A habit only some people can see (a private habit) shows as "A private habit" to everyone else. At the bottom: "Showing the last 30 days. Older stars still count in the total." Everyone can open anyone's history (the plan already says everyone sees everyone's stars).</div>
+<div class="row">
+<div class="sheetwrap"><div class="sheet">
+ <div class="grab"></div>
+ <div style="display:flex;align-items:center"><div class="sh" style="margin:0">Lucy's stars</div><div class="bank"><span class="st">&#9733;</span>65</div></div>
+ <div class="hist">
+  <div class="day">Today</div>
+  <div class="li"><div class="body" style="flex:1">Brush teeth</div><div class="amt plus">+2</div></div>
+  <div class="li"><div class="body" style="flex:1">Feed the dog<div class="sub">Late, half stars</div></div><div class="amt plus">+3</div></div>
+  <div class="li"><div class="body" style="flex:1">A private habit</div><div class="amt plus">+5</div></div>
+  <div class="day">Yesterday</div>
+  <div class="li"><div class="body" style="flex:1">Bonus from Bryce<div class="sub">Helped with dishes</div></div><div class="amt plus">+10</div></div>
+  <div class="li"><div class="body" style="flex:1">Taken away by Bryce<div class="sub">Left toys on the stairs</div></div><div class="amt minus">&#8722;5</div></div>
+  <div class="day">Sat, Nov 21</div>
+  <div class="li"><div class="mini">&#129409;</div><div class="body" style="flex:1">Redeemed Zoo trip</div><div class="amt minus">&#8722;150</div></div>
+ </div>
+ <p class="small" style="margin:8px 0 0">Showing the last 30 days. Older stars still count in the total.</p>
+ <div class="btn ghost wide" style="margin-top:10px">Done</div>
+</div></div>
+<div style="max-width:380px">
+<table class="q5">
+<tr><td><b>What happened</b></td><td><b>Line in history</b></td></tr>
+<tr><td>A checked habit or chore</td><td>Its name, +stars</td></tr>
+<tr><td>A late check</td><td>Its name, "Late, half stars" (or "Late, full stars"), +stars</td></tr>
+<tr><td>A habit you can't see</td><td>"A private habit", +stars</td></tr>
+<tr><td>A bonus</td><td>"Bonus from (parent)", the note under it</td></tr>
+<tr><td>A take-away</td><td>"Taken away by (parent)", the note under it</td></tr>
+<tr><td>A redeem</td><td>Picture, "Redeemed (reward)", &#8722;cost</td></tr>
+</table>
+<p class="note" style="margin-top:10px">Checks that paid no stars (a habit with no star value, a skip, a late check on "No stars") are left out, so the list is only things that moved the bank.</p>
+</div>
+</div>
+
+<h2 class="q">Question 4: where star history opens</h2>
+<div class="rec"><b>My recommendation: on the Rewards page only, for this PR.</b> iPad: tap a person's star bank at the top of their column. Phone: the chips already use a tap to pick a person, so a "&#9733; (name)'s star history &#8250;" link sits right under the chips (shown in the first phone above). The banks on Habits &amp; Chores stay as they are, so a tap there never surprises anyone mid check-off.</div>
+
+<h2 class="q">Summary of what I need from you</h2>
+<div class="panel" style="font-size:14px;line-height:1.6">
+1. Manage layout: Manage button on Rewards, three sections, two columns on iPad.<br>
+2. Give or take: steps 1 to 50 starting at 5, optional 60 letter note, Undo in Recent.<br>
+3. History: last 30 days, grouped by day, the wording in the table, "A private habit".<br>
+4. History opens from the Rewards page only (iPad bank tap, phone link under the chips).<br>
+"Set cost" on a wish opens the same reward sheet a parent already uses to edit a reward.
+</div>
+</div></body></html>

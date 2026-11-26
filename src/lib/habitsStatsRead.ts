@@ -273,3 +273,14 @@ export async function loadHabitReport(viewer: HabitActor, params: ReportParams, 
   }
   return buildHabitReport(scope, { logsByHabit, overridesByHabit, vacations: vacationRows.map(vacationFromRow) }, today);
 }
+
+/** One person's star-paying checks from `from` on, for the star history. Reads only logs that paid stars; hiding private habit names is the caller's job (`starHistoryRows.ts`). */
+export async function loadStarLogs(userId: string, from: Date) {
+  return db.habitLog.findMany({
+    where: { userId, stars: { not: null }, day: { gte: from } },
+    select: {
+      id: true, day: true, status: true, stars: true, createdAt: true,
+      habit: { select: { title: true, isPrivate: true, participants: { select: { userId: true } } } },
+    },
+  });
+}

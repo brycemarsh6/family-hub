@@ -159,6 +159,10 @@ tell when a rule's reason has expired.
   Add puts the widget back, and only its size and picks are lost. A failed
   save returns the row with the inline error, which reads as a correction,
   not a loss.
+  **Named exception (mission 83):** Undo in Manage rewards' Recent list is
+  optimistic: the row leaves at once, and a failed undo brings it back with
+  the warn alert, which reads as a correction. The bank and the redemption,
+  bonus or take-away behind it are exactly as they were.
 - **Delete is a single tap, no confirmation** — everywhere, for consistency.
   Exactly two sanctioned exceptions, both because they silently touch many
   rows' relationships: deleting a **cookbook** and deleting a **tag**, each
@@ -190,8 +194,14 @@ tell when a rule's reason has expired.
   icon is filled.
   A fourth exception (mission 81, Bryce 2026-11-24): **colour emoji**, chosen
   from `REWARD_EMOJI_GROUPS` or the device's emoji keyboard ("Any emoji"),
-  shown only on reward cards, the redeem sheet and the reward picture picker.
-  They are a reward's picture, not icons; nowhere else.
+  shown only on reward cards, the redeem sheet and the reward picture picker,
+  and (mission 83, Bryce's approved mock 2026-11-25) on Manage rewards' wish
+  and Recent redeem rows and the star history's redeem lines. They are a
+  reward's picture, not icons; nowhere else. On Manage rewards, a Recent bonus
+  or take-away row shows the outline Lucide `Star`, and a Recent redeem or a
+  waiting wish with no picture an outline `Gift`. In the star history only a
+  redeem with a picture shows its emoji; bonus, take-away and no-picture
+  redeem lines have no icon.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -316,6 +326,12 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   empty vision card (a slightly darker twin of `--line`, with a dark-mode
   twin). It is too faint to carry text or to mark an interactive edge on its
   own, so never use it for either.
+- **Named exception (mission 83, Bryce's approved mock 2026-11-25): star
+  history amounts.** In the star history sheet a plus amount uses
+  `--accent` and a minus amount (a take-away or a redeem) uses `--danger`.
+  Here red means stars going out, not destruction or urgency (an exception
+  to the error-colour rule below; a meaning, not decoration, and never on the
+  timeline, so the now-line's rule is untouched). Nothing else inherits this.
 - **`--streak` / `--streak-soft` are the streak's own colour** (mission-32/F1):
   a burnt peach for the flame and its count on Today rows, family rows and the
   stats tile, and the soft fill behind the nudge card. Amber (`--warn`) means

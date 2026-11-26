@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canManageRewards, canRedeemRewards, canSetStars } from "./access";
+import { canAdjustStars, canManageRewards, canRedeemRewards, canSetStars } from "./access";
 
 test("admin and parent may set stars", () => {
   assert.equal(canSetStars("admin"), true);
@@ -19,4 +19,10 @@ test("only admins and parents may manage or redeem rewards", () => {
     assert.equal(check("parent"), true);
     for (const role of ["kid", "device", "", "ADMIN", "guest"]) assert.equal(check(role), false);
   }
+});
+
+test("only admins and parents may give or take stars", () => {
+  assert.equal(canAdjustStars("admin"), true);
+  assert.equal(canAdjustStars("parent"), true);
+  for (const role of ["kid", "device", "", "ADMIN", "guest"]) assert.equal(canAdjustStars(role), false);
 });

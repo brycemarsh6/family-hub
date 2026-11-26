@@ -600,6 +600,11 @@ model User {
   rewardRedemptions     RewardRedemption[] @relation("rewardRedemptions")
   rewardRedemptionsMade RewardRedemption[] @relation("rewardRedemptionsMade")
 
+  /// Bonus or taken-away stars (mission 83): the ones given to this person
+  /// (Cascade) and the ones they gave or took for someone else (SetNull).
+  starAdjustments     StarAdjustment[] @relation("starAdjustments")
+  starAdjustmentsMade StarAdjustment[] @relation("starAdjustmentsMade")
+
   /// Winnie's morning briefing (mission 48): the days this person's briefing
   /// was claimed. Cascade: a deleted person's guard rows mean nothing.
   winnieBriefingsSent WinnieBriefingSent[]
@@ -1507,4 +1512,25 @@ model RewardRedemption {
 
   @@index([userId])
   @@index([rewardId])
+}
+
+/// Bonus or taken-away stars (mission 83, Rewards R5): one signed line in a
+/// person's star bank, with an optional note. `amount` is never 0 (positive
+/// gives, negative takes away). The bank adds these up in `loadStarBanks`
+/// only. `createdById` is who gave or took them (SetNull when that login goes).
+model StarAdjustment {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("starAdjustments", fields: [userId], references: [id], onDelete: Cascade)
+
+  amount Int
+  note   String?
+
+  createdById String?
+  createdBy   User?   @relation("starAdjustmentsMade", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
