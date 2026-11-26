@@ -239,7 +239,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 
 ### F1 — Gate pass 1 fixes (Captain's and Strange's blockers, plus the cheap notes)
 
-- **Status:** PENDING
+- **Status:** DONE (commit ec4a5c5)
 - **Bryce's decisions behind it (2026-11-26, asked with Strange's findings):**
   **D5** the person chips wrap to a second line (all three chip rows: Manage,
   Report, chore chart), so the selected chip is always visible. **D6** the
@@ -301,6 +301,40 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
   `habitsManage.ts`; `HabitForm.tsx` line count.
 - **Done criteria:** Captain pass 2 and Strange pass 2 PASS; Vision pass 2 on
   the F1 diff.
+- **Report:** DONE. tsc, eslint, npm test 2297/0, UTC 2287 pass 10 skipped; Fury re-ran `npm run build` (exit 0). `HabitForm.tsx` 350 / 296 code.
+
+### F2 — Gate pass 2 fixes (Strange's D6 second path, plus the record NOTEs)
+
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/components/HabitForm.tsx`,
+  `src/components/HabitManager.tsx`, `docs/structure/habits.md`,
+  `STRUCTURE.md` (the `HabitForm.tsx` Forms trend sentence only),
+  `src/lib/habits/habitRows.ts` (header comment only) · must not touch:
+  anything else.
+- **What to build:**
+  1. (Strange BLOCKER, D6) `HabitForm.tsx` ~line 126: Private shows only when
+     the item's one person is the viewer, whichever Who choice got there:
+     `const onlyViewer = who === "me" ? soloId === viewerId : selectedIds.length === 1 && selectedIds[0] === viewerId;`
+     then `canBePrivate = onlyViewer && canBePrivateWith(peopleCount)`
+     (`canBePrivate` already means exactly one person, so shared items are
+     unchanged). Keep the file at or under 350 lines.
+  2. (Vision NOTE) drop `reorderWithin`'s unused `kind` parameter and its
+     call-site argument in `HabitManager.tsx`.
+  3. (Captain NOTEs) `docs/structure/habits.md` ~249: "a hand-built Manage,
+     New, Edit or chart address with `?person=` anywhere else is a BLOCKER
+     (the Report's lives in `reportHref`, `/habits`' in `habitsHref`)";
+     record that `HabitManager` imports the pure `habits/habitRows.ts` for
+     `refillSlots`; drop the stale "(mission-79 added stars plumbing only)"
+     aside on `habitsToday.ts` and add that the next habits mission should
+     plan the `habitsRead.ts` split. `habits/habitRows.ts` header: the server
+     side reaches `refillSlots` through `participantWrites.ts`
+     (`reorderHabits`). `STRUCTURE.md` ~986: mission 86 grew `HabitForm.tsx`
+     from 344 to 350 (296 code), now at the soft cap, so its next field moves
+     a block into its own component first.
+- **Verification:** the full Gauntlet.
+- **Evidence required:** Gauntlet summary lines, `git diff --stat`,
+  `HabitForm.tsx` line count.
+- **Done criteria:** Strange pass 3 and Vision pass 3 PASS.
 - **Report:** _pending_
 
 ## Gate ledger
@@ -309,6 +343,9 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 |---|---|---|---|---|
 | 1 | Vision | PASS | 0 | 7 NOTEs: Hours auto-Private on "Just Ledger" (now D6); `split(" ")` vs `firstNameOf`; old inline chart address; kid's one-person filter link resolves back to self (harmless, left); hidden private id could move slot if guessed (theoretical, left); subtitle `mb-3`; habitsRead.ts size. |
 | 1 | Captain | BLOCK | 2 | B1 `HabitManager.reorderWithin` copies the slot rule; B2 `ChoreChart.tsx` builds two habit addresses by hand (the Default week edit link loses the person). NOTEs folded into F1. |
+| 2 | Vision | PASS | 0 | NOTEs: unused `kind` param in `reorderWithin` (F2); old CSS build warning. |
+| 2 | Captain | PASS | 0 | NOTEs: habits.md "?person=" sentence too wide (catches `reportHref`); habitRows header names the action, not `participantWrites.ts`; STRUCTURE.md "held at 350" wording; habitsToday aside stale; plan the habitsRead.ts split next habits mission. All folded into F2. |
+| 2 | Strange | BLOCK | 1 | B1 D6 by a second path: New for Ledger, Side by side with only Ledger shows Private (F2). NOTEs: Edit page title "Edit habit" on a chore (pre-existing); Report filter chips still scroll (out of D5's scope); past chart days not tappable without saying so. |
 | 1 | Strange | BLOCK | 2 | B1 selected chip off screen at 390 (D5: wrap); B2 Private switch false and auto-on for "Just Ledger" (D6: hide). NOTEs: own-chart `?person=` (F1), habit page "Mine" for a kid's chore (pre-existing, follow-up), empty-other and kid-only states checked from source only. |
 
 ## Handoff log
