@@ -56,10 +56,12 @@ async function main(): Promise<void> {
     expectEmpty("household people", people.length === 0, people.length);
 
     const shared = await loadBriefingShared(calendarDateInZone(new Date(), HOUSEHOLD_TIME_ZONE));
+    // Meals always lists every slot of the day; on an empty plan each title is null.
+    const plannedMeals = shared.meals.filter((meal) => meal.title !== null).length;
     expectEmpty(
       "briefing shared reads",
-      shared.events.length === 0 && shared.tasks.length === 0 && shared.meals.length === 0,
-      { events: shared.events.length, tasks: shared.tasks.length, meals: shared.meals.length },
+      shared.events.length === 0 && shared.tasks.length === 0 && shared.meals.length > 0 && plannedMeals === 0,
+      { events: shared.events.length, tasks: shared.tasks.length, mealSlots: shared.meals.length, plannedMeals },
     );
   } finally {
     await db.$disconnect();
