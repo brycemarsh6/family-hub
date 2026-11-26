@@ -1,7 +1,7 @@
 "use client";
 
 import { AddItemSelect } from "./AddItemBar";
-import { STORES, toStore } from "@/lib/constants";
+import { toStore } from "@/lib/constants";
 import { useLastStore } from "@/lib/lastStore";
 
 /**
@@ -14,15 +14,16 @@ import { useLastStore } from "@/lib/lastStore";
  * when it changes, so the new defaultValue actually takes effect; if there's
  * never been a stored value the key never changes, so it never remounts.
  */
-export function StoreSelect() {
-  const lastStore = toStore(useLastStore());
+export function StoreSelect({ stores }: { stores: string[] }) {
+  // Only a remembered store still on the household's list is pre-picked.
+  const lastStore = toStore(useLastStore(), stores);
 
   return (
     <AddItemSelect
       key={lastStore ?? "none"}
       name="store"
       label="Store"
-      options={STORES}
+      options={stores}
       defaultValue={lastStore ?? ""}
       placeholderLabel="No store yet"
     />

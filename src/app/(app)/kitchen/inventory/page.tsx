@@ -5,6 +5,7 @@ import { AddLowItemsButton } from "@/components/AddLowItemsButton";
 import { ReviewQueueButton } from "@/components/ReviewQueueButton";
 import { buildReviewQueue, type DuplicateCandidate } from "@/lib/duplicates";
 import { getVerifiedUser } from "@/lib/dal";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { isLow, MANAGER_ROLES } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -21,7 +22,7 @@ export default async function PantryPage() {
   // in different regions, so each *sequential* await is another
   // cross-country round trip — the single biggest thing that made
   // navigating between branches feel slow.
-  const [pantryItems, openGroceryLinks, dismissals] = await Promise.all([
+  const [pantryItems, openGroceryLinks, dismissals, stores] = await Promise.all([
     db.pantryItem.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -43,6 +44,7 @@ export default async function PantryPage() {
       select: { pantryItemId: true },
     }),
     db.irregularityDismissal.findMany({ select: { fingerprint: true } }),
+    householdStores(),
   ]);
 
   // Computed fresh on every load, same as the low counts below — nothing
@@ -85,14 +87,14 @@ export default async function PantryPage() {
 
         {(lowNotYetListed > 0 || reviewQueue.total > 0) && (
           <div className="flex flex-col items-start gap-3 md:flex-row-reverse md:items-center">
-            {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
+            {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} stores={stores} />}
 
             <ReviewQueueButton initial={reviewQueue} />
           </div>
         )}
       </div>
 
-      <PantryList items={items} canManage={canManage} />
+      <PantryList items={items} canManage={canManage} stores={stores} />
 
       {/* Keeps the last row clear of the floating add bar. */}
       <div aria-hidden="true" className="h-28" />

@@ -66,8 +66,11 @@ const SECTION_TITLES: Record<Urgency, string> = {
 export function ExpiringList({
   entries,
   canManage,
+  stores,
 }: {
   entries: ExpiringEntry[];
+  /** The household's saved store list, in order. */
+  stores: string[];
   /** Same meaning as PantryList's own prop — deletePantryItem is
    * parent/admin-only, so the edit sheet's Delete button is omitted for a
    * kid session rather than shown-and-disabled. */
@@ -196,6 +199,7 @@ export function ExpiringList({
       {pickingStoreEntry && (
         <StorePickerSheet
           key={pickingStoreEntry.item.id}
+          stores={stores}
           title={`Add ${pickingStoreEntry.item.name} — which store?`}
           onChoose={(store) => {
             run({ type: "addToList", id: pickingStoreEntry.item.id }, () =>
