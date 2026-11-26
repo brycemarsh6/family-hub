@@ -80,7 +80,7 @@ export function WelcomeSteps({ initialPeople }: { initialPeople: PersonInfo[] })
             <span className="min-w-0 flex-1 truncate text-base font-semibold">{person.displayName}</span>
             <span
               className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                person.role === "kid" && !person.hasAccount ? "bg-surface-2 text-muted" : "bg-accent-soft"
+                person.role === "kid" && !person.hasAccount ? "bg-surface text-muted-strong" : "bg-accent-soft"
               }`}
             >
               {roleWords(person)}

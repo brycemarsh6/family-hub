@@ -145,13 +145,13 @@ export async function loadFilterCalendars(): Promise<CalendarFilterAccountView[]
     });
 }
 
-/** Who linked this account, for the actions' fresh ownership check. */
 /** True when anyone has linked a Google account (the setup checklist's Google row). */
 export async function hasAnyLinkedAccount(): Promise<boolean> {
   const row = await db.linkedAccount.findFirst({ select: { id: true } });
   return row !== null;
 }
 
+/** Who linked this account, for the actions' fresh ownership check. */
 export async function loadAccountOwner(accountId: string): Promise<{ userId: string; name: string } | null> {
   const account = await db.linkedAccount.findUnique({
     where: { id: accountId },

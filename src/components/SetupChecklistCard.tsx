@@ -72,7 +72,7 @@ export function SetupChecklistCard({
       <ul className="mt-2 grid grid-cols-1 @min-[45rem]:grid-cols-2 @min-[45rem]:gap-x-6">
         {items.map((item) => {
           const optional = item.optional && (
-            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong">
               {CHECKLIST_WORDS.optional}
             </span>
           );

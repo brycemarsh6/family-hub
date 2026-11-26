@@ -49,7 +49,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   (`server-only`, no auth) is the only reader of both tables for pages,
   actions, routes and lib modules, including `loadSyncTargets`,
   `loadPushCalendars`, `loadPullCalendars`, `loadAccountCalendarIds`,
-  `loadCalendarPullState`, `loadSeriesCalendar` and `loadSiblingCalendars`;
+  `loadCalendarPullState`, `loadSeriesCalendar`, `loadSiblingCalendars` and `hasAnyLinkedAccount` (mission-94);
   `loadSyncedCalendarsPage` never selects `encryptedRefreshToken`, and
   `loadRefreshToken` is the one read that decrypts. The exceptions are
   `EVENT_SYNC_SELECT` (a calendar's `name`; the sync row's own

@@ -493,7 +493,8 @@ amendment id.
   it. A third inline copy of that filter for "the family" is a BLOCKER. The
   file exists since mission-31 (`HOUSEHOLD_PERSON_WHERE`,
   `loadHouseholdPeople`); pages reach it through a reader such as
-  `habitsRead.ts`'s `loadHabitRoster`, or `loadHouseholdPeople` itself, never
+  `habitsRead.ts`'s `loadHabitRoster`, or `loadHouseholdPeople` itself (or its
+  `countHouseholdPeople` / `loadHouseholdPersonInfos`, mission-94), never
   by composing their own `db.user` query from its constants. An action may
   read ids with `HOUSEHOLD_PERSON_WHERE` to validate a request (the
   `validatedPeople` split). **The household order** (mission-41, Bryce's
