@@ -1015,7 +1015,7 @@ amendment id.
   (was 281; the next Meal Plan feature moves the wide branch of
   `renderList` into its own component), `RecipeList.tsx` 346 / about 250
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
-  `groceryWrites.ts` 377 / about 259 code (family copies PR 4, was 367; not
+  `groceryWrites.ts` 381 / about 262 code (family copies PR 4, was 367; not
   a split candidate while its code stays under the cap).
   Forms trend (mission-54, A-L6-13): `GoalForm.tsx` 349 total / about 308
   code (was 334; the next goal field moves the Track a number block into
