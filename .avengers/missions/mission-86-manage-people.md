@@ -77,7 +77,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 
 ### C1 — The rules and server side: who may open and reorder whose Manage, the subject's lists, the URL builders, the chart's edit flag
 
-- **Status:** PENDING
+- **Status:** DONE (commit 6e15f82)
 - **Boundaries:** may touch: `src/lib/habits/access.ts`,
   `src/lib/habits/access.test.ts`, `src/lib/habits/habitRows.ts`,
   `src/lib/habits/habitRows.test.ts`, `src/lib/habits/participantWrites.ts`,
@@ -166,7 +166,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 - **Done criteria:** Fury re-runs the test command and reads the diff:
   `canReorderListOf` is the only role rule for reorder; the action checks
   it before writing; no page or component is touched.
-- **Report:** _pending_
+- **Report:** DONE. tsc and eslint clean; `npm test` 2283 to 2297 pass, 0 fail (Fury re-ran: 2297 / 0); UTC command 2287 pass, 10 skipped, 0 fail. `loadHabitStats` returns `HabitStatsData & { canEdit }` (a spread, so the page and `HabitStats` still type-check). New exported `visibleInOrderOf` in habitsToday.ts (visibleInViewerOrder wraps it). Sizes: habitsRead.ts 406 total / 303 code, habitsToday.ts 387 / 304 (soft-cap NOTEs, both were already over). Fury read the action, writer, access and habitsManage.ts diffs.
 
 ### C2 — The screens: person chips on Manage, the person carried through edit, new and chart, the Edit link, the Edit chore row
 
@@ -248,6 +248,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 ## Handoff log
 
 - 2026-11-26 — Setup done (dev branch host checked, `npm ci`). Research inline. Bryce answered D1 to D4 with the recommendations. Contracts C1, C2 written. Next: dispatch C1.
+- 2026-11-26 — C1 done and committed (6e15f82). C2 dispatched.
 
 ## Delivery
 
