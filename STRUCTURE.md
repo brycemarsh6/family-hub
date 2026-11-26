@@ -309,9 +309,28 @@ amendment id.
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
   `NavModeSetting` and `NudgeButton`.
 
-- `src/lib/constants.ts` — categories, locations, meal slots, stores,
+- `src/lib/constants.ts` — categories, locations, meal slots, the built-in
+  default stores (`STORES`; the household's saved list and its rules are
+  `storeList.ts`, below),
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
+- **Household settings and the store list (family copies PR 4; PRs 6 and 7
+  add fields).** `HouseholdSettings` is one row (`id` "household"; a missing
+  row reads as defaults; `updatedById` is a plain id, like
+  `ScreensaverSettings`). `src/lib/householdSettingsRead.ts` (`server-only`,
+  no auth, callers check) is the only reader; a second `db.householdSettings`
+  read is a BLOCKER, so later PRs add their readers there. Its writes live in
+  `src/lib/householdSettingsWrites.ts` (`server-only`, no auth, no
+  `revalidatePath`). The store list rules are pure in `src/lib/storeList.ts`
+  and nowhere else: cleaning, `MAX_STORES` / `MAX_STORE_NAME`, "Other"
+  always last, the shopping filter words ("All", "Unassigned"),
+  `storeFilterOptions`, and the add, remove, rename and reorder helpers.
+  `STORES` is only the built-in default (read by `storeList.ts`,
+  `storeBreakdown`'s default and the Assistant schema until Winnie learns the
+  saved list). Every screen, write and check takes the list from
+  `householdStores()` and validates with `toStore(value, stores)`; offering
+  or validating against `STORES` anywhere else is a BLOCKER. A store rename
+  moves grocery items in the same transaction as the list save.
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
   Since mission-38 `NAV_FOOTER_ITEMS` is Settings alone: Profile has no row,
   `activeNavHref` lights Settings for `/profile`, and Settings' top card
@@ -996,6 +1015,8 @@ amendment id.
   (was 281; the next Meal Plan feature moves the wide branch of
   `renderList` into its own component), `RecipeList.tsx` 346 / about 250
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
+  `groceryWrites.ts` 377 / about 259 code (family copies PR 4, was 367; not
+  a split candidate while its code stays under the cap).
   Forms trend (mission-54, A-L6-13): `GoalForm.tsx` 349 total / about 308
   code (was 334; the next goal field moves the Track a number block into
   its own component), `HabitForm.tsx` 339 / about 288 code (mission-79 added the Stars field, was 329; before that 350; the
@@ -1070,6 +1091,8 @@ amendment id.
   `DaySectionHeader`, `RecipeActionCircles`.)
 - Actions and lib: `camelCase.ts`; action exports are verbs
   (`createRecipe`, `putAway…`).
+- When an action shares its name with a pure helper (not a write module),
+  the action takes an `Action` suffix (`addStoreAction`, family copies PR 4).
 - Routes follow Next App Router conventions; route groups like `(app)` are
   invisible in URLs.
 
