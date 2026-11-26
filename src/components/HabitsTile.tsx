@@ -3,8 +3,9 @@
 import { useOptimistic, useState } from "react";
 import { ListChecks } from "lucide-react";
 import DashboardTile from "./DashboardTile";
+import { useStarFlight, type StarFlight } from "./StarFlightLayer";
 import { HabitRow } from "./HabitRow";
-import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
+import { HoursLogSheet } from "./HoursLogSheet";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
@@ -12,6 +13,7 @@ import { keepShownRows } from "@/lib/habitsDashboard";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { starPayments, takeBackPayments } from "@/lib/starFlights";
 import type { LateStars } from "@/lib/rewardVocabulary";
 
 /**
@@ -19,19 +21,25 @@ import type { LateStars } from "@/lib/rewardVocabulary";
  * tiles: check or uncheck, skip (the missed day for a carried row, decision 89)
  * and undo a skip. A carried row's tap is for the missed day, not today. An
  * hours row has no check: its tap calls `openLog` for the log sheet (decision
- * 189) and never writes one.
+ * 189) and never writes one. Every check or uncheck first sends the
+ * star flight what it pays (mission 80), then runs exactly as before.
  */
 export function habitRowTaps(
   row: HabitRowView,
-  run: (change: HabitChange, action: () => Promise<{ error?: string }>) => void,
-  openLog?: (row: HabitRowView) => void,
+  run: (change: HabitChange, action: () => Promise<{ error?: string }>, onSuccess?: () => void, onError?: (message: string) => void) => void,
+  openLog: ((row: HabitRowView) => void) | undefined,
+  stars: { fly: StarFlight; lateStars: LateStars },
 ) {
   const day = row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined;
   return {
-    onToggle: () => {
+    onToggle: (from?: HTMLElement) => {
       if (row.hours) return openLog?.(row);
-      if (row.doneToday) return run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, day));
-      run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, day));
+      const change: HabitChange = { type: row.doneToday ? "uncheck" : "check", habitId: row.id };
+      const payments = starPayments([row], change, stars.lateStars);
+      stars.fly(from ?? null, payments);
+      if (row.doneToday) return run(change, () => uncheckHabit(row.id, undefined, day));
+      // A failed save cancels any ring still in the air for these people.
+      run(change, () => checkHabit(row.id, undefined, day), undefined, () => stars.fly(null, takeBackPayments(payments)));
     },
     onSkip: () =>
       run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, day)),
@@ -75,14 +83,21 @@ export function HabitTileRows({
   const kept = keepShownRows(shownIds, rows, todayRows, held);
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
   const { run, error, setError, pending } = useOptimisticRun<HabitChange>(applyOptimistic);
+  const fly = useStarFlight();
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
-  const keep: RunChange = (change, action, onSuccess) =>
-    run(change, action, () => {
-      setHeld((prev) => applyHabitChange(prev, change));
-      onSuccess?.();
-    });
+  // Takes `onError` as a fourth argument (the star flight's cancel); the log sheet's `RunChange` never passes it.
+  const keep = (change: HabitChange, action: () => Promise<{ error?: string }>, onSuccess?: () => void, onError?: (message: string) => void) =>
+    run(
+      change,
+      action,
+      () => {
+        setHeld((prev) => applyHabitChange(prev, change));
+        onSuccess?.();
+      },
+      onError,
+    );
   const emptyLine = empty ?? firstEmpty;
   const shown = limit === undefined ? live : live.slice(0, limit);
   const hidden = live.length - shown.length;
@@ -95,10 +110,10 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error || hidden > 0 ? "border-b" : "-mb-4"}`}>
           {shown.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
+              <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, keep, (hoursRow) => {
                 setError(null);
                 setLoggingId(hoursRow.id);
-              })} />
+              }, { fly, lateStars })} />
             </li>
           ))}
         </ul>

@@ -52,7 +52,8 @@ export function LogButton({
   idle?: "plus" | "empty";
   skipped?: boolean;
   skippedLabel?: string;
-  onClick: () => void;
+  /** Gets the button itself, so a star flight can start from it. */
+  onClick: (button: HTMLElement) => void;
 }) {
   if (skipped) {
     return (
@@ -69,7 +70,7 @@ export function LogButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => onClick(event.currentTarget)}
       disabled={disabled}
       aria-pressed={done}
       aria-label={`${done ? `Undo ${label}` : open}${suffix}`}

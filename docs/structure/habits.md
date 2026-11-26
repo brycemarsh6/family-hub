@@ -41,7 +41,10 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `src/lib/starBankRead.ts` sums `HabitLog.stars` per person with one
   `groupBy`, reads no other `HabitLog` column and no other habit table, and
   builds no habit row (rules: docs/structure/rewards.md, "Stars and the
-  star bank"). **Dependency direction:** `src/lib/habits/` may import
+  star bank"). The star history's check rows are not an exception: they come
+  from `loadStarLogs` in `habitsStatsRead.ts` (mission-83), which reads only
+  star-paying logs with the habit's title, privacy and participants; hiding a
+  private name is `starHistoryRows.ts`'s job. **Dependency direction:** `src/lib/habits/` may import
   `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `rewardVocabulary.ts` and
   `rewards/stars.ts` (mission-79), `householdDate.ts`,
   `constants.ts`, `householdPeople.ts` and `rewardSettingsRead.ts` (the
@@ -113,7 +116,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `src/app/actions/habitNudges.ts`, which owns the session, the guards and
   `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
   once-a-day confetti marker on each device (the `lastStore.ts` pattern),
-  and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
+  and `HabitConfetti.tsx` and `StarRain.tsx` (the redeem star rain, mission 81) are the only importers of `canvas-confetti`.
   `src/lib/habitsFamilyColumns.ts` (pure, mission-41, Captain's A3) is the
   only home of the wide Whole family column: rows grouped by time of day then
   Anytime, the Together rows a person is on (built from `countedRows`, never

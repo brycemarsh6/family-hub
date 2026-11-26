@@ -54,7 +54,7 @@ export function isForeignKeyViolationError(error: unknown): boolean {
  * `$transaction`: a handler that did several separate writes could have
  * applied some of them before the collision.
  *
- * Two shapes, both looked up in node_modules/@prisma/client/runtime/client.js
+ * Three shapes, the first two looked up in node_modules/@prisma/client/runtime/client.js
  * and the first seen live (the dev DB, driver adapter pg, two bulk-adjusts
  * naming the same rows in opposite order):
  *  - P2039, the generic driver-adapter error: this is what a deadlock arrives
@@ -62,8 +62,16 @@ export function isForeignKeyViolationError(error: unknown): boolean {
  *    `meta.driverAdapterError.cause.originalCode`.
  *  - P2034, Prisma's own TransactionWriteConflict ("write conflict or a
  *    deadlock. Please retry your transaction"), for any path that maps it.
+ *  - A bare `DriverAdapterError` (name "DriverAdapterError", not a Prisma
+ *    known-request error) carrying the SQLSTATE in `cause.originalCode`. Seen
+ *    live in the dev DB (adapter pg, Serializable) when the 40001 is raised at
+ *    COMMIT, with two quick reward redemptions; it is not mapped to P2039 there.
  */
 export function isWriteConflictError(error: unknown): boolean {
+  if (error instanceof Error && error.name === "DriverAdapterError") {
+    const code = (error as { cause?: { originalCode?: unknown } }).cause?.originalCode;
+    return code === "40P01" || code === "40001";
+  }
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
   if (error.code === "P2034") return true;
   if (error.code !== "P2039") return false;

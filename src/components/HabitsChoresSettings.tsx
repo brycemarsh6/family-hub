@@ -1,27 +1,32 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Flame, RefreshCw } from "lucide-react";
+import { Flame, RefreshCw, Sparkles } from "lucide-react";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
-import { saveShowStreaks } from "@/app/actions/preferences";
+import { saveCelebrations, saveShowStreaks } from "@/app/actions/preferences";
 import { recomputeAllStreaks } from "@/app/actions/habits";
+import { CELEBRATIONS_WORDS } from "@/lib/rewardVocabulary";
 
 /**
- * The "Habits & Chores" section on /settings: a "Show streaks" switch for
- * every account, and an admin-only "Recompute streaks" button. The switch
+ * The "Habits & Chores" section on /settings: a "Show streaks" and a
+ * "Celebrations" switch for every account, and an admin-only "Recompute streaks" button. The switch
  * shows at once and saves in the background; a failed save puts the old
  * value back and says so under the row (same shape as NavModeSetting).
  */
 export function HabitsChoresSettings({
   showStreaks,
+  celebrations,
   isAdmin,
 }: {
   showStreaks: boolean;
+  celebrations: boolean;
   isAdmin: boolean;
 }) {
   const [optimisticShow, setOptimisticShow] = useOptimistic(showStreaks);
+  const [optimisticCelebrations, setOptimisticCelebrations] = useOptimistic(celebrations);
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [celebrationsError, setCelebrationsError] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
   const [recomputeMessage, setRecomputeMessage] = useState<string | null>(null);
   const [recomputeError, setRecomputeError] = useState<string | null>(null);
@@ -35,6 +40,19 @@ export function HabitsChoresSettings({
         setError(result.error ?? null);
       } catch {
         setError("Couldn't save your streak setting. Check your connection and try again.");
+      }
+    });
+  }
+
+  function toggleCelebrations(next: boolean) {
+    setCelebrationsError(null);
+    startTransition(async () => {
+      setOptimisticCelebrations(next);
+      try {
+        const result = await saveCelebrations(next);
+        setCelebrationsError(result.error ?? null);
+      } catch {
+        setCelebrationsError(CELEBRATIONS_WORDS.saveError);
       }
     });
   }
@@ -71,6 +89,22 @@ export function HabitsChoresSettings({
       {error && (
         <p role="alert" className="mt-2 text-sm text-warn">
           {error}
+        </p>
+      )}
+
+      <div className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium">
+        <span className="flex items-center gap-3">
+          <Sparkles aria-hidden="true" size={22} className="shrink-0 text-muted" />
+          <span className="flex flex-col">
+            {CELEBRATIONS_WORDS.title}
+            <span className="text-sm font-normal text-muted">{CELEBRATIONS_WORDS.sub}</span>
+          </span>
+        </span>
+        <ToggleSwitch checked={optimisticCelebrations} onChange={toggleCelebrations} label={CELEBRATIONS_WORDS.title} />
+      </div>
+      {celebrationsError && (
+        <p role="alert" className="mt-2 text-sm text-warn">
+          {celebrationsError}
         </p>
       )}
 

@@ -5,7 +5,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ROLES } from "./constants";
-import { tabletMayChangeWallTablet, tabletMayCompleteAnyTask } from "./tabletRules";
+import {
+  tabletMayAddWishes,
+  tabletMayChangeWallTablet,
+  tabletMayCompleteAnyTask,
+  tabletMayManageRewards,
+  tabletMayRedeemRewards,
+} from "./tabletRules";
 
 test("tabletMayCompleteAnyTask: true for the device role", () => {
   assert.equal(tabletMayCompleteAnyTask("device"), true);
@@ -29,4 +35,13 @@ test("tabletMayChangeWallTablet: true for the device role", () => {
 test("tabletMayChangeWallTablet: device is the only role that passes", () => {
   const allowed = ROLES.filter((role) => tabletMayChangeWallTablet(role));
   assert.deepEqual(allowed, ["device"]);
+});
+
+test("the tablet's reward rules: device is the only role that passes", () => {
+  for (const rule of [tabletMayRedeemRewards, tabletMayManageRewards, tabletMayAddWishes]) {
+    assert.deepEqual(
+      ROLES.filter((role) => rule(role)),
+      ["device"],
+    );
+  }
 });

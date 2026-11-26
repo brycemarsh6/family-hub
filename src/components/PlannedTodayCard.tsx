@@ -3,6 +3,7 @@
 import { useOptimistic } from "react";
 import { CalendarCheck } from "lucide-react";
 import { HabitRow } from "./HabitRow";
+import { useStarFlight } from "./StarFlightLayer";
 import { habitRowTaps } from "./HabitsTile";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
@@ -20,6 +21,7 @@ import type { LateStars } from "@/lib/rewardVocabulary";
 export function PlannedTodayCard({ rows, showStreaks, lateStars }: { rows: HabitRowView[]; showStreaks: boolean; lateStars: LateStars }) {
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
   const { run, error } = useOptimisticRun<HabitChange>(applyOptimistic);
+  const fly = useStarFlight();
   if (live.length === 0) return null;
   return (
     <section aria-label={PLANNED_TODAY_TITLE} className="mb-3 overflow-hidden rounded-2xl border border-line bg-surface">
@@ -30,7 +32,7 @@ export function PlannedTodayCard({ rows, showStreaks, lateStars }: { rows: Habit
       <ul className="divide-y divide-line border-t border-line">
         {live.map((row) => (
           <li key={row.id}>
-            <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, run)} />
+            <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, run, undefined, { fly, lateStars })} />
           </li>
         ))}
       </ul>

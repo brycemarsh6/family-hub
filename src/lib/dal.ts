@@ -37,6 +37,7 @@ export type VerifiedUser = {
   startPage: string;
   textSize: TextSize;
   showStreaks: boolean;
+  celebrations: boolean;
 };
 
 /**
@@ -65,7 +66,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
       displayName: true,
       avatarColor: true,
       deactivatedAt: true,
-      preferences: { select: { navMode: true, startPage: true, textSize: true, showStreaks: true } },
+      preferences: { select: { navMode: true, startPage: true, textSize: true, showStreaks: true, celebrations: true } },
     },
   });
 
@@ -81,6 +82,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
     startPage: toStartPage(user.preferences?.startPage),
     textSize: toTextSize(user.preferences?.textSize),
     showStreaks: user.preferences?.showStreaks ?? true,
+    celebrations: user.preferences?.celebrations ?? true,
   };
 });
 

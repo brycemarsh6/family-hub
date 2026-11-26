@@ -13,6 +13,7 @@ import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
 import { PlanDayCard } from "./PlanDayCard";
 import { StarBank } from "./StarBank";
+import { useStarFlight } from "./StarFlightLayer";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import type { HabitRowView } from "@/lib/habitsToday";
@@ -97,6 +98,7 @@ export function HabitTodayList({
   // replaced by the server's real answer (the same idea as ThisWeekList).
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
+  const fly = useStarFlight();
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
@@ -134,7 +136,7 @@ export function HabitTodayList({
           </span>
         </>
       )}
-      <StarBank stars={shownBank} className="ml-auto pl-3 md:ml-3 md:pl-0" />
+      <StarBank userId={viewerId} stars={shownBank} className="ml-auto pl-3 md:ml-3 md:pl-0" />
     </>
   );
 
@@ -214,7 +216,7 @@ export function HabitTodayList({
                           <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} lateStars={lateStars} {...habitRowTaps(row, run, (hoursRow) => {
                             setError(null);
                             setLoggingId(hoursRow.id);
-                          })} />
+                          }, { fly, lateStars })} />
                         </li>
                       ))}
                     </ul>

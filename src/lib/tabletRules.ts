@@ -28,3 +28,26 @@ export function tabletMayCompleteAnyTask(role: Role): boolean {
 export function tabletMayChangeWallTablet(role: Role): boolean {
   return role === "device";
 }
+
+/**
+ * The tablet may redeem a reward for anyone (Bryce, 2026-11-25, mission 82).
+ * The PIN step is added by `redeemGate` in rewardGates.ts, not here.
+ */
+export function tabletMayRedeemRewards(role: Role): boolean {
+  return role === "device";
+}
+
+/**
+ * The tablet may add, edit and delete rewards and their costs (Bryce,
+ * 2026-11-25, mission 82). `manageGate` in rewardGates.ts puts the PIN in
+ * front of it. Tablet habit star values are parked for a later PR: today the
+ * tablet cannot open the habit editor at all.
+ */
+export function tabletMayManageRewards(role: Role): boolean {
+  return role === "device";
+}
+
+/** The tablet may add a wish (a reward with no cost) for anyone, with no PIN (Bryce, 2026-11-25). */
+export function tabletMayAddWishes(role: Role): boolean {
+  return role === "device";
+}

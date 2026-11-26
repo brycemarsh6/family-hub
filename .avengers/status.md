@@ -6,6 +6,57 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Parent PIN, kid and tablet redeem, wishes (mission 82, R4)**, about
+  6 minutes, on the iPad (as the Tablet) and your iPhone, light and dark.
+  As a parent: Settings, Rewards, Parent PIN, set a 4-digit PIN. Sign the
+  iPad in as the Tablet and open Rewards: Redeem asks for the PIN; a wrong
+  PIN says so, five wrong locks it for 5 minutes (a parent's phone never
+  asks). Add a wish for a kid: it shows with a dashed edge and no cost;
+  as a parent tap Set cost on Manage. As the Tablet, add a reward: the
+  PIN is asked to save. Turn the PIN switch off in Settings: the Tablet
+  redeems with no PIN. Check the words: "Enter the PIN.", "Pick on or
+  off." and the undo refusal "Only a parent can undo this now." Delete
+  your test wish and undo test redeems when done.
+- **Manage rewards and star history (mission 83, R5)**, about 5 minutes,
+  on your iPhone and the iPad, light and dark. On Rewards (as a parent) tap
+  Manage at the top. Give or take stars: pick a person, Give, step to 10,
+  type "zz test" as the note, tap "Give (name) 10 stars"; their bank goes
+  up 10. Take 5 the same way. Both show in Recent with Undo; Undo one and
+  the bank goes back. A wish (a reward with no cost) shows with Set cost.
+  Back on Rewards: on the iPad tap a person's star bank, on the phone the
+  "(name)'s star history" link under the chips. The sheet lists the last
+  30 days by day: checks with their stars, "Late" under a late one, your
+  bonus and take-away with the note, redeems with the picture. Sign in as
+  a kid: no Manage button, and a private habit of yours reads "A private
+  habit" in your history. Undo your test lines when done.
+- **Rewards page (mission 81, R3)**, about 5 minutes, on your iPhone and
+  the iPad, light and dark. Open Rewards in the side menu. As a parent,
+  tap Add reward under your name: pick a picture (or Any emoji for your
+  keyboard), a name, a cost from the steps, One time or Repeatable, Save.
+  Give a chore enough stars and check it, then tap Redeem on the reward:
+  the sheet says what it spends, Redeem, then "Great work!" with gold stars
+  falling; try Undo redeem once. A repeatable reward's bar starts over; a
+  one-time one turns Earned and moves to the end. Turn on Hide earned. On
+  the iPad every person gets a column (it swipes sideways if they do not
+  all fit); on the phone tap a person's chip. A kid or the Tablet sees
+  "Ask a parent" instead of Redeem until R4.
+- **Flying stars (mission 80, R2)**, about 4 minutes, on your iPhone and
+  the iPad, light and dark. Give a chore 5 stars, then check it on Mine: a
+  ring of 8 gold stars pops out round the check, flies into your star bank
+  and the number counts up. Un-check it: the number drops at once, no
+  stars. On the iPad's Whole family view, check a Together habit: each
+  person gets their own ring into their own bank. On a dashboard Habits
+  tile the ring pops in place. Check off everything for the day: confetti
+  falls behind a dark pill, "You did it! All done today.", gone in 3
+  seconds. **Hill chose that pill's look (dark, the Undo bar style): check
+  it in dark mode first and say if you want it changed.** Settings, Habits
+  & Chores: switch Celebrations off; checks no longer fly and there is no
+  confetti. Wall tablet settings has its own Celebrations switch.
+- **Decided by Hill in mission 80, for your review:** (1) a save that fails
+  stops any stars still flying; (2) the design rule now says each person
+  whose bank is on screen gets their own ring, and everyone else shares one
+  ring that pops where you tapped; (3) the all-done pill is dark with light
+  text (the Undo bar look). Details: the mission 80 file's handoff log.
 - **Rewards stars (mission 79, R1)**, about 4 minutes, on your iPhone and
   the iPad, light and dark. Edit a chore: under Icon there is a Stars
   field; tap + and it walks None, 1, 2, 3, 4, 5, 10, 15, 20, 25, 50. Give
@@ -358,6 +409,28 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Parent PIN follow-ups (mission 82 gate NOTEs): the PIN check's catch
+  logs nothing; the lock panel is taller, so the keys drop 8px when a lock
+  starts; RewardSheet's plain refusal branch does not clear the PIN error;
+  a stale "no PIN set" lasts until reload; mock D's "Parent PIN" heading
+  is missing on the Add-reward version; the settings page fallback copies
+  `loadPinStatus`'s default; the words-with-numbers rule could go
+  app-wide (Bryce's call); tablet habit star values are parked (plan).
+- Rewards page follow-ups (mission 81 Delivery): a refused redeem can
+  show a stale bank (the board keeps its own copy); Done and Undo redeem
+  look disabled for about a second after a redeem; the star rain is per
+  frame (120Hz gets double) and ignores the Celebrations switch (Reduce
+  Motion only); the Repeats tag moves after a redeem; Hide earned slides on
+  reload; the app never sets `color-scheme: dark`; `briefingDateLabel`
+  could join `householdDate.ts`; STRUCTURE.md's calendar doc sizes are
+  stale since mission 70; RewardSheet's "Save", "Add", "Delete" are inline.
+- Star flight follow-ups (mission 80 gate NOTEs): two overlapping checks
+  for one person where one fails cancel both rings (the number stays
+  right); the all-done pill now looks like the Undo bar if both show at
+  once; the Settings switch row is copied in two components; the confetti's
+  particle numbers are still typed in `HabitConfetti.tsx`; rewards.md's
+  "reading the preference any other way" sentence should except the two
+  Settings switch rows; `HoursLogButton`'s onClick type is loose.
 - Rewards follow-ups (mission 79 Delivery): checking a carried row on
   Today makes it vanish with no on-screen Undo (the habit's stats page
   can still undo it for 7 days); a past day shows today's star bank; a

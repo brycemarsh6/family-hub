@@ -4,6 +4,48 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ADJUST_AMOUNT_LABEL,
+  ADJUST_DIRECTION_LABEL,
+  ADJUST_GIVE_LABEL,
+  ADJUST_PERSON_LABEL,
+  ADJUST_NOTE_LABEL,
+  ADJUST_TAKE_LABEL,
+  bonusFromText,
+  giveButtonText,
+  ADJUST_NOTE_MAX,
+  ADJUST_NOTE_REFUSAL,
+  historyBankLabelText,
+  historyLinkText,
+  historyTitleText,
+  recentAdjustSub,
+  recentBonusTitle,
+  recentRedeemSub,
+  recentRedeemedTitle,
+  recentTakenTitle,
+  recentUndoLabelText,
+  signedStarsText,
+  takeButtonText,
+  takenByText,
+  wishOfText,
+  wishesTitleText,
+  ANY_EMOJI_HINT,
+  ANY_EMOJI_LABEL,
+  COST_STEPS,
+  DEFAULT_REWARD_COST,
+  REWARD_ALL_HIDDEN,
+  REWARD_PEOPLE_LABEL,
+  REWARD_TITLE_MAX,
+  notEnoughStarsText,
+  personChipLabel,
+  progressText,
+  redeemButtonText,
+  redeemQuestionText,
+  redeemSpendText,
+  redeemedByText,
+  redeemedTitleText,
+  rewardProgressLabel,
+  rewardRedeemAriaLabel,
+  toRewardCost,
   LATE_STARS,
   LATE_STARS_HELP,
   LATE_STARS_LABELS,
@@ -65,4 +107,77 @@ test("the form and settings words are Bryce's, word for word", () => {
   assert.equal(LATE_STARS_HELP, "A late check is a carried-over item checked off the next day. Half rounds up.");
   assert.equal(LATE_STARS_REFUSAL, "Only parents and admins can change this.");
   assert.equal(LATE_STARS_OFF_LIST, "That choice isn't on the list.");
+});
+
+test("the cost steps are Bryce's 20, and anything else is null", () => {
+  assert.deepEqual([...COST_STEPS], [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000]);
+  for (const step of COST_STEPS) assert.equal(toRewardCost(step), step);
+  for (const raw of [0, 1, 6, 35, 1001, "20", null, undefined, NaN]) assert.equal(toRewardCost(raw), null);
+  assert.equal(DEFAULT_REWARD_COST, 20);
+  assert.equal(REWARD_TITLE_MAX, 60);
+});
+
+test("the Any emoji words and the redeem sheet's builders are the mock's", () => {
+  assert.equal(ANY_EMOJI_LABEL, "Any emoji");
+  assert.equal(ANY_EMOJI_HINT, "Tap the smiley or globe key for emoji");
+  assert.equal(notEnoughStarsText("Ellie", 15), "Ellie needs 15 more stars.");
+  assert.equal(notEnoughStarsText("Ellie", 1), "Ellie needs 1 more star.");
+  assert.equal(redeemQuestionText("Cupcake", "Ellie"), "Redeem Cupcake for Ellie?");
+  assert.equal(redeemSpendText(20, "Ellie", 55), "This spends 20 of Ellie's 55 stars. 35 left after.");
+  assert.equal(redeemButtonText(20), "Redeem 20 stars");
+  assert.equal(redeemedTitleText("Cupcake"), "Cupcake redeemed.");
+  assert.equal(redeemedByText("Ellie", 20, "Tuesday, November 24"), "By Ellie for 20 stars on Tuesday, November 24.");
+  assert.equal(progressText(55, 150), "55 of 150");
+  assert.equal(progressText(-4, 150), "0 of 150");
+});
+
+test("the people row, chip and progress words are pinned", () => {
+  assert.equal(REWARD_PEOPLE_LABEL, "People");
+  assert.equal(REWARD_ALL_HIDDEN, "Earned rewards are hidden.");
+  assert.equal(personChipLabel("Ellie", 55), "Ellie, 55 stars");
+  assert.equal(personChipLabel("Ellie", 1), "Ellie, 1 star");
+  assert.equal(rewardProgressLabel("Cupcake"), "Cupcake progress");
+});
+
+test("the Redeem button names its reward for a screen reader", () => {
+  assert.equal(rewardRedeemAriaLabel("Cupcake"), "Redeem Cupcake");
+});
+
+// R5 (mission 83)
+test("R5 give or take words", () => {
+  assert.equal(ADJUST_GIVE_LABEL, "Give");
+  assert.equal(ADJUST_TAKE_LABEL, "Take away");
+  assert.equal(ADJUST_NOTE_LABEL, "What for? (optional)");
+  assert.equal(ADJUST_PERSON_LABEL, "Who");
+  assert.equal(ADJUST_DIRECTION_LABEL, "Give or take away");
+  assert.equal(ADJUST_AMOUNT_LABEL, "Stars");
+  assert.equal(giveButtonText("Ellie", 5), "Give Ellie 5 stars");
+  assert.equal(giveButtonText("Ellie", 1), "Give Ellie 1 star");
+  assert.equal(takeButtonText("Ellie", 5), "Take 5 stars from Ellie");
+  assert.equal(signedStarsText(5), "+5");
+  assert.equal(signedStarsText(-5), "-5");
+});
+
+test("R5 Manage and history words", () => {
+  assert.equal(wishesTitleText(2), "Wishes waiting for a cost (2)");
+  assert.equal(wishOfText("Ellie"), "Ellie's wish");
+  assert.equal(historyTitleText("Ellie"), "Ellie's stars");
+  assert.equal(historyLinkText("Ellie"), "Ellie's star history");
+  assert.equal(historyBankLabelText("Ledger", 5), "Ledger's star history, 5 stars");
+  assert.equal(historyBankLabelText("Ledger", 1), "Ledger's star history, 1 star");
+  assert.equal(recentUndoLabelText("Bonus: zz r5 fury"), "Undo: Bonus: zz r5 fury");
+  assert.equal(ADJUST_NOTE_MAX, 60);
+  assert.equal(ADJUST_NOTE_REFUSAL, "Keep the note to 60 letters or fewer.");
+  assert.equal(bonusFromText("Dad"), "Bonus from Dad");
+  assert.equal(bonusFromText(null), "Bonus stars");
+  assert.equal(takenByText("Mom"), "Taken away by Mom");
+  assert.equal(takenByText(null), "Stars taken away");
+  assert.equal(recentRedeemedTitle("Cupcake"), "Cupcake redeemed");
+  assert.equal(recentBonusTitle("Chores"), "Bonus: Chores");
+  assert.equal(recentBonusTitle(null), "Bonus stars");
+  assert.equal(recentTakenTitle("Mess"), "Taken away: Mess");
+  assert.equal(recentTakenTitle(null), "Stars taken away");
+  assert.equal(recentRedeemSub("Ellie", 20, "Today"), "Ellie · 20 stars · Today");
+  assert.equal(recentAdjustSub("Ellie", -3, "Dad", "Yesterday"), "Ellie · -3 from Dad · Yesterday");
+  assert.equal(recentAdjustSub("Ellie", 3, null, "Today"), "Ellie · +3 · Today");
 });

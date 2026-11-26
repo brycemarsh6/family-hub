@@ -54,7 +54,7 @@ export function FamilyHabitRow({
 }: {
   row: FamilyRow;
   showStreaks: boolean;
-  onToggle: () => void;
+  onToggle: (from?: HTMLElement) => void;
   /** True in the Together strip: the check's name leaves out the person. */
   together?: boolean;
   /** A small label under the title ("Together", "Chore"): the wide layout, where rows of every kind share a group. */
@@ -158,7 +158,7 @@ export function HabitFamilyColumn({
   showStreaks: boolean;
   /** The Filter sheet's test: whether a row shows. The count above is always the whole day. */
   keep?: (row: FamilyRow) => boolean;
-  onToggle: (row: FamilyRow) => void;
+  onToggle: (row: FamilyRow, from?: HTMLElement) => void;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
   lateStars: LateStars;
 }) {
@@ -182,7 +182,7 @@ export function HabitFamilyColumn({
           </span>
         </div>
         {column.onVacation && <Plane aria-hidden="true" size={18} className="shrink-0 text-muted" />}
-        <StarBank stars={bank} />
+        <StarBank userId={column.id} stars={bank} />
       </div>
       {column.shoutOut && (
         <p className="mb-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">
@@ -202,7 +202,7 @@ export function HabitFamilyColumn({
             <ul className="divide-y divide-line">
               {group.items.map(({ row, tag, together: isTogether }) => (
                 <li key={row.id}>
-                  <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} lateStars={lateStars} />
+                  <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={(from) => onToggle(row, from)} together={isTogether} tag={tag} lateStars={lateStars} />
                 </li>
               ))}
             </ul>

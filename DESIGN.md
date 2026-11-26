@@ -159,6 +159,10 @@ tell when a rule's reason has expired.
   Add puts the widget back, and only its size and picks are lost. A failed
   save returns the row with the inline error, which reads as a correction,
   not a loss.
+  **Named exception (mission 83):** Undo in Manage rewards' Recent list is
+  optimistic: the row leaves at once, and a failed undo brings it back with
+  the warn alert, which reads as a correction. The bank and the redemption,
+  bonus or take-away behind it are exactly as they were.
 - **Delete is a single tap, no confirmation** — everywhere, for consistency.
   Exactly two sanctioned exceptions, both because they silently touch many
   rows' relationships: deleting a **cookbook** and deleting a **tag**, each
@@ -184,8 +188,20 @@ tell when a rule's reason has expired.
   icon system and tolerated.)
   A third exception (mission 79, Bryce 2026-11-24): the **star** is one
   filled Lucide `Star` (`fill="currentColor"`) in `--star`, used only for
-  stars: the row chip (`StarChip`) and the star bank (`StarBank`). No other
+  stars: the row chip (`StarChip`), the star bank (`StarBank`), the
+  star flight's ring (`StarFlightLayer`, mission 80) and the small star
+  beside the word Earned on an earned reward card (mission 81). No other
   icon is filled.
+  A fourth exception (mission 81, Bryce 2026-11-24): **colour emoji**, chosen
+  from `REWARD_EMOJI_GROUPS` or the device's emoji keyboard ("Any emoji"),
+  shown only on reward cards, the redeem sheet and the reward picture picker,
+  and (mission 83, Bryce's approved mock 2026-11-25) on Manage rewards' wish
+  and Recent redeem rows and the star history's redeem lines. They are a
+  reward's picture, not icons; nowhere else. On Manage rewards, a Recent bonus
+  or take-away row shows the outline Lucide `Star`, and a Recent redeem or a
+  waiting wish with no picture an outline `Gift`. In the star history only a
+  redeem with a picture shows its emoji; bonus, take-away and no-picture
+  redeem lines have no icon.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -309,7 +325,16 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
 - **`--line-strong` is decorative only.** It is the dashed outline of an
   empty vision card (a slightly darker twin of `--line`, with a dark-mode
   twin). It is too faint to carry text or to mark an interactive edge on its
-  own, so never use it for either.
+  own, so never use it for either. The Rewards page uses the same dash
+  for its Add tiles (2px, mission 81) and for a wish card (1px, mission
+  82, a reward still waiting for its cost); the words and buttons inside
+  carry the meaning, never the dash.
+- **Named exception (mission 83, Bryce's approved mock 2026-11-25): star
+  history amounts.** In the star history sheet a plus amount uses
+  `--accent` and a minus amount (a take-away or a redeem) uses `--danger`.
+  Here red means stars going out, not destruction or urgency (an exception
+  to the error-colour rule below; a meaning, not decoration, and never on the
+  timeline, so the now-line's rule is untouched). Nothing else inherits this.
 - **`--streak` / `--streak-soft` are the streak's own colour** (mission-32/F1):
   a burnt peach for the flame and its count on Today rows, family rows and the
   stats tile, and the soft fill behind the nudge card. Amber (`--warn`) means
@@ -327,6 +352,15 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   `--surface-2`; dark `#f4d26b` (brand Butter) is 10.53:1 on `--surface`,
   11.72:1 on `--bg`, 9.33:1 on `--surface-2` (measured). Never use it for
   text, and never for anything but stars.
+- **`--star-soft` is an earned reward's background** (mission-81/C3): a pale
+  Butter (light `#fbf0d0`, dark `#382e12`) inside a 2px `--star` ring and used
+  for nothing else. The card's text is `--fg`: 6.93:1 light, 11.83:1 dark
+  (measured). The `--star` ring is 3.55:1 on it in light, 9.11:1 in dark.
+  Never put `--muted` text on it (4.5:1 is not guaranteed there).
+- **The redeem star rain is allowed motion** (mission-81): about two seconds
+  of gold stars falling behind the redeem sheet's celebration, drawn by
+  `StarRain` beside the daily confetti, never taking taps. Reduce Motion
+  turns it off; the words and the Done and Undo redeem buttons still show.
 - **Stars show in three places** (Bryce, 2026-11-24, from the "star bank on
   Mine" mock). A row with stars carries a small chip beside the streak,
   "star 10" (no chip without stars; hours rows never). A carried-over row's
@@ -342,6 +376,29 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   each person's header. The bank moves the instant a check is tapped
   (`starDiff` over the server's rows and the optimistic ones) and matches the
   server after refresh. A negative bank shows its minus.
+- **The star flight and the all-done words** (Bryce, 2026-11-24, from the
+  mission-80 mock). A check that pays stars sends a ring of 8 filled
+  `--star` stars out round the tapped check; they fly to that person's star
+  bank, shrinking, and the number counts up (about 1 second in all). Each
+  person paid whose star bank is on screen gets their own ring, flying to
+  their bank. Anyone paid whose bank is not on screen (a dashboard tile) is
+  shown by one shared ring that pops in place where the tap was and fades
+  (decided by Hill, 2026-11-25). A save that fails cancels any ring still
+  in the air. An un-check never flies, and the
+  number drops at once. The flight sits on a layer that never takes taps,
+  so a second tap mid-flight always works. When every required item is
+  done, the daily confetti falls behind a centred pill (the inverted
+  `bg-fg text-bg` look the `UndoBar` uses; decided by Hill), "You did it!
+  All done today." (`ALL_DONE_LINE`), gone after 3 seconds; it never takes
+  taps either. This replaces habits-plan decision 99 ("Confetti has no
+  words"). One per-login switch, **Celebrations** ("Flying stars and the
+  all-done confetti"), turns off the flight, the count-up, the confetti and
+  the words; the wall tablet's own switch is on Wall tablet settings.
+  **Reduce Motion always wins:** no flight, no count-up and no confetti,
+  but the words still show, because they do not move. These two, with the
+  confetti and the redeem star rain (mission 81, which follows Reduce
+  Motion but not yet the Celebrations switch), are the app's only
+  celebration motion.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

@@ -592,6 +592,19 @@ model User {
   nudgesSent         Nudge[]            @relation("nudgesSent")
   nudgesReceived     Nudge[]            @relation("nudgesReceived")
 
+  /// Rewards (mission 81): rewards this person is saving for (Cascade) or
+  /// made (SetNull), their redemptions (Cascade), and the ones they tapped
+  /// Redeem on for someone else (SetNull).
+  rewardsOwned          Reward[]           @relation("rewardsOwned")
+  rewardsCreated        Reward[]           @relation("rewardsCreated")
+  rewardRedemptions     RewardRedemption[] @relation("rewardRedemptions")
+  rewardRedemptionsMade RewardRedemption[] @relation("rewardRedemptionsMade")
+
+  /// Bonus or taken-away stars (mission 83): the ones given to this person
+  /// (Cascade) and the ones they gave or took for someone else (SetNull).
+  starAdjustments     StarAdjustment[] @relation("starAdjustments")
+  starAdjustmentsMade StarAdjustment[] @relation("starAdjustmentsMade")
+
   /// Winnie's morning briefing (mission 48): the days this person's briefing
   /// was claimed. Cascade: a deleted person's guard rows mean nothing.
   winnieBriefingsSent WinnieBriefingSent[]
@@ -768,6 +781,10 @@ model UserPreferences {
   /// "Show streaks" (mission 30): off hides streak numbers for this person.
   /// Streaks are still counted either way.
   showStreaks Boolean @default(true)
+
+  /// "Celebrations" (mission 80): off means no flying stars and no daily
+  /// all-done confetti for this login. Reduce Motion always wins over it.
+  celebrations Boolean @default(true)
 
   /// The chore streak (mission 33, decision 33): one count over all of this
   /// person's chores, cached like HabitParticipant's streak and rebuilt by
@@ -1436,6 +1453,94 @@ model RewardSettings {
 
   lateStars String @default("full")
 
+  /// The parent PIN (mission 82, Rewards R4). `pinHash` is a bcrypt hash
+  /// made by src/lib/password.ts; null is "no PIN set yet", and the PIN
+  /// itself is never stored. `pinRequired` is the Settings switch (on by
+  /// default). `pinFailCount` and `pinLockedUntil` are the PIN's own
+  /// wrong-try lock, never the sign-in lock (`LoginAttempt`).
+  pinHash        String?
+  pinRequired    Boolean   @default(true)
+  pinFailCount   Int       @default(0)
+  pinLockedUntil DateTime?
+
   updatedAt   DateTime @updatedAt
   updatedById String?
+}
+
+/// A reward someone is saving stars for (mission 81, Rewards R3). `ownerId`
+/// is whose reward it is (Cascade: it goes with the person). `emoji` is the
+/// one picture, stored as the emoji itself; null is "No picture". `cost` is
+/// stars, from COST_STEPS in rewardVocabulary.ts; null is a wish waiting for
+/// a parent's cost (R4). `repeatable` false is one time (Earned once
+/// redeemed), true restarts the bar. `createdById` is who added it, SetNull.
+model Reward {
+  id String @id @default(cuid())
+
+  ownerId String
+  owner   User   @relation("rewardsOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title      String
+  emoji      String?
+  cost       Int?
+  repeatable Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  createdById String?
+  createdBy   User?   @relation("rewardsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions RewardRedemption[]
+
+  @@index([ownerId, sortOrder])
+}
+
+/// One time a reward was redeemed (mission 81). `userId` is whose stars were
+/// spent (Cascade). `rewardId` is SetNull so a deleted reward keeps its
+/// history. `title`, `emoji` and `cost` are snapshots taken at redeem time
+/// and never rewritten, so editing a reward never changes what was spent.
+/// `redeemedById` is the parent who tapped Redeem, SetNull. Undo redeem
+/// deletes the row, which puts the stars back in the bank.
+model RewardRedemption {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("rewardRedemptions", fields: [userId], references: [id], onDelete: Cascade)
+
+  rewardId String?
+  reward   Reward? @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+
+  title String
+  emoji String?
+  cost  Int
+
+  redeemedById String?
+  redeemedBy   User?   @relation("rewardRedemptionsMade", fields: [redeemedById], references: [id], onDelete: SetNull)
+
+  redeemedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([rewardId])
+}
+
+/// Bonus or taken-away stars (mission 83, Rewards R5): one signed line in a
+/// person's star bank, with an optional note. `amount` is never 0 (positive
+/// gives, negative takes away). The bank adds these up in `loadStarBanks`
+/// only. `createdById` is who gave or took them (SetNull when that login goes).
+model StarAdjustment {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("starAdjustments", fields: [userId], references: [id], onDelete: Cascade)
+
+  amount Int
+  note   String?
+
+  createdById String?
+  createdBy   User?   @relation("starAdjustmentsMade", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

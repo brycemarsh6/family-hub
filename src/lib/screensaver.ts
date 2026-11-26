@@ -8,13 +8,13 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import {
   calendarDateInZone,
-  dayOfWeek,
   formatHouseholdClock,
+  formatLongCalendarDate,
   minuteOfDayInZone,
   parseDateParam,
   type CalendarDate,
 } from "./householdDate";
-import { FULL_DAY_NAMES, FULL_MONTH_NAMES } from "./mealPlanDates";
+import { FULL_MONTH_NAMES } from "./mealPlanDates";
 
 export type ScreensaverSettings = {
   startAfterMinutes: number;
@@ -189,8 +189,7 @@ export function formatSleepMinute(minute: number): string {
 
 /** "Sunday, November 9": the date line under the clock. */
 export function formatScreensaverDate(now: Date, timeZone: string = HOUSEHOLD_TIME_ZONE): string {
-  const date = calendarDateInZone(now, timeZone);
-  return `${FULL_DAY_NAMES[dayOfWeek(date)]}, ${FULL_MONTH_NAMES[date.month - 1]} ${date.day}`;
+  return formatLongCalendarDate(calendarDateInZone(now, timeZone));
 }
 
 /** "June 14, 2023" from a stored YYYY-MM-DD (no timezone); null for null or bad text. */
