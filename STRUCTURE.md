@@ -24,7 +24,7 @@ a one-line pointer.
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
-| `prisma/` | Schema, **additive-only** migrations, the Vercel build hook (`migrate-on-production.mjs` — applies migrations to production at release time, and nowhere else), scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
+| `prisma/` | Schema, **additive-only** migrations, the Vercel build hook (`migrate-on-production.mjs` — applies migrations to production at release time, and nowhere else, after first refusing a bad `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` on every build), the CI-only empty-database check (`fresh-db-smoke.ts`, which refuses any host but localhost), scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
 | `brand/` | Master brand vectors (`marshee-mark.svg`, `marshee-wordmark.svg`, `marshee-app-icon.svg`) — the source every other brand asset is generated from. Committed so the artwork and the generated files can't silently drift; **never imported by app code** (the components in `src/components/` carry their own copy of the path data, generated from these) | Generated output — the icon PNG/ICO files live in `src/app/` as Next's file conventions require; anything the app imports at build or runtime |
 | `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
@@ -626,7 +626,9 @@ amendment id.
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
   zone-explicit (`CalendarDate`, never a process-local `Date`;
-  `HOUSEHOLD_TIME_ZONE` from constants). `mealPlanDates.ts` /
+  `HOUSEHOLD_TIME_ZONE` from constants, the only zone name in app code: it
+  reads `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE`, default Denver, and the Vercel
+  build refuses a bad name; mission-88). `mealPlanDates.ts` /
   `calendarDates.ts` remain the browser-local homes. A server-side
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added

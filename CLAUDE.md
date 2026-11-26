@@ -216,7 +216,8 @@ Reasons for each are in the archive and the mission files.
 - **No recipe photos** (Recipes v2 C7 was dropped: it needed paid Vercel Blob).
 - **Recipe ↔ inventory matching is presence-only.** If it's in the pantry, we
   have it. No quantity math, no auto-deduct.
-- **"Today" on the server means Denver** (`HOUSEHOLD_TIME_ZONE`).
+- **"Today" on the server means `HOUSEHOLD_TIME_ZONE`**: Denver unless a copy sets
+  `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` (before it has data). Never hard-code a zone.
 - **The Assistant bot may hard-delete only what it created**; inventory is only
   ever zeroed, never deleted. No agent ever sees the API token.
 - **Bryce directs content and design decisions** (layout, fields, wording).
