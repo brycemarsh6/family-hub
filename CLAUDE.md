@@ -158,13 +158,13 @@ files named beside it.
   purpose: `/lists` (coming soon), `/login` and the recipe print page. Plan:
   `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
 - **Family accounts**: per-person logins, role gates, account management, kid
-  profiles without a password. A "Tablet" device login for the wall tablet
-  can check off any task; signing out of it needs an admin password. A
-  per-login **Text size** (Normal, Large, Larger, Largest) magnifies the
-  app on tablets only, through the root font size; the pinned side menu
-  never grows. Size things in rem, never px text (mission 58 file).
-  **Open Marshee on** is each login's page after sign-in (`startPage.ts`);
-  `/` and the Dashboard link always show the dashboard.
+  profiles without a password. A new copy's first admin comes from its
+  `/setup#<code>` link; a lost admin password uses the family recovery code
+  (Forgot password on sign-in; a new code in Settings). The "Tablet" login
+  checks off any task and signs out only with an admin password. **Text
+  size** magnifies the app on tablets only (root font size; the pinned menu
+  never grows): size in rem, never px text (mission 58 file). **Open Marshee
+  on** is each login's page after sign-in (`startPage.ts`); `/` and the Dashboard link always show the dashboard.
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).

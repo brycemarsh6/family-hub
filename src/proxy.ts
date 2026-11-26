@@ -48,7 +48,13 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 //
 // /privacy is the public privacy policy page Google's consent screen links to.
 // Static text, no data; an exact match so nothing else opens with it.
-const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/cron/calendar-pull", "/api/google/callback", "/api/feedback-inbox"];
+//
+// /setup is a relative's first visit to their new copy, before any account
+// exists. The page 404s unless setup is open (not Bryce's copy, a setup code
+// is configured, no user yet), the code rides after the `#` so it never
+// reaches the server's logs, and each action rechecks all of that itself;
+// proxy is only UX. Exact match.
+const PUBLIC_ROUTES = ["/login", "/privacy", "/setup", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/cron/calendar-pull", "/api/google/callback", "/api/feedback-inbox"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,

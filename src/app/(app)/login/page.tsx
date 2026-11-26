@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { toRole } from "@/lib/constants";
 import { MarsheeIcon } from "@/components/MarsheeIcon";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
+import { RECOVERY_WORDS } from "@/lib/setupVocabulary";
 import { LoginForm } from "./LoginForm";
 
 // Reads the session cookie, so it can never be cached.
@@ -75,15 +76,9 @@ export default async function LoginPage() {
       </p>
 
       {accounts.length === 0 ? (
-        // No dead form — an honest state naming the actual fix, matching
-        // the house rule that every error/empty state names a next step.
-        <p className="mt-2 text-base text-muted">
-          No accounts exist yet. In a terminal, run{" "}
-          <code className="rounded bg-surface-2 px-1.5 py-0.5 text-sm">
-            npm run db:bootstrap-users
-          </code>{" "}
-          to create one.
-        </p>
+        // No dead form: an honest state naming the next step (the setup
+        // link a new family copy is given).
+        <p className="mt-2 text-base text-muted">{RECOVERY_WORDS.emptyLogin}</p>
       ) : (
         <>
           <p className="mt-2 text-base text-muted">Who&apos;s signing in?</p>
