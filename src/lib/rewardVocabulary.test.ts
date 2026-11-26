@@ -4,6 +4,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ADJUST_GIVE_LABEL,
+  ADJUST_NOTE_LABEL,
+  ADJUST_TAKE_LABEL,
+  bonusFromText,
+  giveButtonText,
+  historyLinkText,
+  historyTitleText,
+  recentAdjustSub,
+  recentBonusTitle,
+  recentRedeemSub,
+  recentRedeemedTitle,
+  recentTakenTitle,
+  signedStarsText,
+  takeButtonText,
+  takenByText,
+  wishOfText,
+  wishesTitleText,
   ANY_EMOJI_HINT,
   ANY_EMOJI_LABEL,
   COST_STEPS,
@@ -117,4 +134,35 @@ test("the people row, chip and progress words are pinned", () => {
 
 test("the Redeem button names its reward for a screen reader", () => {
   assert.equal(rewardRedeemAriaLabel("Cupcake"), "Redeem Cupcake");
+});
+
+// R5 (mission 83)
+test("R5 give or take words", () => {
+  assert.equal(ADJUST_GIVE_LABEL, "Give");
+  assert.equal(ADJUST_TAKE_LABEL, "Take away");
+  assert.equal(ADJUST_NOTE_LABEL, "What for? (optional)");
+  assert.equal(giveButtonText("Ellie", 5), "Give Ellie 5 stars");
+  assert.equal(giveButtonText("Ellie", 1), "Give Ellie 1 star");
+  assert.equal(takeButtonText("Ellie", 5), "Take 5 stars from Ellie");
+  assert.equal(signedStarsText(5), "+5");
+  assert.equal(signedStarsText(-5), "-5");
+});
+
+test("R5 Manage and history words", () => {
+  assert.equal(wishesTitleText(2), "Wishes waiting for a cost (2)");
+  assert.equal(wishOfText("Ellie"), "Ellie's wish");
+  assert.equal(historyTitleText("Ellie"), "Ellie's stars");
+  assert.equal(historyLinkText("Ellie"), "Ellie's star history");
+  assert.equal(bonusFromText("Dad"), "Bonus from Dad");
+  assert.equal(bonusFromText(null), "Bonus stars");
+  assert.equal(takenByText("Mom"), "Taken away by Mom");
+  assert.equal(takenByText(null), "Stars taken away");
+  assert.equal(recentRedeemedTitle("Cupcake"), "Cupcake redeemed");
+  assert.equal(recentBonusTitle("Chores"), "Bonus: Chores");
+  assert.equal(recentBonusTitle(null), "Bonus stars");
+  assert.equal(recentTakenTitle("Mess"), "Taken away: Mess");
+  assert.equal(recentTakenTitle(null), "Stars taken away");
+  assert.equal(recentRedeemSub("Ellie", 20, "Today"), "Ellie · 20 stars · Today");
+  assert.equal(recentAdjustSub("Ellie", -3, "Dad", "Yesterday"), "Ellie · -3 from Dad · Yesterday");
+  assert.equal(recentAdjustSub("Ellie", 3, null, "Today"), "Ellie · +3 · Today");
 });

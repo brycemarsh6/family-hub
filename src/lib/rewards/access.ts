@@ -21,3 +21,8 @@ export function canManageRewards(role: string): boolean {
 export function canRedeemRewards(role: string): boolean {
   return (MANAGER_ROLES as readonly string[]).includes(role);
 }
+
+/** Give or take stars (bonus and taken-away lines) and undo one (mission 83). */
+export function canAdjustStars(role: string): boolean {
+  return (MANAGER_ROLES as readonly string[]).includes(role);
+}
