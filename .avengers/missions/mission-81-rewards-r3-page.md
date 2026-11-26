@@ -531,7 +531,7 @@ person.
   segmenter. Not seen in a browser by Stark.
 
 ### F2 - Gate fixes, pass 2 (Vision, Captain, Strange)
-- **Status:** DISPATCHED 2026-11-25
+- **Status:** DONE 5a36115 (2026-11-25)
 - **Objective:** Clear the two pass-2 blockers plus two cheap notes, in one
   commit. Fury already made the doc fixes (STRUCTURE.md's
   `formatLongCalendarDate` line and size line, rewards.md's `orderRewards`
@@ -565,7 +565,10 @@ person.
 - **Evidence required:** gauntlet tails with counts, the column measurement,
   `git show --stat HEAD`.
 - **Done criteria:** one commit, only boundary files, gauntlet green.
-- **Report:** -
+- **Report:** DONE 5a36115, 6 boundary files, items 1 to 4 done. Gauntlet
+  green: Denver 2201 pass; UTC 2191 pass + 10 skipped. Measured in headless
+  Chrome with this build's CSS: 5 people in a 51rem board give
+  `216px x5`, scrolling sideways.
 
 ## Gate ledger
 
@@ -577,6 +580,9 @@ person.
 | 2 | Captain (HEAD 94265d2) | BLOCKED | All six pass-1 blockers fixed. New: `formatLongCalendarDate` (householdDate.ts:141) duplicates `formatScreensaverDate`'s body (screensaver.ts:191, mission 65), breaking STRUCTURE.md:627 and :257/:619. Fix: screensaver.ts delegates to it (imports adjusted); Fury scopes STRUCTURE.md:627 to "zone-explicit" with MiniMonth's browser-local twin | `orderRewards` needs a named home in rewards.md:110; RewardCard's 18rem `@container` not in layout.md:17; rewardsRead.ts:5 comment too wide; RewardSheet inline "Save"/"Add"/"Delete" (codebase norm); RewardSheet imports `Field` from HabitFormFields (carried) |
 | 2 | Vision (HEAD 94265d2, gauntlet re-run: Denver 2200/0 skip, UTC 2190 + 10 skip) | BLOCKED | All pass-1 blockers fixed; forged ids re-proved refused with a mocked probe (good path first). New: RewardsBoard.tsx:65 keeps `grid-cols-1` on wide, so when people do not fit column 1 takes the shortfall (5 people at a 51rem board: 1.63rem, then 13.5 each). Fix: `@min-[48rem]:grid-cols-none` (or drop `grid-cols-1`) | The 10 UTC skips are DST tests that skip on purpose in UTC and predate the mission (same guards on main); Undo-then-close-then-redeem-another within one round trip can close the new sheet (pre-F1, contract-accepted); Escape effect re-subscribes each render (fine); orderRewards, all-hidden logic, date helper and card container all correct |
 | 2 | Strange (HEAD 94265d2, running app on 3000; phone 375/390, iPad 1180, 820 portrait, 1133; light and dark; live redeem seen) | BLOCKED | Pass-1 items 1, 2, 3, 5, 6 fixed (contrast measured; Escape and backdrop ignored while "Redeeming..."). Live flow seen: confirm, celebration with Denver date, star rain, Done, Undo redeem, repeatable bar restart, one-time turns Earned and sorts last. New: iPad strip at 820 portrait computes `0px 216px x4` (Bryce's column vanishes under Emily's); 1133 squeezes column 1 to 174px. Same cause and fix as Vision's | One refusal read "needs 8 more" while the page showed 7 (stale bank during a check and uncheck; not reproduced; the board keeps a copy of the bank, so a refresh alone would not help); Done and Undo look disabled for about a second while the refresh runs; star rain is per frame, so 120Hz gets double; every Redeem button is named "Redeem"; the Repeats tag moves after a redeem; Hide earned switch slides on reload (carried) |
+| 3 | Captain (HEAD 5a36115) | PASS | Pass-2 blocker fixed: screensaver.ts:191 delegates; whole-src search finds only householdDate.ts:142 and MiniMonth's named twin. Amended doc lines, size line (152/332/309) and slideshow.md all true | briefing.ts:32 `briefingDateLabel` ("Friday, Nov 13", short month) could later join householdDate.ts; STRUCTURE.md:930 calendar doc sizes are stale since mission 70 (calendar.md 256, calendar-sync.md 194, two docs unrecorded), not this mission's; RewardSheet inline words and `Field` import carried |
+| 3 | Vision (HEAD 5a36115, gauntlet re-run: Denver 2201/0 skip, UTC 2191 + 10 DST skips) | PASS | Pass-2 blocker fixed: with this build's CSS, 5 people at 51rem give 216px x5 and scroll; 3 at 75rem 392px x3; below 48rem one column with chips. F2 touched exactly its 6 files; formatScreensaverDate output unchanged, its tests pass in both zones | Redeem aria-label starts with the visible word, so voice control still works; no regressions |
+| 3 | Strange (HEAD 5a36115, running app; iPad 820 portrait, 1133, 1180, light and dark; phone 390; no data changed) | PASS | Pass-2 blocker fixed: every size computes equal columns (216px x5 at 820 and 1133, swiping; 220px x5 at 1180, fitting); larger root sizes stay equal; Redeem drops below full width; phone shows one person; Redeem's name is "Redeem zz r3 pass2 repeat" | At 1133 Lucy's column is cut by about 40px until a swipe (a 13rem minimum would fit five; taste call for Bryce); the app never sets `color-scheme: dark`, so desktop Chrome draws a light scrollbar in dark mode (app-wide, iPad hides it); pass-2 notes still open |
 
 ## Handoff log
 
@@ -613,6 +619,13 @@ person.
   Bryce; rewards "zz r3 pass2 repeat" (cost 5, repeatable, 1 redemption)
   and "zz r3 pass2 once" (cost 5, one time, 1 redemption); "zz r3 cupcake"
   and its redemption from C3; Bryce's bank 7; Hide earned off.
+- 2026-11-25 - Pass 3: Vision, Captain and Strange all PASS at 5a36115.
+  Dev test data cleaned: a scratchpad script (dev host checked first,
+  exact titles, made since 2026-11-24) deleted the 3 "zz r3" rewards and
+  their 3 redemptions, then showed none left; the habit "zz m31 plan habit"
+  was un-checked and set back to Stars None through the app. Bryce's bank
+  reads 2 (R2's own test chore). R2 (PR 125) is landing first; R3 syncs
+  with main after it.
   **Resume:** if Stark's F1 commit is on the branch (`git log ece5eda..HEAD`),
   read its report and re-gate (Vision, Captain, Strange pass 2; Strange
   needs a bank of 5+). If not, check `git status` for half-done F1 edits
@@ -621,4 +634,19 @@ person.
 
 ## Delivery
 
-(Not yet.)
+- **Status:** gates PASS (pass 3, 2026-11-25); PR, merge and production
+  check pending the R2 sync.
+- **Commits:** C1 2cc1a00, C1b 6a2ab0a, C2 66b7ac9, C3 6d3b7d6, F1
+  3b0ab71, F2 5a36115, plus Fury's record and doc commits.
+- **Gates:** Vision BLOCKED, BLOCKED, PASS; Captain BLOCKED, BLOCKED,
+  PASS; Strange BLOCKED, BLOCKED, PASS (ledger above).
+- **For Bryce to review:** Hill's H1 to H3 (H3 first: a negative bank
+  shows "0 of 5"); whether Hill stays on Opus (`hill.md` says Fable; this
+  mission ran Hill on Opus 5.5 high at Bryce's request); at 1133 wide the
+  fifth person's column needs a swipe (a 13rem minimum would fit five).
+- **Deliberately not done (open notes):** refusal sheet can show a stale
+  bank (the board keeps a copy); Done and Undo look disabled for about a
+  second after a redeem; star rain is per frame; the Repeats tag moves;
+  Hide earned slides on reload; no `color-scheme: dark` app-wide;
+  `briefingDateLabel` could join householdDate.ts; STRUCTURE.md's
+  calendar doc sizes are stale since mission 70.
