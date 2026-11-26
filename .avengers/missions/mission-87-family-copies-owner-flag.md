@@ -64,7 +64,7 @@ From AGENTS.md, absolute for every agent:
 ## Contracts
 
 ### C1 - the owner flag and the five gates
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Objective:** add `isOwnerCopy()` and gate every owner-only surface on it.
 - **Boundaries:** may touch: new `src/lib/ownerCopyFlag.ts` (the pure parser),
   new `src/lib/ownerCopyFlag.test.ts`, new `src/lib/copyConfig.ts` (
@@ -98,14 +98,29 @@ From AGENTS.md, absolute for every agent:
   after, so the new tests are seen counted), the diff stat, the grep.
 - **Done criteria:** Fury reads the diff; each gate is the first thing its
   route does (voice/alexa) or sits where the rules say.
-- **Report:** pending.
+- **Report:** DONE, commit dde3ee2. Gauntlet green; npm test 2283 to 2286 (3 new). Fury read the diff: voice and Alexa gate first, briefing gate right after the CRON_SECRET check, Winnie action after the admin check, settings card behind `isOwnerCopy()`.
 
-### C2 - neutral wording (after Bryce signs off)
-- **Status:** PENDING (waiting on Bryce's wording sign-off)
-- **Boundaries:** may touch: `src/app/actions/auth.ts` (the lockout string
-  and its comment), `src/app/privacy/page.tsx`, `src/app/manifest.ts`,
-  `DESIGN.md` (the identity line only).
-- **Wording:** exactly as signed off, recorded below once agreed.
+### C2 - neutral wording (signed off by Bryce 2026-11-26)
+- **Status:** DISPATCHED
+- **Objective:** replace the wording that names Bryce's family with the signed-off text.
+- **Boundaries:** may touch: `src/app/actions/auth.ts` (the `RATE_LIMIT_ERROR`
+  string and the comment above `ADMIN_RATE_LIMIT_ERROR` that quotes it),
+  `src/app/privacy/page.tsx` (the "What Marshee is" paragraph, the "Last
+  updated" date, and the file's top comment line about approval),
+  `src/app/manifest.ts` (the description), `DESIGN.md` (the "What this is"
+  bullet in Identity only). Must not touch: anything else.
+- **Wording (exact, Bryce signed off each one 2026-11-26):**
+  - Lockout: `Too many tries. Wait about 15 minutes, or ask an admin to reset your password.`
+  - Privacy, "What Marshee is": `Marshee is a private app. Each family that uses it has its own copy, with its own data that no other family can see. There is no public sign-up.`
+    ("not sold" dropped on purpose: PR 5 adds a paid Upgrade.)
+  - Privacy "Last updated": `November 26, 2026`. Contact email stays (Bryce's call:
+    he runs every copy and owns the Google sign-in project).
+  - Manifest description: `Your family's calendar, meals, chores and lists in one place.`
+  - DESIGN.md "What this is": `a private web app for a family: a shared home base for the kitchen (inventory, shopping, expiring food, recipes, meal plans), calendar, habits and chores, rewards and plans. Each family gets its own private copy; there is no public sign-up.`
+- **Verification:** the gauntlet; `grep -rn "ask Dad\|one family\|one household" src DESIGN.md` returns nothing.
+- **Evidence required:** diff, grep output, gauntlet tails.
+- **Done criteria:** Fury reads the diff word for word against the list above.
+- **Report:** pending.
 
 ## Gate ledger
 
@@ -116,6 +131,7 @@ From AGENTS.md, absolute for every agent:
 
 - 2026-11-26: mission opened, branch cut from `origin/main` (81dbcc6).
   C1 written. Wording drafts going to Bryce.
+- 2026-11-26: C1 DONE (dde3ee2). Bryce signed off all wording (humanizer pass first). C2 dispatched.
 
 ## Delivery
 
