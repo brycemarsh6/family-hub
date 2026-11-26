@@ -80,7 +80,6 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   `package.json`) get small edits only; sync with `main` right before merging.
 - **Run commands, practical setup and file layout:** [README.md](README.md).
 
-
 ## What's built
 
 Each feature is one or two lines here. Detail lives in the plan and mission
@@ -117,6 +116,7 @@ files named beside it.
     tap-to-edit sheet.
   - **Shopping**: aisle-grouped list, per-store tags, check off, "put away"
     straight into the pantry. Low pantry items push onto the list in one tap.
+    Stores per copy: `/settings/stores` (no saved list = the built-in six).
   - **Expiring**: sorted by urgency, automatic shelf-life guesses (marked `~`),
     "Log leftovers".
   - **Recipes**: cookbooks with share links, four import paths including photo

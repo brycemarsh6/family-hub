@@ -1,7 +1,7 @@
 # Mission: Family copies PR 4, household settings and stores
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (S1 committed and with Vision; S2 built, uncommitted, gates next)
+**Status:** DELIVERED (all gates PASS; PR, merge and the production check follow in the Delivery section)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr4-stores` (cut from `main` at 183f02e)
 **Plan:** `.avengers/plans/family-copies-v1.md`, "PR 4" and "Running order"
@@ -241,6 +241,7 @@ items until they are bought (its chip shows while used, already S1's
 | S2+F1 / 1 | Vision (HEAD febec90) | BLOCKED | BLOCKER: `StoreListEditor` rolls back to per-edit snapshots, so queued edits that fail can show an unsaved store or resurrect a removed one. NOTES: actions read-modify-write with no row lock (two parents at once, rare); `getVerifiedUser()` outside the try; rename, reorder, Other, cap, F1 fixes, Bryce's copy all checked fine |
 | S2+F1 / 1 | Strange (port 3001, 390/820/1180, light and dark) | BLOCKED | Check 1 PASS (Bryce's copy unchanged); all flows work. BLOCKERS: page rows stretch full width on iPad (needs `NARROW_PAGE_CLASSES`); one-off `RenameStoreSheet` duplicates `TitleSheet` (no close button, no autofocus); red optimistic Remove breaks "destructive waits" (Bryce chooses neutral-instant or red-waits). NOTES: Other row label not aligned with names; SwipeActions danger text 2.4:1 in dark (pre-existing, app-wide); Settings skeleton shows for /settings/stores (as slideshow); chip row not scrolled back to All after fallback. Dev data restored; a HouseholdSettings row with the six defaults now exists on dev |
 | all / 2 | Vision (HEAD 5810363, after the main merge) | PASS | Pass-1 blocker closed; gauntlet re-run: `npm test` 2316/2316, TZ=UTC 2316 tests 2306 pass 10 skipped, build lists `/settings/stores`; merge kept PR 3's owner gate; migration sorts last. NOTES: STRUCTURE.md count 377 should be 381 (fixed by Fury); filter not reset to All on fallback (harmless); server "That didn't save" vs client `SAVE_FAILED` wording (kept: different situations, server cannot import the client file; Rewards does the same); no row lock (rare); fresh-database CI is proven by the PR's Gauntlet check |
+| all / 2 | Strange (HEAD 5810363; 390, 820, 1180; light and dark) | PASS | All three pass-1 blockers closed: 640px narrow column at 1180 (same as Wall tablet); rename is the shared `TitleSheet` (close button, autofocus, hint, maxLength, portaled); Remove is gray `CircleMinus`, instant. Bryce's chips, add bar, edit sheet and Inventory cart sheet read the six stores in order; Settings door under Wall tablet. Profile's TitleSheet unchanged. NOTES: chip-row scroll-back and the narrow skeleton not seen on screen (code read; Bryce's phone check); SwipeActions dark danger contrast (app-wide, follow-up). Dev data restored |
 
 F1 (below) fixes the S2-reachable notes before S2 is gated.
 
@@ -332,6 +333,20 @@ and stays optimistic, like the cookbook "Remove" in `RecipeList.tsx`.
 - **Verification:** tsc, eslint, `npm test`, `npm run build`.
 - **Evidence required:** the diff and the tool tails.
 - **Done criteria:** Strange pass 2 sees a gray Remove.
+
+## Delivery
+
+- Captain was not re-run after F2: F2 carried out his own notes (writes file
+  renamed for the table, shared upsert helper, `cleanNames` calls
+  `cleanName`, `StoreEdit` result, filter word in `dashboard.ts`) and added
+  one small `loading.tsx`; Vision pass 2 checked those and the STRUCTURE.md
+  text. Fury added Captain's STRUCTURE.md text and the layout.md line.
+- Bryce's calls this mission: build the mock as shown; a rename moves list
+  items; a removed store stays on items until bought; Remove is "Gray, instant".
+- Phone check and follow-ups: `.avengers/status.md`.
+- Dev database: the `HouseholdSettings` migration is applied, and a row with
+  the six default names now exists (Strange's first add created it), so dev no
+  longer exercises the "no row" path; production has no row until Bryce edits.
 
 ## Notes and follow-ups
 
