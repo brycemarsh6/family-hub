@@ -211,6 +211,9 @@ export const ADJUST_GIVE_LABEL = "Give";
 export const ADJUST_TAKE_LABEL = "Take away";
 export const ADJUST_NOTE_LABEL = "What for? (optional)";
 export const ADJUSTING_LABEL = "Saving…";
+export const ADJUST_PERSON_LABEL = "Who";
+export const ADJUST_DIRECTION_LABEL = "Give or take away";
+export const ADJUST_AMOUNT_LABEL = "Stars";
 
 /** "Give Ellie 5 stars" */
 export function giveButtonText(name: string, stars: number): string {

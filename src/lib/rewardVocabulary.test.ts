@@ -4,7 +4,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ADJUST_AMOUNT_LABEL,
+  ADJUST_DIRECTION_LABEL,
   ADJUST_GIVE_LABEL,
+  ADJUST_PERSON_LABEL,
   ADJUST_NOTE_LABEL,
   ADJUST_TAKE_LABEL,
   bonusFromText,
@@ -141,6 +144,9 @@ test("R5 give or take words", () => {
   assert.equal(ADJUST_GIVE_LABEL, "Give");
   assert.equal(ADJUST_TAKE_LABEL, "Take away");
   assert.equal(ADJUST_NOTE_LABEL, "What for? (optional)");
+  assert.equal(ADJUST_PERSON_LABEL, "Who");
+  assert.equal(ADJUST_DIRECTION_LABEL, "Give or take away");
+  assert.equal(ADJUST_AMOUNT_LABEL, "Stars");
   assert.equal(giveButtonText("Ellie", 5), "Give Ellie 5 stars");
   assert.equal(giveButtonText("Ellie", 1), "Give Ellie 1 star");
   assert.equal(takeButtonText("Ellie", 5), "Take 5 stars from Ellie");
