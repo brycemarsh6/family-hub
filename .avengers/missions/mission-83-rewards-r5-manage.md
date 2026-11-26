@@ -351,10 +351,62 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   for the gates:** that one adjustment (note "zz r5 fury"); Fury removes it
   after the gates.
 
+### F2 - Gate fixes, pass 1 (Captain, Strange, Vision notes)
+- **Status:** DISPATCHED
+- **Objective:** fix every pass-1 code blocker and the cheap notes in one
+  batch, so pass 2 re-gates once.
+- **Boundaries:** may touch: `src/components/RewardActivityList.tsx`,
+  `src/components/StarAdjustForm.tsx`, `src/components/RewardsBoard.tsx`,
+  `src/lib/rewardVocabulary.ts`, `src/lib/rewardVocabulary.test.ts`,
+  `src/lib/rewards/starAdjustments.ts`,
+  `src/lib/rewards/starAdjustments.test.ts` · must not touch: R4's files
+  (C1's list), `src/lib/useOptimisticRun.ts` (use it), docs, every other
+  file.
+- **What to fix:**
+  1. (Captain BLOCKER) `RewardActivityList.tsx`: drop its own error state
+     and `useTransition`; use `useOptimisticRun<string>` (hide the row as
+     the change; `run(key, action, () => router.refresh(), restore)` where
+     restore brings the row back). A thrown action now shows `SAVE_FAILED`
+     and restores the row.
+  2. (Strange BLOCKER) `StarAdjustForm.tsx`: add `placeholder:text-muted`
+     to the note input.
+  3. (Strange BLOCKER) `RewardsBoard.tsx`: the wide column bank button
+     looks tappable: `gap-1 border border-line` (the Manage button's
+     outline, still 48px) and a `ChevronRight` (16, `text-muted`,
+     aria-hidden) after the `StarBank`.
+  4. (Strange NOTE) `StarAdjustForm.tsx`: the chip row wraps from 48rem
+     (`@min-[48rem]:flex-wrap`) so every person shows in the narrow left
+     column.
+  5. (Strange NOTE) `RewardActivityList.tsx`: a redeem with no picture uses
+     the outline `Gift`, not `Star`.
+  6. (Captain NOTE) `rewardVocabulary.ts`: delete `ADJUSTING_LABEL`, use
+     `REWARD_SAVING_LABEL`.
+  7. (Captain NOTE) move `ADJUST_NOTE_MAX` into `rewardVocabulary.ts` and
+     build `ADJUST_NOTE_REFUSAL` from it; `starAdjustments.ts` imports it.
+  8. (Captain and Vision NOTE) `StarAdjustForm.tsx`: wrap the save in
+     `useOptimisticRun`'s `run(null, ...)` (no on-screen change) so a
+     network failure shows `SAVE_FAILED` instead of the error page; keep
+     the "Saving…" button state and the reset of the note on success.
+  9. (Vision and Strange NOTE) the wide bank button's label includes the
+     count, e.g. "Ledger's star history, 5 stars" (word function in the
+     vocabulary, using `starCountText`); each Recent Undo gets an
+     `aria-label` naming its row, e.g. "Undo: Bonus: zz r5 fury" (word
+     function in the vocabulary).
+- **Verification:** the Gauntlet green (counts may rise with the new word
+  tests); `grep -n "useTransition" src/components/RewardActivityList.tsx`
+  prints nothing.
+- **Evidence required:** per-item file:line, Gauntlet tails both zones,
+  `git show --stat HEAD`.
+- **Done criteria:** pass-2 gates.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD 1c11de5; Denver 2248/2248, UTC 2238 + 10 DST skips) | PASS | none | Read-only dev probes: bank counts adjustments (Ledger 0 + 5 - 10 = -5, below zero works); forged and non-string ids refused; device/unknown targets refused by HOUSEHOLD_PERSON_WHERE; note 60 code points ok, 61 refused; 30-day edges right in both zones; Recent 100 cap merge correct; the redeem transaction sees adjustments (same tx client). NOTES: RewardActivityList Undo does not restore the row if the action call itself rejects (offline); Done item 8 only partly met while R4 is open, plan file not updated yet; minus shown as ASCII hyphen; the wide bank button's label hides "N stars" from screen readers; `nextAdjustStep(Infinity)` gives 5; sync schema.prisma with R4 before merging; dev rows "zz r5 fury" (+5) and "zz r5 strange take" (-10) to clean |
+| 1 | Captain (HEAD 1c11de5) | BLOCKED | (1) RewardActivityList.tsx:19-42 hand-writes the optimistic tap (STRUCTURE.md: `useOptimisticRun` is its only home), and loses the row on a network throw; (2) rewards.md:30 "nextStarStep is the only stepper walk" and :200 "HabitStarsField is the only stars stepper" now false (doc, Fury); (3) layout.md "Wide pages" lacks Manage rewards (doc, Fury) | Homes all correct; one bank sum holds; no loading.tsx needed in manage/; amendments: formatWeekdayShortDate needs "zone-explicit" plus CalendarSearch's browser twin; "one write module per table" wrong (rewardWrites writes two); DESIGN.md emoji wording to name Recent rows exactly; NOTES: outline star in text-star by the stepper; `ADJUSTING_LABEL` duplicates `REWARD_SAVING_LABEL`; `ADJUST_NOTE_MAX` vs the typed "60" in the refusal; StarAdjustForm could use `run(null, ...)`; three person-chip drawings; vocabulary is 194 code lines. Fury's doc fixes (2), (3) and the amendments made, uncommitted while Strange runs |
+| 1 | Strange (HEAD 1c11de5; 390, 820 portrait, 1180; light and dark forced and verified) | BLOCKED | (1) note placeholder 2.39:1 (no `placeholder:text-muted`); (2) wide bank is the iPad's only door to history but looks like a plain number (tappable looks tappable); (3) DESIGN.md does not record `--danger` for history minus amounts (doc, Fury) | Flows seen: stepper 1 to 50, take -10 to a -5 bank and Undo, a redeem in history and Recent and Undo, Escape and dim close; targets 48px (BackLink 44); amounts 5.75/6.44 light, 8.39/6.41 dark; empty states true. NOTES: Manage chips at 820 hide two people (wrap from 48rem); no-picture redeem uses Star like a bonus (Gift); stepper star outline in --star; ASCII minus; optimistic Undo needs a named exception; bank button label hides the count; Undo labels all "Undo"; wishes and kid/tablet not exercisable. Strange's test rows made and removed through the app |
 
 ## Handoff log
 

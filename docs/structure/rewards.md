@@ -27,7 +27,7 @@ code lines; past that a concern gets its own
 - `stars.ts`: `starsForLog(habitStars, status, lateStars)` is the only
   "what does one check pay" rule (done pays the value; late pays full,
   half rounded up, or nothing; any other status or a null value pays
-  null). `nextStarStep` is the only stepper walk. `rowStars` is the only
+  null). `nextStarStep` is the only habit Stars walk (None to 50). `rowStars` is the only
   "what does this row's chip show" rule (a carried row shows what the
   late tap pays, through `starsForLog`). `sumStars` is the bank's adder,
   called only by `loadStarBanks`. Halving stars or testing a log status
@@ -60,7 +60,7 @@ code lines; past that a concern gets its own
   `pinPolicy.ts`. R5 (mission 83) added two, each pure with its own test:
   `starAdjustments.ts` (`ADJUST_DEFAULT_STARS`, `ADJUST_NOTE_MAX`,
   `nextAdjustStep`, the only give or take stepper walk, 1 to 50 on
-  `STAR_STEPS`, never None, and `toAdjustmentInput`, the only check of a
+  `STAR_STEPS`, never null, and `toAdjustmentInput`, the only check of a
   give or take) and `starHistory.ts` (`starHistory`, the only grouping and
   wording of a person's history lines, and `recentLines`, Manage's Recent
   lines). `starHistory.ts` takes a plain `nameHidden` flag; it never decides
@@ -197,7 +197,9 @@ The Rewards page draws one visible `StarBank` per person (the chip below
 screen. Whether a chip shows is `StarChip`'s own rule (it draws
 nothing below 1); rows pass `rowStars(...)` and never test the number
 themselves.
-`HabitStarsField.tsx` is the only stars stepper (a `LadderStepper`);
+`HabitStarsField.tsx` is the habit form's stars stepper and
+`StarAdjustForm.tsx` the give or take amount (mission 83), both
+`LadderStepper`s; a third is a BLOCKER.
 `RewardsSettings.tsx` is the Settings section. R3's page components
 follow the flat `src/components/` rule.
 
