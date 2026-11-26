@@ -1,7 +1,7 @@
 # Mission 87: family copies PR 3, owner flag and neutral wording
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr3-owner-flag` (cut fresh from `main`)
 **Plan:** `.avengers/plans/family-copies-v1.md`, PR 3
@@ -164,7 +164,23 @@ Both gates ran on 8fb1256.
 - 2026-11-26: C1 DONE (dde3ee2). Bryce signed off all wording (humanizer pass first). C2 dispatched.
 - 2026-11-26: C2 DONE. Bryce says MARSHEE_OWNER_COPY=1 is added; Fury confirmed through the Vercel connection that the key exists on Production only (value is Sensitive, so unreadable; Bryce asked to make sure it is exactly 1). Bryce did not redeploy, which is fine: the merge deploy reads it. Gates next.
 - 2026-11-26: Vision PASS, Strange PASS (pass 1 each). Bryce confirmed the Vercel value is exactly 1. Merged origin/main (PR 1, #135) cleanly. CLAUDE.md status line updated (no net growth). Next: push, PR, Gauntlet, merge, production check.
+- 2026-11-26: PR #136 Gauntlet green, merged (a47b9da). Production live; voice 401 and Alexa 400 prove the owner flag is on. DELIVERED.
 
 ## Delivery
 
-- pending
+- **Shipped:** PR #136 merged as a47b9da. Production deploy
+  `dpl_2UwznuWvpmdGrUNkbhH25cnMakHM` went live (the production privacy page
+  shows the new paragraph).
+- **Production check (2026-11-26):** `POST /api/voice` with no token
+  returned 401, and `POST /api/alexa` with no signature returned 400. Both
+  got past the 404 gate, so `isOwnerCopy()` is true in Bryce's production.
+  The Settings Winnie card uses the same function. Bryce checks it by eye on
+  his phone (status.md).
+- **Shipped check:** `git log origin/main..HEAD` on the PR 3 branch after
+  merge: empty.
+- **Deliberate leftovers:**
+  - A GET to voice or Alexa in a relative's copy answers 405, not 404
+    (Vision NOTE, inert).
+  - "sign-up" wraps at its hyphen on phone (Strange NOTE).
+  - The Assistant API is not gated on the flag. It refuses without its
+    token, which relatives' copies never get. Out of scope by design.
