@@ -4,6 +4,7 @@
 // import (the starFlights.ts precedent). Pure: no database, no clock.
 
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { ASSISTANT_GIVER_NAME } from "@/lib/rewardVocabulary";
 import { canSeeHabit } from "@/lib/habits/access";
 import type { HabitActor } from "@/lib/habits/types";
 import {
@@ -26,6 +27,11 @@ export type StarLogRow = {
 export type RedemptionRow = { id: string; title: string; emoji: string | null; cost: number; redeemedAt: Date };
 export type AdjustmentRow = { id: string; amount: number; note: string | null; createdAt: Date; createdBy: { displayName: string } | null };
 
+/** A named giver always wins; a giverless adjustment is Winnie's only when her id set says so. */
+function giverOf(row: { id: string; createdBy: { displayName: string } | null }, assistantIds: ReadonlySet<string>): string | null {
+  return row.createdBy?.displayName ?? (assistantIds.has(row.id) ? ASSISTANT_GIVER_NAME : null);
+}
+
 function dayFields(date: CalendarDate): { dayKey: string; dayText: string } {
   return { dayKey: formatCalendarDate(date), dayText: formatWeekdayShortDate(date) };
 }
@@ -34,10 +40,11 @@ function householdDay(instant: Date): { dayKey: string; dayText: string } {
   return dayFields(calendarDateInZone(instant, HOUSEHOLD_TIME_ZONE));
 }
 
-/** One person's checks (only the ones that paid), redemptions and adjustments as history entries, for `viewer`: a private habit's name is hidden unless `canSeeHabit` says the viewer may see it. */
+/** One person's checks (only the ones that paid), redemptions and adjustments as history entries, for `viewer` (`assistantIds` are the adjustments Winnie made): a private habit's name is hidden unless `canSeeHabit` says the viewer may see it. */
 export function toHistoryEntries(
   rows: { logs: StarLogRow[]; redemptions: RedemptionRow[]; adjustments: AdjustmentRow[] },
   viewer: HabitActor,
+  assistantIds: ReadonlySet<string>,
 ): HistoryEntry[] {
   const entries: HistoryEntry[] = [];
   for (const log of rows.logs) {
@@ -65,17 +72,17 @@ export function toHistoryEntries(
   for (const row of rows.adjustments) {
     entries.push({
       id: `adjust-${row.id}`, kind: row.amount < 0 ? "take" : "bonus", amount: row.amount, at: row.createdAt.getTime(), ...householdDay(row.createdAt),
-      title: null, nameHidden: false, giverName: row.createdBy?.displayName ?? null, note: row.note, emoji: null,
+      title: null, nameHidden: false, giverName: giverOf(row, assistantIds), note: row.note, emoji: null,
     });
   }
   return entries;
 }
 
-/** The household's redemptions and adjustments as Manage's Recent entries. Ids are the plain row ids, which Undo needs. */
+/** The household's redemptions and adjustments as Manage's Recent entries. Ids are the plain row ids, which Undo needs. `assistantIds` are the adjustments Winnie made. */
 export function toRecentEntries(rows: {
   redemptions: (RedemptionRow & { user: { displayName: string }; redeemedBy: { displayName: string } | null })[];
   adjustments: (AdjustmentRow & { user: { displayName: string } })[];
-}): RecentEntry[] {
+}, assistantIds: ReadonlySet<string>): RecentEntry[] {
   return [
     ...rows.redemptions.map((row): RecentEntry => ({
       id: row.id, kind: "redeem", amount: -row.cost, at: row.redeemedAt.getTime(), ...householdDay(row.redeemedAt),
@@ -83,7 +90,7 @@ export function toRecentEntries(rows: {
     })),
     ...rows.adjustments.map((row): RecentEntry => ({
       id: row.id, kind: row.amount < 0 ? "take" : "bonus", amount: row.amount, at: row.createdAt.getTime(), ...householdDay(row.createdAt),
-      personName: row.user.displayName, title: null, emoji: null, giverName: row.createdBy?.displayName ?? null, note: row.note,
+      personName: row.user.displayName, title: null, emoji: null, giverName: giverOf(row, assistantIds), note: row.note,
     })),
   ];
 }
