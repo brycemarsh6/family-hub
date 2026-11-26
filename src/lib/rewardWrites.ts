@@ -9,42 +9,113 @@ import "server-only";
 // `RewardSettings` write here, and added the parent PIN's check.
 
 import { db } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
-import { isWriteConflictError } from "@/lib/prismaErrors";
+import { Prisma, type Reward } from "@/generated/prisma/client";
+import { atomically } from "@/lib/habits/participantWrites";
+import { isMissingRowError, isWriteConflictError } from "@/lib/prismaErrors";
 import { loadStarBanks } from "@/lib/starBankRead";
 import { isPinShaped, pinLockActive, pinLockAfterWrong, pinLockEnded } from "@/lib/rewards/pinPolicy";
 import { redeemRefusal, type RewardInput, type WishInput } from "@/lib/rewards/rewardRules";
 import { loadPinCheck } from "@/lib/rewardSettingsRead";
 import { REWARD_GONE_REFUSAL, REWARD_SAVE_FAILED, type LateStars } from "@/lib/rewardVocabulary";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import type { WriteError } from "@/lib/writeError";
 
-/** Add a reward at the end of its owner's list. */
-export async function createReward(value: RewardInput, createdById: string): Promise<{ id: string }> {
-  const last = await db.reward.aggregate({ where: { ownerId: value.ownerId }, _max: { sortOrder: true } });
-  return db.reward.create({
-    data: { ...value, createdById, sortOrder: (last._max.sortOrder ?? -1) + 1 },
-    select: { id: true },
-  });
+/** The owner's next list position, read inside the same block as the create that uses it. */
+async function nextSortOrder(tx: Prisma.TransactionClient, ownerId: string): Promise<number> {
+  const last = await tx.reward.aggregate({ where: { ownerId }, _max: { sortOrder: true } });
+  return (last._max.sortOrder ?? -1) + 1;
 }
 
-/** Change a reward's picture, name, cost, repeat setting and owner. Null when it is gone. Past redemptions keep their snapshots. */
-export async function updateReward(id: string, value: RewardInput): Promise<{ id: string } | null> {
-  const result = await db.reward.updateMany({ where: { id }, data: value });
-  return result.count === 0 ? null : { id };
+/** Lock one reward's row until the transaction ends, so a second write waits (as `lockGoal` does). */
+async function lockReward(tx: Prisma.TransactionClient, id: string): Promise<void> {
+  await tx.$queryRaw`SELECT "id" FROM "Reward" WHERE "id" = ${id} FOR UPDATE`;
 }
 
-/** Delete a reward. Its redemptions stay (their `rewardId` goes null). Already gone is not an error. `wishOnly` deletes only while it still has no cost. */
-export async function deleteReward(id: string, wishOnly = false): Promise<void> {
-  await db.reward.deleteMany({ where: wishOnly ? { id, cost: null } : { id } });
+/** Add a reward at the end of its owner's list. `createdById` is null when the Assistant API adds it. Returns the whole row. */
+export async function createReward(value: RewardInput, createdById: string | null, client: Prisma.TransactionClient = db): Promise<Reward> {
+  return atomically(client, async (tx) =>
+    tx.reward.create({ data: { ...value, createdById, sortOrder: await nextSortOrder(tx, value.ownerId) } }),
+  );
 }
 
-/** Add a wish: a reward with no cost, one time, at the end of its owner's list. */
-export async function createWish(value: WishInput, createdById: string): Promise<{ id: string }> {
-  const last = await db.reward.aggregate({ where: { ownerId: value.ownerId }, _max: { sortOrder: true } });
-  return db.reward.create({
-    data: { ...value, cost: null, repeatable: false, createdById, sortOrder: (last._max.sortOrder ?? -1) + 1 },
-    select: { id: true },
-  });
+/** What a reward can be changed to. A `RewardInput` (cost a number) is one; a wish may keep a null cost. */
+export type RewardEdit = { title: string; emoji: string | null; cost: number | null; repeatable: boolean; ownerId: string };
+
+/**
+ * Change a reward's picture, name, cost, repeat setting and owner. Null when
+ * it is gone. `edit` is the new values, or a function that gets the locked
+ * row and returns them (or a refusal, handed back as is). When nothing would
+ * change, nothing is written and both rows are the same. Past redemptions
+ * keep their snapshots.
+ */
+export async function updateReward(
+  id: string,
+  edit: RewardEdit | ((current: Reward) => RewardEdit | WriteError),
+  client: Prisma.TransactionClient = db,
+): Promise<{ before: Reward; after: Reward } | WriteError | null> {
+  try {
+    return await atomically(client, async (tx) => {
+      await lockReward(tx, id);
+      const before = await tx.reward.findUnique({ where: { id } });
+      if (!before) return null;
+      const next = typeof edit === "function" ? edit(before) : edit;
+      if ("code" in next) return next;
+      const same =
+        before.title === next.title && before.emoji === next.emoji && before.cost === next.cost &&
+        before.repeatable === next.repeatable && before.ownerId === next.ownerId;
+      if (same) return { before, after: before };
+      const after = await tx.reward.update({
+        where: { id },
+        data: { title: next.title, emoji: next.emoji, cost: next.cost, repeatable: next.repeatable, ownerId: next.ownerId },
+      });
+      return { before, after };
+    });
+  } catch (error) {
+    if (isMissingRowError(error)) return null;
+    throw error;
+  }
+}
+
+/**
+ * Delete a reward. Its redemptions stay (their `rewardId` goes null). Already
+ * gone is not an error: `removed` is null. `wishOnly` deletes only while it
+ * still has no cost (a reward then is the same quiet no-op). `guard` sees the
+ * locked row and how many times it was redeemed; a refusal it returns is
+ * handed back and nothing is deleted (a guard may also throw, which rolls back).
+ */
+export async function deleteReward(
+  id: string,
+  options: {
+    wishOnly?: boolean;
+    guard?: (row: Reward, redeemedCount: number) => Promise<WriteError | null> | WriteError | null;
+  } = {},
+  client: Prisma.TransactionClient = db,
+): Promise<{ removed: Reward | null } | WriteError> {
+  try {
+    return await atomically(client, async (tx) => {
+      await lockReward(tx, id);
+      const found = await tx.reward.findUnique({ where: { id }, include: { _count: { select: { redemptions: true } } } });
+      if (!found) return { removed: null };
+      const { _count, ...row } = found;
+      if (options.wishOnly && row.cost !== null) return { removed: null };
+      const refusal = await options.guard?.(row, _count.redemptions);
+      if (refusal) return refusal;
+      await tx.reward.deleteMany({ where: { id } });
+      return { removed: row };
+    });
+  } catch (error) {
+    if (isMissingRowError(error)) return { removed: null };
+    throw error;
+  }
+}
+
+/** Add a wish: a reward with no cost, one time, at the end of its owner's list. `createdById` is null when the Assistant API adds it. Returns the whole row. */
+export async function createWish(value: WishInput, createdById: string | null, client: Prisma.TransactionClient = db): Promise<Reward> {
+  return atomically(client, async (tx) =>
+    tx.reward.create({
+      data: { ...value, cost: null, repeatable: false, createdById, sortOrder: await nextSortOrder(tx, value.ownerId) },
+    }),
+  );
 }
 
 /** Change a wish's picture and name only. Null when it is gone or already has a cost (it is a reward now). */

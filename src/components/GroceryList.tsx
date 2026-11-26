@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { GroceryRow } from "./GroceryRow";
 import {
   GroceryItemEditSheet,
@@ -10,9 +10,9 @@ import { EmptyState } from "./EmptyState";
 import {
   categoryIcon,
   categoryOrder,
-  STORES,
   STORE_ICON as StoreIcon,
 } from "@/lib/constants";
+import { ALL_FILTER, UNASSIGNED_FILTER, storeFilterOptions } from "@/lib/storeList";
 import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
 import { useContainerWidth } from "@/lib/useContainerWidth";
 import type { GroceryItemView } from "@/lib/types";
@@ -59,17 +59,24 @@ function applyChange(
 // checking off rows can still move a group, because the weights are the
 // unchecked counts. The measured wrapper (gridRef) holds the list only: the
 // edit sheet at the bottom is its sibling, never inside it (Wide pages rule 1).
-const ALL = "All";
-const UNASSIGNED = "Unassigned";
+const ALL = ALL_FILTER;
+const UNASSIGNED = UNASSIGNED_FILTER;
 
-export function GroceryList({ items }: { items: GroceryItemView[] }) {
+export function GroceryList({
+  items,
+  stores,
+}: {
+  items: GroceryItemView[];
+  /** The household's saved store list, in order. */
+  stores: string[];
+}) {
   // useOptimistic gives us a copy of the list we're allowed to fib about.
   // We update it the instant a button is tapped so the screen responds
   // immediately, then the real answer arrives from the server a moment later
   // and quietly replaces it. Without this, every tap would feel laggy.
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
-  const [storeFilter, setStoreFilter] = useState<string>(ALL);
+  const [chosenFilter, setStoreFilter] = useState<string>(ALL);
   // Which item (if any) has its edit sheet open. Just an id, not the item
   // itself, so the sheet always reads the latest optimistic data for it —
   // same reasoning as PantryList.
@@ -89,6 +96,18 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
       await serverAction();
     });
   }
+
+  // If the chosen store's chip is gone (its last item was bought or removed),
+  // fall back to All instead of showing an empty list with no chip lit.
+  const filterOptions = [ALL, UNASSIGNED, ...storeFilterOptions(stores, optimisticItems.map((i) => i.store))];
+  const storeFilter = filterOptions.includes(chosenFilter) ? chosenFilter : ALL;
+  // The chosen chip vanished, so we fell back to All: scroll the chip row back
+  // to its start so All is in view (only when that happens, not every render).
+  const fellBack = storeFilter !== chosenFilter;
+  const chipRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (fellBack) chipRow.current?.scrollTo({ left: 0 });
+  }, [fellBack]);
 
   const filteredByStore =
     storeFilter === ALL
@@ -147,9 +166,9 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
         There's no per-store icon (Lucide has no Walmart or Costco logo), so
         every chip but "All" shares one generic storefront icon.
       */}
-      <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={chipRow} className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
-          {[ALL, UNASSIGNED, ...STORES].map((option) => {
+          {filterOptions.map((option) => {
             const active = storeFilter === option;
             const count =
               option === ALL
@@ -246,6 +265,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
       {editingItem && (
         <GroceryItemEditSheet
           item={editingItem}
+          stores={stores}
           onClose={() => setEditingId(null)}
           onSave={(edits) => {
             run({ type: "edit", id: editingItem.id, edits }, () =>

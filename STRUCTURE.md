@@ -309,9 +309,28 @@ amendment id.
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
   `NavModeSetting` and `NudgeButton`.
 
-- `src/lib/constants.ts` — categories, locations, meal slots, stores,
+- `src/lib/constants.ts` — categories, locations, meal slots, the built-in
+  default stores (`STORES`; the household's saved list and its rules are
+  `storeList.ts`, below),
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
+- **Household settings and the store list (family copies PR 4; PRs 6 and 7
+  add fields).** `HouseholdSettings` is one row (`id` "household"; a missing
+  row reads as defaults; `updatedById` is a plain id, like
+  `ScreensaverSettings`). `src/lib/householdSettingsRead.ts` (`server-only`,
+  no auth, callers check) is the only reader; a second `db.householdSettings`
+  read is a BLOCKER, so later PRs add their readers there. Its writes live in
+  `src/lib/householdSettingsWrites.ts` (`server-only`, no auth, no
+  `revalidatePath`). The store list rules are pure in `src/lib/storeList.ts`
+  and nowhere else: cleaning, `MAX_STORES` / `MAX_STORE_NAME`, "Other"
+  always last, the shopping filter words ("All", "Unassigned"),
+  `storeFilterOptions`, and the add, remove, rename and reorder helpers.
+  `STORES` is only the built-in default (read by `storeList.ts`,
+  `storeBreakdown`'s default and the Assistant schema until Winnie learns the
+  saved list). Every screen, write and check takes the list from
+  `householdStores()` and validates with `toStore(value, stores)`; offering
+  or validating against `STORES` anywhere else is a BLOCKER. A store rename
+  moves grocery items in the same transaction as the list save.
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
   Since mission-38 `NAV_FOOTER_ITEMS` is Settings alone: Profile has no row,
   `activeNavHref` lights Settings for `/profile`, and Settings' top card
@@ -691,7 +710,7 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
-- **Rewards (missions 79, 81, 82 and 83, `.avengers/plans/rewards-v1.md`; Winnie's reads, mission 84, `.avengers/plans/winnie-rewards-v1.md`).** Star
+- **Rewards (missions 79, 81, 82 and 83, `.avengers/plans/rewards-v1.md`; Winnie's reads and writes, missions 84 and 85, `.avengers/plans/winnie-rewards-v1.md`).** Star
   and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
   rules in `src/lib/rewards/`, named row readers per table
   (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`,
@@ -701,7 +720,7 @@ amendment id.
   (`rewardGates.ts`) for who may do what and whether the parent PIN is
   asked, and the PIN checked only on the server. (Rules:
   docs/structure/rewards.md, "Stars and the star bank" and "The parent
-  PIN and wishes". Added 2026-11-24 on Captain's ruling; Bryce approved.
+  PIN and wishes"; Winnie's in docs/structure/rewards-winnie.md. Added 2026-11-24 on Captain's ruling; Bryce approved.
   R3 homes 2026-11-25, mission-81; R4 and R5 homes 2026-11-25, missions
   82 and 83.)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
@@ -961,7 +980,7 @@ amendment id.
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
   `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
-  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240). (Added
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
@@ -996,6 +1015,8 @@ amendment id.
   (was 281; the next Meal Plan feature moves the wide branch of
   `renderList` into its own component), `RecipeList.tsx` 346 / about 250
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
+  `groceryWrites.ts` 381 / about 262 code (family copies PR 4, was 367; not
+  a split candidate while its code stays under the cap).
   Forms trend (mission-54, A-L6-13): `GoalForm.tsx` 349 total / about 308
   code (was 334; the next goal field moves the Track a number block into
   its own component), `HabitForm.tsx` 350 / 296 code (mission-89 grew it from 344 to 350, now at the soft cap, so its next field moves a block into its own component first; mission-79 added the Stars field, was 329; before that 350; the
@@ -1070,6 +1091,8 @@ amendment id.
   `DaySectionHeader`, `RecipeActionCircles`.)
 - Actions and lib: `camelCase.ts`; action exports are verbs
   (`createRecipe`, `putAway…`).
+- When an action shares its name with a pure helper (not a write module),
+  the action takes an `Action` suffix (`addStoreAction`, family copies PR 4).
 - Routes follow Next App Router conventions; route groups like `(app)` are
   invisible in URLs.
 

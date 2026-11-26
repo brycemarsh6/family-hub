@@ -11,6 +11,9 @@ export function TitleSheet({
   heading,
   initialValue = "",
   placeholder,
+  label = "Title",
+  hint,
+  maxLength,
   submitLabel,
   pending,
   error,
@@ -20,6 +23,11 @@ export function TitleSheet({
   heading: string;
   initialValue?: string;
   placeholder?: string;
+  /** The field's label (default "Title"). */
+  label?: string;
+  /** One muted line under the field. */
+  hint?: string;
+  maxLength?: number;
   submitLabel: string;
   pending?: boolean;
   error?: string | null;
@@ -70,8 +78,8 @@ export function TitleSheet({
           </button>
         </div>
 
-        <label className="mb-4 block text-sm text-muted">
-          <span className="mb-1 block">Title</span>
+        <label className={`block text-sm text-muted ${hint ? "mb-1" : "mb-4"}`}>
+          <span className="mb-1 block">{label}</span>
           <input
             type="text"
             value={title}
@@ -80,11 +88,14 @@ export function TitleSheet({
               if (event.key === "Enter") handleSubmit();
             }}
             placeholder={placeholder}
+            maxLength={maxLength}
             autoComplete="off"
             autoFocus
             className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none placeholder:text-muted"
           />
         </label>
+
+        {hint && <p className="mb-4 text-sm text-muted">{hint}</p>}
 
         {error && (
           <p

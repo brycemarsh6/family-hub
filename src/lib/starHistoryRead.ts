@@ -6,6 +6,7 @@ import type { HabitActor } from "@/lib/habits/types";
 import { addCalendarDays, calendarDateInZone, formatCalendarDate, utcMidnightInstant, zoneMidnightInstant } from "@/lib/householdDate";
 import { recentLines, starHistory, type HistoryDay, type RecentLine } from "@/lib/rewards/starHistory";
 import { loadStarLogs } from "@/lib/habitsStatsRead";
+import { assistantCreatedIds } from "@/lib/assistant/audit";
 import { toHistoryEntries, toRecentEntries } from "@/lib/starHistoryRows";
 
 // The star history's readers (mission 83). No login check: callers check who
@@ -18,6 +19,11 @@ function windowStart(now: Date) {
   const today = calendarDateInZone(now, HOUSEHOLD_TIME_ZONE);
   const first = addCalendarDays(today, -(HISTORY_DAYS - 1));
   return { todayKey: formatCalendarDate(today), yesterdayKey: formatCalendarDate(addCalendarDays(today, -1)), first };
+}
+
+/** Ids of adjustments with no named giver: the only ones Winnie could have made. */
+function giverless(rows: { id: string; createdBy: { displayName: string } | null }[]): string[] {
+  return rows.filter((row) => row.createdBy === null).map((row) => row.id);
 }
 
 /** One person's last 30 Denver days (today and 29 before) of star lines, grouped by day, newest first, as `viewer` may see them. */
@@ -35,7 +41,8 @@ export async function loadStarHistory(userId: string, viewer: HabitActor, now: D
       select: { id: true, amount: true, note: true, createdAt: true, createdBy: { select: { displayName: true } } },
     }),
   ]);
-  return starHistory(toHistoryEntries({ logs, redemptions, adjustments }, viewer), todayKey, yesterdayKey);
+  const assistantIds = await assistantCreatedIds("StarAdjustment", giverless(adjustments));
+  return starHistory(toHistoryEntries({ logs, redemptions, adjustments }, viewer, assistantIds), todayKey, yesterdayKey);
 }
 
 /** The household's redemptions and adjustments from the last 30 days, newest first, at most 100, for Manage's Recent list. */
@@ -62,5 +69,6 @@ export async function loadRecentActivity(now: Date): Promise<RecentLine[]> {
       },
     }),
   ]);
-  return recentLines(toRecentEntries({ redemptions, adjustments }), todayKey, yesterdayKey).slice(0, RECENT_CAP);
+  const assistantIds = await assistantCreatedIds("StarAdjustment", giverless(adjustments));
+  return recentLines(toRecentEntries({ redemptions, adjustments }, assistantIds), todayKey, yesterdayKey).slice(0, RECENT_CAP);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { STORES, STORE_ICON as StoreIcon, type Store } from "@/lib/constants";
+import { STORE_ICON as StoreIcon, type Store } from "@/lib/constants";
 import { useLastStore, setLastStore } from "@/lib/lastStore";
 
 /**
@@ -17,10 +17,13 @@ import { useLastStore, setLastStore } from "@/lib/lastStore";
  */
 export function StorePickerSheet({
   title,
+  stores,
   onChoose,
   onSkip,
 }: {
   title: string;
+  /** The household's saved store list, in order. */
+  stores: string[];
   onChoose: (store: Store) => void;
   onSkip: () => void;
 }) {
@@ -75,7 +78,7 @@ export function StorePickerSheet({
               the top — reordering a list you're about to tap is more
               disorienting than helpful. A highlight gets you the speed
               without moving anything out from under your thumb. */}
-          {STORES.map((store) => {
+          {stores.map((store) => {
             const isLast = store === lastStore;
             return (
               <button
