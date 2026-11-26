@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Manrope, Cormorant_Garamond } from "next/font/google";
 import "../globals.css";
 import { AppChrome } from "@/components/AppChrome";
+import { StarFlightLayer } from "@/components/StarFlightLayer";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_NAV_MODE } from "@/lib/navMode";
 import { DEFAULT_TEXT_SIZE } from "@/lib/textSize";
@@ -99,7 +100,8 @@ export default async function RootLayout({
             }
           }
         >
-          {children}
+          {/* The Celebrations switch and the tap-proof star layer, for every page below. */}
+          <StarFlightLayer enabled={user?.celebrations ?? true}>{children}</StarFlightLayer>
         </AppChrome>
       </body>
     </html>

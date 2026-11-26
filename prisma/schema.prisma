@@ -777,6 +777,10 @@ model UserPreferences {
   /// Streaks are still counted either way.
   showStreaks Boolean @default(true)
 
+  /// "Celebrations" (mission 80): off means no flying stars and no daily
+  /// all-done confetti for this login. Reduce Motion always wins over it.
+  celebrations Boolean @default(true)
+
   /// The chore streak (mission 33, decision 33): one count over all of this
   /// person's chores, cached like HabitParticipant's streak and rebuilt by
   /// src/lib/habits/choreWrites.ts. `choreStreakAsOf` is a UTC-midnight day.

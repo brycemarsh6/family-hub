@@ -174,3 +174,12 @@ export function rewardRedeemAriaLabel(title: string): string {
 export function addRewardForText(name: string): string {
   return `${REWARD_ADD_LABEL} for ${name}`;
 }
+
+/** The Celebrations switch (mission 80): on a login's Settings and on the Wall tablet page. */
+export const CELEBRATIONS_WORDS = {
+  title: "Celebrations",
+  sub: "Flying stars and the all-done confetti",
+  saveError: "Couldn't save your celebrations setting. Check your connection and try again.",
+  notAllowed: "Only parents, admins and the wall tablet can change this.",
+  deviceRefused: "A shared device changes this on Wall tablet settings.",
+} as const;

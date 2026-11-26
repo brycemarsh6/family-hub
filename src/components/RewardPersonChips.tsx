@@ -38,7 +38,7 @@ export function RewardPersonChips({
           >
             <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={32} />
             {selected && <span>{person.displayName}</span>}
-            <StarBank stars={bank} />
+            <StarBank userId={person.id} stars={bank} />
           </button>
         );
       })}

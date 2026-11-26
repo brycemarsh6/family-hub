@@ -423,3 +423,6 @@ export function nothingInColumnLabel(key: TimeOfDay | "anytime"): string {
 /** A past day with nothing due (mission 53 C2; the title and hint of the empty state). */
 export const PAST_DAY_NOTHING_DUE_TITLE = "Nothing due that day";
 export const PAST_DAY_NOTHING_DUE_HINT = "You had no habits or chores to do";
+
+/** The words on the pill that shows with the daily all-done confetti. */
+export const ALL_DONE_LINE = "You did it! All done today.";

@@ -634,16 +634,24 @@ person.
 
 ## Delivery
 
-- **Status:** gates PASS (pass 3, 2026-11-25); PR, merge and production
-  check pending the R2 sync.
+- **Status:** gates PASS (pass 3, 2026-11-25). Synced with main after R2
+  (PR 125, f4453fb) landed: hand-merged DESIGN.md's star line (four filled
+  stars now: chip, bank, flight ring, Earned mark) and its celebration
+  motion line (the rain follows Reduce Motion, not yet the Celebrations
+  switch), rewards.md (R2's `starMotion.ts` bullet; four filled-star
+  places), `rewardVocabulary.ts` (both sides); both Rewards `StarBank`s
+  pass `userId={person.id}` (R2 made it required). Migrations sort
+  20261124100000 then 20261125000000. Gauntlet after the sync: tsc and
+  eslint clean, Denver 2224/2224, UTC 2214 + 10 DST skips, build OK,
+  `@/app` grep empty.
 - **Commits:** C1 2cc1a00, C1b 6a2ab0a, C2 66b7ac9, C3 6d3b7d6, F1
   3b0ab71, F2 5a36115, plus Fury's record and doc commits.
 - **Gates:** Vision BLOCKED, BLOCKED, PASS; Captain BLOCKED, BLOCKED,
   PASS; Strange BLOCKED, BLOCKED, PASS (ledger above).
-- **For Bryce to review:** Hill's H1 to H3 (H3 first: a negative bank
-  shows "0 of 5"); whether Hill stays on Opus (`hill.md` says Fable; this
-  mission ran Hill on Opus 5.5 high at Bryce's request); at 1133 wide the
-  fifth person's column needs a swipe (a 13rem minimum would fit five).
+- **Bryce's review (2026-11-25, "I agree with all of those
+  recommendations"):** H3 stands (a negative bank shows "0 of 5"); Hill
+  moves to Opus 5.5, high effort, for good (`hill.md` and CLAUDE.md
+  updated); at 1133 wide the fifth column keeps its swipe (no change).
 - **Deliberately not done (open notes):** refusal sheet can show a stale
   bank (the board keeps a copy); Done and Undo look disabled for about a
   second after a redeem; star rain is per frame; the Repeats tag moves;

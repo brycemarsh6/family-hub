@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { BackLink } from "@/components/BackLink";
 import { StartPageSetting } from "@/components/StartPageSetting";
+import { TabletCelebrationsSetting } from "@/components/TabletCelebrationsSetting";
 import { WallTabletSettings } from "@/components/WallTabletSettings";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { requireVerifiedUser } from "@/lib/dal";
@@ -9,6 +10,7 @@ import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { SCREENSAVER_WORDS } from "@/lib/screensaver";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
+import { loadTabletCelebrations } from "@/lib/tabletCelebrationsRead";
 import { loadTabletStartPage } from "@/lib/startPageRead";
 import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 
@@ -27,10 +29,11 @@ export default async function WallTabletPage() {
   const user = await requireVerifiedUser();
   const canManagePhotos = MANAGER_ROLES.includes(user.role);
   if (!canManagePhotos && !tabletMayChangeWallTablet(user.role)) redirect("/");
-  const [settings, photoCount, startPage] = await Promise.all([
+  const [settings, photoCount, startPage, celebrations] = await Promise.all([
     loadScreensaverSettings(),
     canManagePhotos ? countSlideshowPhotos() : 0,
     loadTabletStartPage(),
+    loadTabletCelebrations(),
   ]);
 
   return (
@@ -42,6 +45,7 @@ export default async function WallTabletPage() {
         <p className="mt-2 text-sm text-muted">{SCREENSAVER_WORDS.sub}</p>
 
         {startPage !== null && <StartPageSetting forTablet startPage={startPage} />}
+        {celebrations !== null && <TabletCelebrationsSetting celebrations={celebrations} />}
 
         <WallTabletSettings initialSettings={settings} photoCount={photoCount} canManagePhotos={canManagePhotos} />
       </div>

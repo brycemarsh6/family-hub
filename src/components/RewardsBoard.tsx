@@ -77,7 +77,7 @@ export function RewardsBoard({
                 <div className="mb-3 hidden items-center gap-3 @min-[48rem]:flex">
                   <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} />
                   <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{person.displayName}</h2>
-                  <StarBank stars={bank} />
+                  <StarBank userId={person.id} stars={bank} />
                 </div>
                 {shown.length === 0 && (
                   <p className="mb-3 text-sm text-muted">{owned.length > 0 ? REWARD_ALL_HIDDEN : canManage ? REWARD_EMPTY_PARENT : REWARD_EMPTY_OTHER}</p>

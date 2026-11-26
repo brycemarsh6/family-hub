@@ -44,7 +44,7 @@ export function HabitRow({
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
-  onToggle: () => void;
+  onToggle: (from?: HTMLElement) => void;
   /** Skip today, or the carried day when the row is carried over. */
   onSkip: () => void;
   onUnskip: () => void;
