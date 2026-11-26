@@ -292,5 +292,15 @@ Motion always wins over the switch and has two readers:
 `HabitConfetti` calls `matchMedia` once when it fires, on purpose (the
 hook's first value on a fresh load is the server's guess, false).
 
+**Winnie's Rewards reads (mission 84, W1).** `GET /rewards`, `/rewards/history`
+and `/rewards/recent` (`src/app/api/assistant/v1/rewards/`) and the `stars`
+section of `GET /summary` are read-only and reuse the readers above:
+`src/lib/assistant/rewardReads.ts` combines `loadStarBanks`, `loadRewards`
+(with `rewardStatus`, `orderRewards`, `isWish`), `loadStarHistory`,
+`loadRecentActivity` (viewer from `assistantHabitActor()`) and `loadLateStars`;
+`serializeRewards.ts` only shapes them. A second bank sum or Reward reader
+there is a BLOCKER, and the PIN readers are never called. Habit answers
+carry `stars` too.
+
 **Tests.** `src/lib/rewards/*.test.ts` is in `package.json`'s test
 script, both CI timezone steps and the AGENTS.md command (mission-79/C1).

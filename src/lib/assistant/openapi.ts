@@ -7,6 +7,7 @@ import { habitOperations } from "./openapiHabitPaths";
 import { inventoryOperations } from "./openapiInventoryPaths";
 import { mealPlanOperations } from "./openapiMealPlanPaths";
 import { recipeOperations } from "./openapiRecipePaths";
+import { rewardOperations } from "./openapiRewardPaths";
 import { shoppingOperations } from "./openapiShoppingPaths";
 import { summaryOperations } from "./openapiSummaryPaths";
 
@@ -44,7 +45,7 @@ const systemOperations: Operation[] = [
   },
 ];
 
-export const operations: Operation[] = [...inventoryOperations, ...shoppingOperations, ...recipeOperations, ...cookbookOperations, ...habitOperations, ...goalOperations, ...mealPlanOperations, ...summaryOperations, ...systemOperations];
+export const operations: Operation[] = [...inventoryOperations, ...shoppingOperations, ...recipeOperations, ...cookbookOperations, ...habitOperations, ...rewardOperations, ...goalOperations, ...mealPlanOperations, ...summaryOperations, ...systemOperations];
 
 type JsonSchema = Record<string, unknown>;
 

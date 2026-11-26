@@ -9,9 +9,9 @@ export const summaryOperations: Operation[] = [
     path: "/summary",
     action: "summary.get",
     summary:
-      "The state of the house on one day (default: today in the household's zone): the day's meals (all four slots), inventory counts (total/low/out/expiring within 3 days), unchecked shopping items by store, recipe count, and today's and tomorrow's calendar events. Tasks join the calendar section in a later release.",
+      "The state of the house on one day (default: today in the household's zone): the day's meals (all four slots), inventory counts (total/low/out/expiring within 3 days), unchecked shopping items by store, recipe count, and today's and tomorrow's calendar events, and the stars (each person's bank, and how many wishes wait for a cost). Tasks join the calendar section in a later release.",
     query: summaryQuery,
     response:
-      "{ date, meals: [{slot,title,recipeId}], inventory: {total,low,out,expiring}, shopping: {toBuy,byStore}, recipes: {count}, calendar: {today:{date,events},tomorrow:{date,events}} }",
+      "{ date, meals: [{slot,title,recipeId}], inventory: {total,low,out,expiring}, shopping: {toBuy,byStore}, recipes: {count}, calendar: {today:{date,events},tomorrow:{date,events}}, stars: {banks:[{personId,name,stars}],wishesWaiting} }",
   },
 ];
