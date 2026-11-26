@@ -242,7 +242,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   filter option builder or matcher anywhere else, a component file included,
   is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
   `TIME_ICONS`.
-  **Manage other people's habits (mission-86).** `src/lib/habitsManage.ts`
+  **Manage other people's habits (mission-88).** `src/lib/habitsManage.ts`
   is the only home of Manage's person (`resolveManagePerson`), the
   `?person=` value (`personParam`), the chips (`managePersonChips`) and the
   Manage, New, Edit and chart addresses (`manageHref`, `newHabitHref`,
@@ -252,7 +252,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `habitsHref`). `HabitManager` also imports the pure `habits/habitRows.ts`
   for `refillSlots`.
   Client components (`HabitsDayView`, `HabitManager`, `ChoreChart`,
-  `ChoreChartSheet`) may import it. `personChipsFor` (`choreChart.ts`) is the
+  `ChoreChartSheet`) may import `habitsManage.ts`. `personChipsFor` (`choreChart.ts`) is the
   one chip order-and-name rule for the chart, Report and Manage; each caller
   only filters who. `canOpenManageOf` and `canReorderListOf` in
   `habits/access.ts` are the only Manage and reorder policy, the page and

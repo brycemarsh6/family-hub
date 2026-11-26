@@ -202,7 +202,7 @@ test("buildChoreChart: a kid on a shared chore is told to ask a parent; a parent
   assert.deepEqual(flagsFor(amy), [["shared", false], ["solo", false]]);
 });
 
-test("buildChoreChart: canEdit is canEditHabit and not askParent (mission 86, D4)", () => {
+test("buildChoreChart: canEdit is canEditHabit and not askParent (mission 88, D4)", () => {
   const shared = chore("shared", TUE_THU, { who: ["ben", "cat"] });
   const solo = chore("solo", TUE_THU, { who: ["ben"] });
   const secret = chore("secret", TUE_THU, { who: ["ben"], isPrivate: true });

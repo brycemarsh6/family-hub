@@ -6,6 +6,16 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Manage other people's habits (mission 88)**, about 5 minutes, on
+  your iPhone and the iPad, light and dark. Habits & Chores, Manage: a row
+  of person chips sits at the top, you first. Tap Ledger: his habits and
+  chores show, drag one to a new place, reload, it stays. Tap a row: the
+  edit page opens, and Back returns to Ledger's list. Tap your wife's chip:
+  no drag handles, "Tap a row to edit.", no settings card. Add from
+  Ledger's list starts with Ledger picked. Open a habit's page: an Edit
+  link sits by See stats. On the Chore chart, tap a chore day: "Edit
+  chore" sits under "Skip this week". On the edit page for Ledger's chore,
+  there is no Private switch.
 - **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
   your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
   tap one of his chores: the edit page opens (it used to say 404). Who

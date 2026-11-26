@@ -20,7 +20,7 @@ export default async function ManageHabitsPage({ searchParams }: { searchParams:
   const { person } = await searchParams;
   const viewer = { userId: user.userId, role: user.role };
   const people = await loadHabitRoster();
-  // Whose list: the one asked for when this login may open it, else your own (mission 86).
+  // Whose list: the one asked for when this login may open it, else your own (mission 88).
   const subjectId = resolveManagePerson(viewer, person, people);
   const own = subjectId === user.userId;
   const [{ manage, archived }, subjectRole] = await Promise.all([

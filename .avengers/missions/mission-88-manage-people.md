@@ -1,9 +1,9 @@
-# Mission 86: Manage other people's habits
+# Mission 88: Manage other people's habits
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERING (gates passed; PR next)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
-**Branch:** `claude/mission-86-manage-people-cf4dbd`, cut from main at 48f7c4f (PR 132's kid-chore edit fix already in).
+**Branch:** `claude/mission-88-manage-people-cf4dbd`, cut from main at 48f7c4f (PR 132's kid-chore edit fix already in).
 
 ## Brief
 
@@ -170,7 +170,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 
 ### C2 — The screens: person chips on Manage, the person carried through edit, new and chart, the Edit link, the Edit chore row
 
-- **Status:** PENDING (after C1)
+- **Status:** DONE (commit b64cf66)
 - **Boundaries:** may touch: `src/app/(app)/habits/manage/page.tsx`,
   `src/app/(app)/habits/[id]/page.tsx`,
   `src/app/(app)/habits/[id]/edit/page.tsx`,
@@ -305,7 +305,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 
 ### F2 — Gate pass 2 fixes (Strange's D6 second path, plus the record NOTEs)
 
-- **Status:** PENDING
+- **Status:** DONE (commit 95b6c20)
 - **Boundaries:** may touch: `src/components/HabitForm.tsx`,
   `src/components/HabitManager.tsx`, `docs/structure/habits.md`,
   `STRUCTURE.md` (the `HabitForm.tsx` Forms trend sentence only),
@@ -335,7 +335,7 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 - **Evidence required:** Gauntlet summary lines, `git diff --stat`,
   `HabitForm.tsx` line count.
 - **Done criteria:** Strange pass 3 and Vision pass 3 PASS.
-- **Report:** _pending_
+- **Report:** DONE. tsc, eslint, npm test 2297/0, UTC 2287 pass 10 skipped, `npm run build` exit 0 (captured directly). `HabitForm.tsx` 350 / 296 code. The `onlyViewer` test is folded into one line (`selectedIds[0] === viewerId`, the same rule because `canBePrivate` already means one person) to hold 350.
 
 ## Gate ledger
 
@@ -343,6 +343,8 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 |---|---|---|---|---|
 | 1 | Vision | PASS | 0 | 7 NOTEs: Hours auto-Private on "Just Ledger" (now D6); `split(" ")` vs `firstNameOf`; old inline chart address; kid's one-person filter link resolves back to self (harmless, left); hidden private id could move slot if guessed (theoretical, left); subtitle `mb-3`; habitsRead.ts size. |
 | 1 | Captain | BLOCK | 2 | B1 `HabitManager.reorderWithin` copies the slot rule; B2 `ChoreChart.tsx` builds two habit addresses by hand (the Default week edit link loses the person). NOTEs folded into F1. |
+| 3 | Vision | PASS | 0 | Gauntlet re-run, plus an America/Los_Angeles run (2297/0). Recordcheck 0 hard failures. NOTEs: the server does not check D6 (`habitInput.ts`: private needs one person, not "that person is you"), unreachable from the app, follow-up; D6 lives inline in the form, no unit test (form at the 350 cap); habits.md "may import it" ambiguous (fixed at delivery). |
+| 3 | Strange | PASS | 0 | Every Who choice for Ledger (Just, Side by side, Together; Checks and Hours) shows no Private; your own Just me + Hours turns it on; Side by side with only you shows it; shared hides it; editing a Just Ledger chore hides it. A reorder between two test chores on Ledger's list held after reload; real rows untouched; test data deleted. NOTE: edit page title says "Edit habit" on a chore (pre-existing). |
 | 2 | Vision | PASS | 0 | NOTEs: unused `kind` param in `reorderWithin` (F2); old CSS build warning. |
 | 2 | Captain | PASS | 0 | NOTEs: habits.md "?person=" sentence too wide (catches `reportHref`); habitRows header names the action, not `participantWrites.ts`; STRUCTURE.md "held at 350" wording; habitsToday aside stale; plan the habitsRead.ts split next habits mission. All folded into F2. |
 | 2 | Strange | BLOCK | 1 | B1 D6 by a second path: New for Ledger, Side by side with only Ledger shows Private (F2). NOTEs: Edit page title "Edit habit" on a chore (pre-existing); Report filter chips still scroll (out of D5's scope); past chart days not tappable without saying so. |
@@ -352,9 +354,20 @@ pushes to `main`. Leave untracked `.agents/` and `.codex/` out.
 
 - 2026-11-26 — Setup done (dev branch host checked, `npm ci`). Research inline. Bryce answered D1 to D4 with the recommendations. Contracts C1, C2 written. Next: dispatch C1.
 - 2026-11-26 — C1 done and committed (6e15f82). C2 dispatched.
+- 2026-11-26 — C2 done and committed (b64cf66).
+- 2026-11-26 — Gate pass 1: Vision PASS, Captain BLOCK 2, Strange BLOCK 2. Bryce decided D5 (chips wrap) and D6 (Private only on your own items). F1 built, committed ec4a5c5.
+- 2026-11-26 — Gate pass 2: Vision PASS, Captain PASS, Strange BLOCK 1 (D6 by Side by side). F2 built, committed 95b6c20.
+- 2026-11-26 — Gate pass 3: Vision PASS, Strange PASS. Renumbered to mission 88 (86 and 87 taken on main). Next: sync with main, PR, merge.
 
 ## Delivery
 
-- **Shipped:** _pending_
-- **Shipped check:** _pending_
-- **Deliberate leftovers:** _pending_
+- **Shipped:** person chips on Manage with `?person=` (D1, D2), a kid's list reorderable by a parent and checked on the server (`canReorderListOf`), the person carried through edit, New, the chore chart and back, Whole family's one-person Manage link, the habit page's Edit link (D3), the chart sheet's Edit chore row (D4), wrapping person chips on Manage, Report and chart (D5), Private only on your own items (D6), and `refillSlots` keeping hidden and archived habits in place on any reorder. PR, merge commit and production check: see the handoff log.
+- **Shipped check:** _recorded after merge_
+- **Deliberate leftovers (follow-ups):**
+  - The server does not enforce D6: `checkHabitInput` / `normalizeHabitInput` (`src/lib/habitInput.ts`) allow a private habit for any one person. Add "that one person is the one saving" there (Vision pass 3).
+  - Move the D6 rule out of `HabitForm.tsx` into a tested pure helper when the form is split; it sits at the 350 soft cap, so its next field moves a block into its own component first (Captain, Vision).
+  - Plan the `habitsRead.ts` split (406 total / 303 code) in the next habits mission (Captain).
+  - The habit page subtitle says "Mine" on a kid's solo chore viewed by a parent; the edit page title says "Edit habit" on a chore (Strange, both pre-existing).
+  - The Report's filter chip row still scrolls sideways on a phone (D5 covered only the person chips).
+  - Older `/habits/chart?person=` deep links stay valid; a kid's Whole family one-person Manage link resolves back to their own list (harmless).
+  - A manager who guessed the id of a kid's hidden private habit could move its slot in the kid's list (no leak; theoretical).

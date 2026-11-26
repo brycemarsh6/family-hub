@@ -283,11 +283,11 @@ export const CHORE_CHART_LABELS = {
   askParent: "Ask a parent to change a shared chore.",
   /** The page subtitle: "Emily's week". */
   personWeek: (name: string) => `${name}'s week`,
-  /** The sheet's link to the chore's edit page (mission 86). */
+  /** The sheet's link to the chore's edit page (mission 88). */
   editChore: "Edit chore",
 } as const;
 
-// ---- Manage (mission 86) ----
+// ---- Manage (mission 88) ----
 
 export const MANAGE_LABELS = {
   /** The subtitle when the list can be dragged, and when it cannot (another adult's, decision D2). */

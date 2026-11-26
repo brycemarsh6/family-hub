@@ -72,7 +72,7 @@ export function HabitsDayView({
   const people = family ? family.columns.map(({ id, displayName, avatarColor }) => ({ id, displayName, avatarColor })) : [];
   const hidden = stillHiddenPeople(hiddenPeople, people);
 
-  // Whole family with exactly one person left by the Filter: Manage opens on them (mission 86).
+  // Whole family with exactly one person left by the Filter: Manage opens on them (mission 88).
   const onlyShown = isFamily ? shownColumns(people, hidden) : [];
   const manageLink = manageHref(onlyShown.length === 1 ? personParam(onlyShown[0].id, viewerId) : null);
 
