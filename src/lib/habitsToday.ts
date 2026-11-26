@@ -201,6 +201,15 @@ export function participantsAllowed(
   return requested.every((id) => allowed.has(id));
 }
 
+/**
+ * Whose "Just me" the habit form means: the one person an item already has,
+ * else the viewer. A parent editing a kid's own chore keeps it the kid's; a
+ * new item, or one with several people, starts from the viewer.
+ */
+export function soloPersonId(participantIds: readonly string[] | undefined, viewerId: string): string {
+  return participantIds?.length === 1 ? participantIds[0] : viewerId;
+}
+
 /** Together and Side by side are for two or more people; fewer means the person meant "Just me" (decision 175). */
 export function sharedNeedsMorePeople(shared: boolean, peopleCount: number): boolean {
   return shared && peopleCount < 2;

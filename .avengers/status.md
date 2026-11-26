@@ -6,6 +6,11 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
+  your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
+  tap one of his chores: the edit page opens (it used to say 404). Who
+  reads "Just Ledger". Set Stars, Save, then check Whole family: the chore
+  shows its gold stars and is still Ledger's, not yours.
 - **Parent PIN, kid and tablet redeem, wishes (mission 82, R4)**, about
   6 minutes, on the iPad (as the Tablet) and your iPhone, light and dark.
   As a parent: Settings, Rewards, Parent PIN, set a 4-digit PIN. Sign the

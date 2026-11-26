@@ -7,7 +7,7 @@ import { hoursInitialOf } from "@/lib/habitHoursVocabulary";
 import { requireVerifiedUser } from "@/lib/dal";
 import { canSetStars } from "@/lib/rewards/access";
 import { householdToday } from "@/lib/assistant/today";
-import { loadHabitRoster, loadTodayPage } from "@/lib/habitsRead";
+import { loadHabitForEdit, loadHabitRoster } from "@/lib/habitsRead";
 import { addCalendarDays, formatCalendarDate, startOfWeek } from "@/lib/householdDate";
 
 // Reads the session, so it can never be cached.
@@ -19,8 +19,8 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
   if (user.isDevice) redirect("/habits");
   const { id } = await params;
   const today = householdToday(new Date())!;
-  const { manage, archived } = await loadTodayPage({ userId: user.userId, role: user.role }, today);
-  const habit = [...manage, ...archived].find((item) => item.id === id);
+  // Any habit this login may edit, a kid's chore included for a parent, not only their own.
+  const habit = await loadHabitForEdit({ userId: user.userId, role: user.role }, id);
   if (!habit) notFound();
 
   const thisSunday = startOfWeek(today);

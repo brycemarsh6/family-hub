@@ -8,6 +8,7 @@ import * as lucide from "lucide-react";
 import { GOAL_TITLE_MAX } from "./goals";
 import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 import {
+  soloWhoChoice,
   HABIT_ICONS,
   HABIT_KINDS,
   HABIT_LOG_STATUSES,
@@ -235,4 +236,9 @@ test("choreTagLabel: the three chart tags, with the weekday from the one short-n
 test("isWeekday: whole numbers 0 to 6 only", () => {
   for (const ok of [0, 1, 6]) assert.equal(isWeekday(ok), true);
   for (const bad of [-1, 7, 1.5, NaN, "1", null, undefined]) assert.equal(isWeekday(bad), false);
+});
+
+test("soloWhoChoice: Just me for you, the person's name for anyone else", () => {
+  assert.deepEqual(soloWhoChoice(null), { label: "Just me", hint: "One person: you" });
+  assert.deepEqual(soloWhoChoice("Ledger"), { label: "Just Ledger", hint: "One person: Ledger" });
 });

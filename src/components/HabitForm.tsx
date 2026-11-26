@@ -25,6 +25,7 @@ import {
   canCarryOver,
   parseWeekdayMask,
   printWeekdayMask,
+  soloWhoChoice,
   toHabitSchedule,
   type HabitKind,
   type HabitMode,
@@ -41,7 +42,7 @@ import {
   habitIdeasLabel,
 } from "@/lib/habitIdeas";
 import type { HabitManagerItem } from "@/lib/habitsRead";
-import { sharedNeedsMorePeople } from "@/lib/habitsToday";
+import { sharedNeedsMorePeople, soloPersonId } from "@/lib/habitsToday";
 import { formatCalendarDate } from "@/lib/householdDate";
 
 const BUTTON_PRIMARY =
@@ -91,6 +92,10 @@ export function HabitForm({
   const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
   const [mode, setMode] = useState<HabitMode>(initial?.mode ?? "build");
   const [who, setWho] = useState<HabitWho>(initialWho(initial));
+  // "Just me" means the item's own one person: a parent editing a kid's chore keeps it the kid's.
+  const soloId = soloPersonId(initial?.participantIds, viewerId);
+  const solo = soloWhoChoice(soloId === viewerId ? null : (people.find((person) => person.id === soloId)?.displayName ?? null));
+  const whoChoices = HABIT_WHO_CHOICES.map((choice) => (choice.key === "me" ? { ...choice, ...solo } : choice));
   const [selectedIds, setSelectedIds] = useState<string[]>(initial?.participantIds ?? [viewerId]);
   const [everyone, setEveryone] = useState(initial?.everyone ?? false);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay | null>(initial?.timeOfDay ?? null);
@@ -116,7 +121,7 @@ export function HabitForm({
 
   function pickWho(next: HabitWho) {
     setWho(next);
-    if (next !== "me" && selectedIds.length === 0) setSelectedIds([viewerId]);
+    if (next !== "me" && selectedIds.length === 0) setSelectedIds([soloId]);
     if (hours) setIsPrivate(next === "me"); // decision 194: Just me is private, Side by side is not
   }
 
@@ -151,7 +156,7 @@ export function HabitForm({
       carryOver: canCarry && carryOver,
       sharing: who === "together" && !hours ? "together" : "each",
       isPrivate: canBePrivate && isPrivate,
-      participantIds: who === "me" ? [viewerId] : selectedIds,
+      participantIds: who === "me" ? [soloId] : selectedIds,
       everyone: who !== "me" && everyone,
       track,
       weeklyHours: hours ? weeklyHours : null,
@@ -268,11 +273,11 @@ export function HabitForm({
             </Field>
           )}
 
-          <Field label="Who" hint={HABIT_WHO_CHOICES.find((choice) => choice.key === who)?.hint}>
+          <Field label="Who" hint={whoChoices.find((choice) => choice.key === who)?.hint}>
             <Segmented
               label="Who it is for"
               value={who}
-              options={HABIT_WHO_CHOICES.filter(({ key }) => !hours || key !== "together").map(({ key, label }) => ({ key, label }))}
+              options={whoChoices.filter(({ key }) => !hours || key !== "together").map(({ key, label }) => ({ key, label }))}
               onChange={pickWho}
             />
           </Field>
