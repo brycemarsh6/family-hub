@@ -1,7 +1,7 @@
 # Mission 90: family copies PR 9, feedback forwarding
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** GATES PASSED, DELIVERING
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr9-feedback` (cut from `main` at f02b85b)
 **Plan:** `.avengers/plans/family-copies-v1.md`, PR 9
@@ -199,3 +199,4 @@ plan's dress rehearsal step before the first family.
   `savedFamilyName()` in `householdSettingsRead.ts`, never throws) and
   falls back to `FAMILY_NAME`. Nothing saves a family name yet (PR 6's
   setup will). Read inside `after()`, so the family's save is unaffected.
+- Vision pass 3 **PASS** (merge commit). Record check: 0 hard failures; the REVIEW lines are older mission files citing numbered STRUCTURE.md rules, none renumbered here.
