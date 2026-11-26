@@ -1,7 +1,7 @@
 # Mission 85: Winnie Rewards W2, Winnie changes Rewards
 
 **Project:** family-hub (Marshee)
-**Status:** GATES (F1 done; Vision pass 2)
+**Status:** DELIVERING
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/winnie-rewards-w2-writes-e68c3a` (worktree, cut from main 48f7c4f)
 
@@ -369,7 +369,11 @@ AGENTS.md in full. For this mission:
 | 1 | Vision | BLOCKED (c35f9a4) | 1 | BLOCKER: PATCH /rewards/{id} on a reward whose owner is not a household person (deactivated or a device login) saves, then answers 404 at read-back; logged under a failed request so undo refuses (`failed_request`). Reproduced on dev. Gauntlet green both zones (10 UTC skips are pre-existing DST self-skips); own live run 102/102. NOTEs: same write-then-read-back race on POST /rewards and /adjustments (record only); DELETE guard's didAssistantCreate on a second connection (fine); OpenAPI cost and star lists typed by hand (build from COST_STEPS/STAR_STEPS); STRUCTURE.md has no pointer to rewards-winnie.md and no size record; CLAUDE.md does not name the routes. |
 | 1 | Captain | PASS (c35f9a4) | none | 8 NOTEs: STRUCTURE.md Rewards headline and pointer should name rewards-winnie.md; companion sizes unrecorded (rewards.md 300, rewards-winnie.md 78); rewards.md:13 "every rewards word" vs Winnie-only refusals in schemasRewards.ts (add a sentence); rewardVocabulary.ts 374/251 (watch); undoModels.ts 328/251 (watch); `RewardEdit` better homed in rewards/rewardRules.ts (next touch); hub `undoPlan.test.ts` header misses siblings; rewards-winnie.md provenance line optional. Doc NOTEs applied by Fury in the fix batch. |
 | 1 | Strange | PASS (c35f9a4) | none | Signed-in pane (Bryce), one test Winnie bonus via throwaway token, deleted by id (StarAdjustment 1 to 0, AssistantRequest 6 to 4). History sheet and Recent seen at 390, 820 portrait, 1180 landscape, light and dark: "Bonus from Winnie", "Bryce · +5 from Winnie · Today". NOTES: "Taken away by Winnie" not on screen (same path); a take in Recent reads "-5 from Winnie" (pre-existing pattern, "-5 from Dad"), a later wording look. |
+| 2 | Vision | PASS (a4f23a5) | none | F1 verified: orphan-owner PATCH answers 404, cost unchanged, 0 changes recorded. Gauntlet green both zones. NOTEs (record only): a race between reading the household and the row lock; the POST read-back race; the DELETE guard reads on a second connection. |
 
 ## Delivery
 
-(filled in at the end)
+- 2026-11-26: merged `origin/main` (a47b9da, missions 86 and 87) as 57e0d87. Only CLAUDE.md conflicted (status lines; kept main's, Winnie line drops Rewards). Mission 87's owner flag rule does not apply: it scopes out the Assistant API.
+- Gauntlet after the merge: tsc, eslint, build green; `npm test` 2318/2318; direct TZ=UTC 2308 pass + 10 pre-existing DST skips.
+- Leftovers on purpose (NOTEs): `RewardEdit` to move to `rewards/rewardRules.ts` on next touch; watch `rewardVocabulary.ts` and `undoModels.ts` sizes; wording look at "-5 from Winnie" for a take in Recent.
+- PR, merge commit and production check: below.
