@@ -16,6 +16,11 @@ it is done. The pre-cleanup text is in
   link sits by See stats. On the Chore chart, tap a chore day: "Edit
   chore" sits under "Skip this week". On the edit page for Ledger's chore,
   there is no Private switch.
+- **Owner copy switch (mission 87, family copies PR 3)**, about 1 minute,
+  on your iPhone. Settings, scroll to the bottom: the Winnie card and its
+  "Send test to Winnie" button are still there. Say one Siri shortcut
+  command: it works as before. (Claude already proved production treats
+  your copy as the owner's: voice and Alexa answer past the new switch.)
 - **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
   your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
   tap one of his chores: the edit page opens (it used to say 404). Who

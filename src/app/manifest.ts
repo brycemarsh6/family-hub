@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Marshee",
     short_name: "Marshee",
-    description: "Shopping and inventory for the family.",
+    description: "Your family's calendar, meals, chores and lists in one place.",
     start_url: "/",
     display: "standalone",
     background_color: "#f6f0e8",
