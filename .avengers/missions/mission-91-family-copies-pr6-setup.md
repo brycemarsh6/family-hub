@@ -74,6 +74,7 @@ recovery code reuse · two setup submits at once (only one admin).
   Q5 "Forgot password?" under Sign in (admins recover, others "ask an admin");
   Q6 admin "Recovery code" card under Feedback, no password check; Q7 shows on
   the owner copy too. Plus the wrong-link screen and the owner-copy 404.
+- **D5 (Bryce, 2026-11-26, in this chat):** the link-check offline line "Couldn't check your link. Check your connection, then reload this page." approved ("I agree with your rec").
 - **D2 (Fury, structure):** setup and recovery do not set a cookie themselves
   (see Facts); "Continue" calls the existing `login` with the password the
   client still holds.
@@ -402,3 +403,14 @@ recovery code reuse · two setup submits at once (only one admin).
   - Layout map `(app)` row: "Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/`, `/login` and `/setup`). `/login` and `/setup` deliberately live here too and get no drawer (`AppChrome` is handed no user; `/setup` 404s unless `isSetupOpen()`), rather than moving to a separate layout" (keep any tail of the existing row that this does not restate).
   - prisma row: name "the CI-only empty-database checks (`fresh-db-smoke.ts`, and `setup-attack-smoke.ts`, which also refuses a non-empty `User` table and deletes only `LoginAttempt` rows; both refuse any host but localhost)" where it names only `fresh-db-smoke.ts`.
   - `docs/structure/layout.md` around lines 319-320: "the header now exists only on `/`, `/login` and `/setup` (mission-91)".
+- **Captain pass 2: PASS.** Blocker gone (`FAMILY_NAME_MAX` only in
+  `feedbackForward.ts:15`); every text landed word for word. NOTES:
+  `setup-attack-smoke.ts` at 344 lines (soft cap 350), so the next case should
+  first move shared steps into a helper; four client sheets carry their own
+  "passwords don't match" wording (pre-existing, a later vocabulary cleanup).
+- **Vision pass 2: PASS** at 8214ad8. CI run 45888711591 printed `ok 1` to
+  `ok 18` and "all cases passed". The reveal-above-status move is right and
+  cannot win wrongly. NOTES: a rejected `createFamily` (network drop) reaches the
+  error boundary (pre-existing in C3; taken into the Strange fix batch if one
+  happens); case 18 also writes the row, which the STRUCTURE.md sentence only
+  calls a read (CI script, not a violation).
