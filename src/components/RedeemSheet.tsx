@@ -76,6 +76,9 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
         // The pad speaks for a PIN that is needed or locked; only a wrong PIN or a plain refusal needs a line.
         return setError(result.pin === "needed" || result.pin === "locked" ? null : result.error);
       }
+      // A wrong PIN's words must not follow the pad into the celebration.
+      setError(null);
+      setLockMs(null);
       setRedemption(result.redemption);
     });
   }
@@ -121,7 +124,6 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
             prompt={pinRedeemText(reward.title, ownerName)}
             onComplete={handleRedeem}
             onCancel={onClose}
-            cancelLabel={lockMs ? REWARD_CLOSE_LABEL : REWARD_CANCEL_LABEL}
             error={error}
             lockMs={lockMs}
             busy={pending}

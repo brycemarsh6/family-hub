@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Delete } from "lucide-react";
 import { PIN_LENGTH, pinMinutesFromMs } from "@/lib/rewards/pinPolicy";
-import { PIN_DELETE_DIGIT_LABEL, PIN_LOCKED_TITLE, REWARD_CANCEL_LABEL, pinDigitsEnteredText, pinLockedText } from "@/lib/rewardVocabulary";
+import { PIN_DELETE_DIGIT_LABEL, PIN_LOCKED_TITLE, REWARD_CANCEL_LABEL, REWARD_CLOSE_LABEL, pinDigitsEnteredText, pinLockedText } from "@/lib/rewardVocabulary";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const KEY = "flex h-[3.75rem] w-[4.5rem] items-center justify-center rounded-2xl text-2xl font-semibold transition-colors disabled:opacity-35";
@@ -17,8 +17,9 @@ const KEY = "flex h-[3.75rem] w-[4.5rem] items-center justify-center rounded-2xl
  * `lockMs` changes or the call ends (a wrong PIN), and the caller may remount
  * it with a `key` for a fresh step. While `lockMs` runs the keys grey out and
  * the minutes count down; when it ends the keys come back, the timer stops and
- * a stale error line is hidden. `cancelLabel` is the button's words ("Close"
- * on a locked pad, "Cancel" otherwise).
+ * a stale error line is hidden. The button says "Close" while the pad's own lock
+ * runs, otherwise `cancelLabel` (default "Cancel"). The error line keeps its
+ * height so the keys do not move on a wrong PIN.
  */
 export function PinPad({
   heading,
@@ -105,17 +106,14 @@ export function PinPad({
       </div>
 
       {locked && lockEnd !== null ? (
-        <div role="alert" className="mb-2 rounded-xl bg-warn-soft px-3 py-2 text-center text-sm text-warn">
+        <div role="alert" className="mb-2 min-h-[2.5rem] rounded-xl bg-warn-soft px-3 py-2 text-center text-sm text-warn">
           <p className="font-semibold">{PIN_LOCKED_TITLE}</p>
           <p>{pinLockedText(pinMinutesFromMs(lockEnd - now))}</p>
         </div>
       ) : (
-        error &&
-        !lockRanOut && (
-          <p role="alert" className="mb-2 text-center text-sm text-warn">
-            {error}
-          </p>
-        )
+        <p role={error && !lockRanOut ? "alert" : undefined} className="mb-2 min-h-[2.5rem] text-center text-sm text-warn">
+          {error && !lockRanOut ? error : null}
+        </p>
       )}
 
       <div className="my-2 grid grid-cols-3 justify-center gap-2.5">
@@ -140,7 +138,7 @@ export function PinPad({
           disabled={busy}
           className="mt-2 flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-medium text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
         >
-          {cancelLabel}
+          {locked ? REWARD_CLOSE_LABEL : cancelLabel}
         </button>
       )}
     </div>

@@ -17,7 +17,6 @@ import {
   PIN_NOT_SET_TITLE,
   PIN_TITLE,
   DEFAULT_REWARD_COST,
-  REWARD_CANCEL_LABEL,
   REWARD_CLOSE_LABEL,
   REWARD_DELETE_LABEL,
   REWARD_ADD_SUBMIT_LABEL,
@@ -97,7 +96,12 @@ export function RewardSheet({
    * Any PIN answer opens the PIN step for the button that ran (the page's gate may be a moment old).
    */
   function settle(result: { error?: string } | RewardRefusal, step: "save" | "delete"): boolean {
-    if (!result.error) return true;
+    if (!result.error) {
+      // A finished call leaves no old PIN words behind.
+      setPinError(null);
+      setLockMs(null);
+      return true;
+    }
     const refusal = "pin" in result ? result : null;
     if (refusal?.pin) {
       if (refusal.pin === "notSet") setNotSet(true);
@@ -185,7 +189,6 @@ export function RewardSheet({
               prompt={pinStep === "save" ? PIN_SAVE_PROMPT : PIN_DELETE_PROMPT}
               onComplete={handlePin}
               onCancel={cancelPin}
-              cancelLabel={lockMs ? REWARD_CLOSE_LABEL : REWARD_CANCEL_LABEL}
               error={pinError}
               lockMs={lockMs}
               busy={pending}
