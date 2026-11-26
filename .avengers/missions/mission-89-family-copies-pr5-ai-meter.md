@@ -242,6 +242,21 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Evidence:** outputs, screenshots.
 - **Done:** all pass, screenshots match the decisions.
 
+### C4 — fixes from the C3 report
+
+- **Objective:** close the four gaps Stark reported in C3.
+- **Boundaries:**
+  - May touch: `src/lib/recipeUrlImport.ts` (the catch at line 87 and one import only), `src/components/ProgressBar.tsx`, `src/components/AiUsageCard.tsx`, `src/components/AiAllowanceNotice.tsx`, `src/lib/aiBlocked.ts`, `src/lib/aiMeterVocabulary.ts`, `src/components/SlotEditSheet.tsx`, `src/lib/aiMeterPolicy.test.ts` (vocabulary tests only).
+  - Must not touch: every other file, including the other nine `ProgressBar` users.
+- **Content:**
+  1. `importRecipeFromUrl` rethrows `AiAllowanceError` unchanged from its catch, before every other check, so the link screen shows the notice.
+  2. Locked copies (reason `locked`): the blocked notice shows `AI_LOCKED_TEXT` (Bryce-approved wording) instead of the "used up / resets" lines; the Upgrade button or ask-an-admin line stays the same. Fury decision 2026-11-26: reuses approved words, telling Bryce in the report.
+  3. `ProgressBar` gains an optional `tone` prop, default the current accent, plus a warning tone by job name from DESIGN.md. Existing callers unchanged. `AiUsageCard` uses `ProgressBar` and drops its own bar.
+  4. `SlotEditSheet` hides "Try again" while the blocked notice shows.
+- **Verification:** the gauntlet in full.
+- **Evidence:** outputs and `git diff --stat`.
+- **Done:** all pass; `grep -n "role=\"progressbar\"" src/components/AiUsageCard.tsx` is empty.
+
 ## Gate log
 
 - 2026-11-26 Fury: dev DB host confirmed `ep-hidden-pine` (dev branch). `migrate status` showed PR 4 had already applied `20261126200000_household_settings` there, the same stamp as ours, so ours was renamed to `20261126300000_ai_usage` (sorts after PR 4 whichever merges first). SQL reviewed (CREATE TABLE + CREATE INDEX only), `npx prisma migrate deploy` applied it to the dev branch only.
