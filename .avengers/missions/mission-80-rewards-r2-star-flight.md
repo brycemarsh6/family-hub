@@ -298,6 +298,24 @@ Fury's, after C2.
 5. **Evidence and done:** diff stat inside the boundaries, gauntlet output
    tails, the grep output, test names added. Do not commit (Fury commits).
 
+### C4 — The dashboard tile passes the failed-save cancel through
+
+**Status:** DONE (2026-11-25). Stark: gauntlet green, 2197 Denver; 2187 + 10 skips UTC.
+
+1. **Objective:** Vision pass-2 blocker: on a dashboard Habits tile a
+   failed check must cancel its ring, as Today and the family view do.
+2. **Boundaries.** May touch only `src/components/HabitsTile.tsx`. Must not
+   touch `src/components/HoursLogSheet.tsx` (`RunChange` stays as it is) or
+   anything else.
+3. **Work:** `keep` in `HabitTileRows` also takes an optional `onError` and
+   passes it to `run` as the 4th argument (its held-rows `onSuccess` step
+   unchanged); line 107 passes `keep` (or a lambda forwarding all four
+   arguments) to `habitRowTaps`. `run={keep}` for the hours log sheet must
+   still type-check against `RunChange`.
+4. **Verification:** the full gauntlet, test count still 2197 Denver /
+   2187 + 10 skips UTC.
+5. **Evidence and done:** the diff, the gauntlet tails. Do not commit.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -306,6 +324,9 @@ Fury's, after C2.
 | 1 (fb464dc) | Captain | BLOCKED | Same as Vision: motion constants out of `starMotion.ts` | Move `WORDS_MS` too (optional). rewards.md wording: name both Reduce Motion readers, "the only client reader", add file paths. Settings switch row duplicated in two components. rewards.md grew 113 to 139 lines. |
 | 1 (fb464dc) | Strange | (no verdict) | | Stalled opening the preview at 23:28 on 2026-11-24 and never reported; stopped 2026-11-25 and re-dispatched (pass 1 again). |
 | 1 (fb464dc, rerun) | Strange | BLOCKED | Confetti canvas is z-index 100 (library default), above the all-done pill's z-[70], so it paints over the words; DESIGN.md says it falls behind. Fix: `zIndex: 65` in the `confetti(...)` call. | Flight lands on the right bank on every layout (iPad wide: 8 stars to each bank for a Together check); count-up lands with the stars; un-check drops at once; layer never blocks taps; switch rows match; switch off and Reduce Motion behave as written; pill contrast 8:1 light, 14:1 dark. Ruled both Vision NOTEs as NOTEs. Ring wording gap in DESIGN.md is a docs fix. Pill barely stands apart in dark (polish idea). Dev data put back; noted the R3 session also writing the same dev database. |
+| 2 (f7ecb39) | Captain | BLOCKED | Two rewards.md sentences Fury wrote in C3 were untrue: the "celebration layer number" rule is broken by the two `z-[70]` classes; "only client reader ... `useCelebrations()`" is wrong (StarFlightLayer takes `enabled` from the layout; HabitConfetti calls the hook). Docs only. | Code clean, pass-1 blocker cleared, `takeBackPayments` home correct. Confetti particle numbers still typed (pre-mission, later). Settings switch row still duplicated. Fury's fix to the record introduced both blockers: the doctrine's "a correction is a change" law, again. |
+| 2 (f7ecb39) | Vision | BLOCKED | Dashboard tile drops the failed-save cancel: `HabitsTile.tsx:107` wraps `run` as `(change, action) => keep(change, action)`, and `keep: RunChange` has no `onError`, so the 4th argument is thrown away. | Gauntlet re-run green (Denver 2197; UTC 2187 + 10 old skips; build OK). Family and Today paths cancel correctly. Two overlapping checks for one person where one fails cancel both rings (final number still right). Docs wording NOTEs as Captain's. |
+| 2 (f7ecb39) | Strange | PASS | | Confetti at z 65 under the pill at 70, all sizes and themes; inverted pill about 6.9:1 light, 15:1 dark, centred, never takes taps; flight still lands on the Mine bank. NOTE: the pill now looks like the UndoBar if both ever show together. Reviewed this worktree's code on port 3001 (port 3000 was R3's). |
 
 ## Handoff log
 

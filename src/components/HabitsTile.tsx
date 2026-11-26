@@ -5,7 +5,7 @@ import { ListChecks } from "lucide-react";
 import DashboardTile from "./DashboardTile";
 import { useStarFlight, type StarFlight } from "./StarFlightLayer";
 import { HabitRow } from "./HabitRow";
-import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
+import { HoursLogSheet } from "./HoursLogSheet";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
@@ -87,11 +87,17 @@ export function HabitTileRows({
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
-  const keep: RunChange = (change, action, onSuccess) =>
-    run(change, action, () => {
-      setHeld((prev) => applyHabitChange(prev, change));
-      onSuccess?.();
-    });
+  // Takes `onError` as a fourth argument (the star flight's cancel); the log sheet's `RunChange` never passes it.
+  const keep = (change: HabitChange, action: () => Promise<{ error?: string }>, onSuccess?: () => void, onError?: (message: string) => void) =>
+    run(
+      change,
+      action,
+      () => {
+        setHeld((prev) => applyHabitChange(prev, change));
+        onSuccess?.();
+      },
+      onError,
+    );
   const emptyLine = empty ?? firstEmpty;
   const shown = limit === undefined ? live : live.slice(0, limit);
   const hidden = live.length - shown.length;
@@ -104,7 +110,7 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error || hidden > 0 ? "border-b" : "-mb-4"}`}>
           {shown.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
+              <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, keep, (hoursRow) => {
                 setError(null);
                 setLoggingId(hoursRow.id);
               }, { fly, lateStars })} />

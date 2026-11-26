@@ -50,10 +50,12 @@ code lines; past that a concern gets its own
 - `starMotion.ts` (mission 80): the star flight's numbers and shapes
   (`RING_STARS`, `RING_RADIUS_REM`, the timings and `FLIGHT_EASING`,
   `ringOffsets`, `flightKeyframes`, `landsAfterMs`,
-  `landingClearsAfterMs`), the all-done words' `ALL_DONE_WORDS_MS` and
-  `CONFETTI_Z_INDEX`, and `countUpValue`, the only count-up step. A flight
-  timing, ring shape or celebration layer number typed in a component is a
-  BLOCKER.
+  `landingClearsAfterMs`), `ALL_DONE_WORDS_MS` (the all-done words),
+  `CONFETTI_Z_INDEX` (the confetti canvas), and `countUpValue`, the only
+  count-up step. A flight timing, ring shape or the confetti's `zIndex`
+  typed in a component is a BLOCKER; the two celebration layers keep the
+  `z-[70]` class (the sheets' `z-[60]` precedent), and
+  `CONFETTI_Z_INDEX`'s test pins it between 61 and 70.
 - R3 to R5 add `rewardRules.ts`, `rewardEmoji.ts`, `pinPolicy.ts` and
   `starHistory.ts` here, each pure with its own test.
 
@@ -134,10 +136,12 @@ is a per-login preference (not a `RewardSettings` column): read in
 `dal.ts`, saved by `saveCelebrations` (people) and
 `saveTabletCelebrations` (every active device login, the tablet start
 page precedent), and the tablet's value is read only by
-`loadTabletCelebrations` in `src/lib/tabletCelebrationsRead.ts`. Only
-`StarFlightLayer` is the only client reader of the switch
-(`useCelebrations()`); the flight, the count-up and `HabitConfetti` take it
-from there. The actions live in `src/app/actions/preferences.ts`. Reduce
+`loadTabletCelebrations` in `src/lib/tabletCelebrationsRead.ts`.
+`StarFlightLayer` is the only client entry for the switch: the `(app)`
+layout passes `user.celebrations` in as `enabled`. Everything else takes
+it from there: the flight itself, the count-up through `useStarLanding`,
+and `HabitConfetti` through `useCelebrations()`. A component reading the
+preference any other way is a BLOCKER. The actions live in `src/app/actions/preferences.ts`. Reduce
 Motion always wins over the switch and has two readers:
 `StarFlightLayer` uses `src/lib/usePrefersReducedMotion.ts`, and
 `HabitConfetti` calls `matchMedia` once when it fires, on purpose (the
