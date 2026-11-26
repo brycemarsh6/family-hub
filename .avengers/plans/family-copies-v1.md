@@ -17,9 +17,12 @@ terminal script, and stores, time zone and some wording are fixed in code.
 - Bryce prepares a copy in about 15 minutes from a runbook, then sends a link.
 - **Short setup wizard**, then a "Finish setting up" checklist on the dashboard.
 - **Lost password**: a recovery code shown at setup. Email reset comes later.
-- **AI features are a paid upgrade** (about $8 a month) for other families,
-  with a usage progress bar. They pay by a Stripe link and Bryce switches it on
-  by hand. No payment code in the app.
+- **AI pricing is not fixed yet** (Bryce, 2026-11-26). He may start with no
+  charge: AI on with a monthly allowance, and a $5 a month upgrade only if
+  API spend gets too high. He is also weighing a one-time setup fee of about
+  $10 to cover the heavy recipe importing in a family's first weeks. Either
+  way it's a Stripe link and Bryce switches AI on by hand, with a usage
+  progress bar. No payment code in the app.
 - **Winnie, the Assistant API, Siri voice and Alexa stay Bryce's only.**
   Alexa stays parked: Skylight uses an old-style skill that also fails on
   Alexa+, and Amazon's new route is still partner-only.
@@ -142,14 +145,17 @@ them it shows whatever is on screen. The screenshot is sent only when it is on
 (production builds only), settings table above, Blob store, domain, Google
 redirect address, deploy, confirm the "open your setup link" message, send the
 link, delete `SETUP_CODE` afterwards. AI settings for every relative's copy (Bryce,
-2026-11-26, mission 92): `AI_ALLOWANCE_CENTS=300` ($3 a month for a $5 a
-month upgrade) once they pay, and `STRIPE_PAYMENT_LINK_URL` is **required**
-(without it an admin on a locked copy has no next step). Includes a check step so a wrong
+2026-11-26, mission 92): `AI_ALLOWANCE_CENTS=300` ($3 a month) once AI is on
+for them (paid, or free while Bryce isn't charging), and
+`STRIPE_PAYMENT_LINK_URL` is **required** (without it an admin on a locked or
+used-up copy has no next step). If Bryce adds the one-time setup fee, the
+runbook covers sending its Stripe link with the setup link. Includes a check step so a wrong
 `DATABASE_URL` can never point one family at another's data.
 
 ## To check before the first family (not assumed)
 
-- Vercel plan: Hobby is for non-commercial use; charging $8 may need Pro.
+- Vercel plan: Hobby is for non-commercial use; charging anything (monthly or
+  a setup fee) may need Pro.
 - Whether Google sign-in in "testing" mode expires links after 7 days.
 - Current Claude Haiku prices for the cost table.
 - Cron and Blob limits with several projects.
