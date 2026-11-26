@@ -6,13 +6,12 @@ import "server-only";
 // sees the PIN. Whose private habit names show is `loadStarHistory`'s rule,
 // asked with Winnie's actor.
 
-import { db } from "@/lib/db";
 import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { loadRewards } from "@/lib/rewardsRead";
 import { loadLateStars } from "@/lib/rewardSettingsRead";
 import { loadStarBanks } from "@/lib/starBankRead";
 import { loadRecentActivity, loadStarHistory } from "@/lib/starHistoryRead";
-import { assistantCreatedWhere } from "./audit";
+import { assistantCreatedIds } from "./audit";
 import { assistantHabitActor } from "./habitActorEnv";
 import { toHistoryAnswer, toRecentAnswer, toRewardsAnswer, toStarSummary } from "./serializeRewards";
 
@@ -24,11 +23,8 @@ export async function readRewards(personId?: string) {
   const ids = people.map((person) => person.id);
   const [banks, rewards, lateStars] = await Promise.all([loadStarBanks(ids), loadRewards(ids), loadLateStars()]);
   // One query for "did Winnie make this", not one per reward.
-  const hers = rewards.length === 0 ? [] : await db.assistantChange.findMany({
-    where: assistantCreatedWhere("Reward", { in: rewards.map((reward) => reward.id) }),
-    select: { recordId: true },
-  });
-  return toRewardsAnswer({ people, banks, rewards, createdByAssistant: new Set(hers.map((row) => row.recordId)), lateStars });
+  const createdByAssistant = await assistantCreatedIds("Reward", rewards.map((reward) => reward.id));
+  return toRewardsAnswer({ people, banks, rewards, createdByAssistant, lateStars });
 }
 
 /** One person's star history and bank. Null when `personId` is not a household person. */

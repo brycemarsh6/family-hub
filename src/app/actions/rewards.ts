@@ -83,8 +83,11 @@ export async function saveReward(raw: unknown, id?: string, pin?: string): Promi
     if (!people.some((person) => person.id === checked.value.ownerId)) return { error: REWARD_SAVE_FAILED };
     if (id === undefined) {
       await createReward(checked.value, user.userId);
-    } else if ((await updateReward(id, checked.value)) === null) {
-      return { error: REWARD_GONE_REFUSAL };
+    } else {
+      const updated = await updateReward(id, checked.value);
+      if (updated === null) return { error: REWARD_GONE_REFUSAL };
+      // A plain value cannot be refused; a refusal here would be a bug, so say "could not save".
+      if ("code" in updated) return { error: REWARD_SAVE_FAILED };
     }
   } catch (error) {
     console.error("Reward save failed", error);
@@ -107,7 +110,7 @@ export async function deleteReward(id: string, pin?: string): Promise<{ error?: 
       const refusal = await passGate(manageGate(user, await loadPinStatus()), pin);
       if (refusal) return refusal;
     }
-    await deleteRewardRow(id, ownWish);
+    await deleteRewardRow(id, { wishOnly: ownWish });
   } catch (error) {
     console.error("Reward delete failed", error);
     return { error: REWARD_SAVE_FAILED };

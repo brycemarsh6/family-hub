@@ -9,15 +9,15 @@
 
 import type {
   Cookbook, CookbookRecipe, Goal, GoalCheckIn, GroceryItem, Habit, HabitLog, HabitParticipant,
-  HabitTimeEntry, MealPlan, MealPlanEntry, PantryItem, PlanItem, Recipe, RecipeTag, Tag,
-  VisionStatement,
+  HabitTimeEntry, MealPlan, MealPlanEntry, PantryItem, PlanItem, Recipe, RecipeTag, Reward,
+  StarAdjustment, Tag, VisionStatement,
 } from "@/generated/prisma/client";
 
 export type UndoModel =
   | "PantryItem" | "GroceryItem" | "Recipe" | "Tag" | "RecipeTag" | "Cookbook"
   | "CookbookRecipe" | "MealPlan" | "MealPlanEntry"
   | "Habit" | "HabitParticipant" | "HabitLog" | "HabitTimeEntry"
-  | "Goal" | "GoalCheckIn" | "PlanItem" | "VisionStatement";
+  | "Goal" | "GoalCheckIn" | "PlanItem" | "VisionStatement" | "Reward" | "StarAdjustment";
 
 export type ColumnKind = "date" | "value";
 
@@ -118,6 +118,17 @@ const VISION_STATEMENT_COLUMNS: Record<keyof VisionStatement, ColumnKind> = {
   text: "value", updatedById: "value", createdAt: "date", updatedAt: "date",
 };
 
+const REWARD_COLUMNS: Record<keyof Reward, ColumnKind> = {
+  id: "value", ownerId: "value", title: "value", emoji: "value", cost: "value",
+  repeatable: "value", sortOrder: "value", createdById: "value", createdAt: "date",
+  updatedAt: "date",
+};
+
+const STAR_ADJUSTMENT_COLUMNS: Record<keyof StarAdjustment, ColumnKind> = {
+  id: "value", userId: "value", amount: "value", note: "value", createdById: "value",
+  createdAt: "date",
+};
+
 function describe(kinds: Record<string, ColumnKind>) {
   const columns = Object.keys(kinds);
   return { columns, dates: columns.filter((c) => kinds[c] === "date") };
@@ -141,6 +152,8 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
   GoalCheckIn: describe(GOAL_CHECK_IN_COLUMNS),
   PlanItem: describe(PLAN_ITEM_COLUMNS),
   VisionStatement: describe(VISION_STATEMENT_COLUMNS),
+  Reward: describe(REWARD_COLUMNS),
+  StarAdjustment: describe(STAR_ADJUSTMENT_COLUMNS),
 };
 
 /**
@@ -171,7 +184,7 @@ export function isVolatile(model: UndoModel, column: string): boolean {
  */
 export const TIER: Record<UndoModel, 0 | 1> = {
   PantryItem: 0, Recipe: 0, Tag: 0, Cookbook: 0, MealPlan: 0,
-  Habit: 0, Goal: 0, VisionStatement: 0,
+  Habit: 0, Goal: 0, VisionStatement: 0, Reward: 0, StarAdjustment: 0,
   GroceryItem: 1, RecipeTag: 1, CookbookRecipe: 1, MealPlanEntry: 1,
   HabitParticipant: 1, HabitLog: 1, HabitTimeEntry: 1, GoalCheckIn: 1, PlanItem: 1,
 };
@@ -186,6 +199,7 @@ export const PARENT_TABLES = {
   Habit: "Habit",
   Goal: "Goal",
   PlanItem: "PlanItem",
+  Reward: "Reward",
 } as const;
 
 export type ParentModel = keyof typeof PARENT_TABLES;
@@ -202,7 +216,8 @@ export type Reference = {
   child:
     | "GroceryItem" | "VoiceChange" | "RecipeTag" | "CookbookRecipe" | "MealPlanEntry"
     | "HabitParticipant" | "HabitLog" | "HabitTimeEntry"
-    | "HabitPlannedDay" | "ChoreWeekOverride" | "Nudge" | "PlanItem" | "GoalCheckIn" | "PlanLog";
+    | "HabitPlannedDay" | "ChoreWeekOverride" | "Nudge" | "PlanItem" | "GoalCheckIn" | "PlanLog"
+    | "RewardRedemption";
   column: string;
 };
 
@@ -238,6 +253,9 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
   ],
   // PlanLog is not covered, so a plan never removes one: always in use.
   PlanItem: [{ child: "PlanLog", column: "planItemId" }],
+  // A redemption is never undone and no plan removes one, so a redeemed reward
+  // is always in use: its create cannot be undone, and its row cannot be re-made over it.
+  Reward: [{ child: "RewardRedemption", column: "rewardId" }],
 };
 
 /**
@@ -298,5 +316,13 @@ export const FOREIGN_KEYS: Partial<Record<UndoModel, readonly ForeignKey[]>> = {
   VisionStatement: [
     { column: "ownerId", parent: "User", onMissing: "refuse" },
     { column: "updatedById", parent: "User", onMissing: "null" },
+  ],
+  Reward: [
+    { column: "ownerId", parent: "User", onMissing: "refuse" },
+    { column: "createdById", parent: "User", onMissing: "null" },
+  ],
+  StarAdjustment: [
+    { column: "userId", parent: "User", onMissing: "refuse" },
+    { column: "createdById", parent: "User", onMissing: "null" },
   ],
 };

@@ -8,7 +8,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { GroceryItem } from "@/generated/prisma/client";
 import { categoryOrder } from "@/lib/constants";
-import { assistantCreatedWhere } from "./audit";
+import { assistantCreatedIds } from "./audit";
 import { toShoppingItem } from "./serializeShopping";
 
 /**
@@ -24,13 +24,10 @@ export async function toShoppingItems(rows: GroceryItem[], justCreatedIds: strin
     userIds.length > 0
       ? db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, displayName: true } })
       : Promise.resolve([]),
-    db.assistantChange.findMany({
-      where: assistantCreatedWhere("GroceryItem", { in: rows.map((r) => r.id) }),
-      select: { recordId: true },
-    }),
+    assistantCreatedIds("GroceryItem", rows.map((r) => r.id)),
   ]);
   const names = new Map(users.map((u) => [u.id, u.displayName]));
-  const byAssistant = new Set([...created.map((c) => c.recordId), ...justCreatedIds]);
+  const byAssistant = new Set([...created, ...justCreatedIds]);
   return rows.map((row) =>
     toShoppingItem(row, {
       addedByName: row.addedById ? (names.get(row.addedById) ?? null) : null,
