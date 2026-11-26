@@ -180,7 +180,7 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Objective:** every Anthropic call goes through `meteredCreate`, which
   blocks relatives' copies when needed and records usage.
 - **Boundaries:**
-  - May touch: new `src/lib/aiMeter.ts`, `src/lib/recipeExtract.ts`,
+  - May touch: new `src/lib/aiMeter.ts`, `src/lib/aiMeterPolicy.ts` and `src/lib/aiMeterPolicy.test.ts` (fix A only), `src/lib/recipeExtract.ts`,
   `src/lib/ingredientParse.ts`, `src/lib/nutritionEstimate.ts`,
   `src/lib/mealSuggest.ts`, `src/lib/voice/parse.ts`,
   `src/lib/recipeIngredientMatch.ts`,
@@ -201,6 +201,7 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
   rethrows an `AiAllowanceError` unchanged instead of wrapping it in
   `IngredientAiError`; the two assistant routes treat it like
   `IngredientAiError` (`aiUnavailable()`).
+- **Fix A (from C1 review):** the unknown-model price must be the most expensive model in the claude-api price table (Fable 5.1 and Fable 5: $10 in / $50 out per million; use cache read $1.00 and cache write $12.50, the usual 0.1x and 1.25x), not Opus 5.5. Rename the constant so its name says why, and add a test that an unknown model costs at least as much as every listed row.
 - **Verification:** gauntlet in full;
   `grep -rn "messages.create\|new Anthropic" src` shows only `aiMeter.ts`.
 - **Evidence:** outputs, the grep, the diff stat.
