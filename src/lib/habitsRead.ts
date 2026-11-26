@@ -10,7 +10,7 @@ import {
   type CalendarDate,
 } from "./householdDate";
 import { buildChoreChart, choreCacheFromRow, orderVacations, overrideWindowStart, type ChoreChartData, type VacationItem } from "./choreChart";
-import { canEditChart } from "./habits/access";
+import { canEditChart, canEditHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logDayFromRow, specFromRow, timeEntryFromRow, vacationFromRow } from "./habits/habitRows";
 import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, TimeEntry, Vacation } from "./habits/types";
@@ -18,7 +18,7 @@ import { keepOwnPicks } from "./dashboardPicks";
 import { choresTileRows, habitsTileRows, pickableHabits, plannedTodayRows, type TileRows } from "./habitsDashboard";
 import { hoursSpecOf, type PlanHours } from "./habitsHours";
 import type { TodayPrompt } from "./habitsPrompts";
-import { buildTodayPage, todayLogsFrom, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
+import { buildTodayPage, managerItem, todayLogsFrom, type HabitManagerItem, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
 import { toHabitTrack, type HabitTrack } from "./habitHoursVocabulary";
@@ -309,6 +309,28 @@ export type HabitForAction = HabitAccess & {
   spec: ScheduleSpec | null;
   startDay: CalendarDate;
 };
+
+/**
+ * One habit for the edit page, or null when it is gone or the viewer may not
+ * edit it (`canEditHabit`: a participant, or a parent or admin for anyone's
+ * habit they can see, the rule `updateHabit` already applies). Not
+ * `loadTodayPage`'s list, which holds only the viewer's own habits, so a
+ * parent opening a kid's chore from the chore chart found nothing (404).
+ */
+export async function loadHabitForEdit(viewer: HabitActor, habitId: string): Promise<HabitManagerItem | null> {
+  const habit = await db.habit.findUnique({
+    where: { id: habitId },
+    include: {
+      participants: {
+        orderBy: { joinedAt: "asc" },
+        select: { userId: true, sortOrder: true, joinedAt: true, user: { select: { displayName: true, avatarColor: true, deactivatedAt: true } } },
+      },
+    },
+  });
+  if (!habit) return null;
+  if (!canEditHabit(viewer, { isPrivate: habit.isPrivate, participantIds: habit.participants.map((p) => p.userId) })) return null;
+  return managerItem(habit);
+}
 
 /** The habit's access facts (one query), or null when it does not exist. */
 export async function loadHabitForAction(habitId: string): Promise<HabitForAction | null> {

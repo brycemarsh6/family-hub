@@ -110,6 +110,16 @@ export const HABIT_WHO_CHOICES: readonly { key: HabitWho; label: string; hint: s
   { key: "each", label: HABIT_WHO_LABELS.each, hint: "Side by side: everyone checks their own" },
 ];
 
+/**
+ * The Who strip's one-person choice: "Just me" for you, "Just Ledger" when a
+ * parent edits one other person's item, so the words say whose it stays
+ * (Bryce, 2026-11-26). `name` null means you.
+ */
+export function soloWhoChoice(name: string | null): { label: string; hint: string } {
+  if (name === null) return { label: HABIT_WHO_CHOICES[0].label, hint: HABIT_WHO_CHOICES[0].hint };
+  return { label: `Just ${name}`, hint: `One person: ${name}` };
+}
+
 /** A check counts as done when it was done, on time or late; a skip does not. */
 export function isCheckStatus(status: string): boolean {
   return status === "done" || status === "late";

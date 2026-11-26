@@ -6,6 +6,11 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Edit a kid's chore (Rewards bug fix, 2026-11-26)**, about 2 minutes, on
+  your iPhone. Habits & Chores, Manage, Chore chart, Ledger, Default week,
+  tap one of his chores: the edit page opens (it used to say 404). Who
+  reads "Just Ledger". Set Stars, Save, then check Whole family: the chore
+  shows its gold stars and is still Ledger's, not yours.
 - **Winnie reads Rewards (mission 84, W1)**, about 3 minutes, in Winnie's
   chat. First ask her to refresh what she knows about the Marshee API (she
   reads `GET /openapi.json`). Then ask: "How many stars does everyone have?"

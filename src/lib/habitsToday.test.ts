@@ -13,6 +13,7 @@ import {
   buildTodayRows,
   participantsAllowed,
   sharedNeedsMorePeople,
+  soloPersonId,
   todayLogsFrom,
   visibleInViewerOrder,
   type TodayHabitInput,
@@ -420,4 +421,12 @@ test("past day: today's rows are unchanged by the bound (a check today still cou
   const rows = buildTodayRows(me, [h], logs, today);
   assert.equal(rows[0].progress?.count, 2);
   assert.equal(rows[0].doneToday, true);
+});
+
+test("soloPersonId: a one-person item stays that person's; new or shared items start from the viewer", () => {
+  assert.equal(soloPersonId(["kid"], "parent"), "kid"); // a parent editing a kid's own chore keeps it the kid's
+  assert.equal(soloPersonId(["parent"], "parent"), "parent");
+  assert.equal(soloPersonId(undefined, "parent"), "parent"); // the New form
+  assert.equal(soloPersonId(["kid", "parent"], "parent"), "parent"); // Together turned into Just me
+  assert.equal(soloPersonId([], "parent"), "parent");
 });
