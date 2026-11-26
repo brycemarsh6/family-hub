@@ -301,6 +301,20 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Evidence:** outputs, `git diff --stat`.
 - **Done:** all pass; `grep -n "This month's AI used" src/components` is empty.
 
+### C7 — Strange pass 2 fix
+
+- **Objective:** no stale "used up" line after editing a blocked import.
+- **Boundaries:**
+  - May touch: `src/components/PasteImportForm.tsx`, `src/components/PhotoImportForm.tsx`, `src/lib/aiBlocked.ts`.
+  - Must not touch: everything else.
+- **Content:**
+  1. Paste textarea `onChange` clears `error` along with `aiBlocked`.
+  2. Photo `removePhoto` clears `error` along with `aiBlocked`.
+  3. `aiBlockedResult` returns `error: AI_LOCKED_TEXT` when the reason is `locked`, `AI_BLOCKED_TITLE` when `used-up`.
+- **Verification:** the gauntlet in full.
+- **Evidence:** outputs, `git diff`.
+- **Done:** all pass.
+
 ## Gate log
 
 - 2026-11-26 Fury: dev DB host confirmed `ep-hidden-pine` (dev branch). `migrate status` showed PR 4 had already applied `20261126200000_household_settings` there, the same stamp as ours, so ours was renamed to `20261126300000_ai_usage` (sorts after PR 4 whichever merges first). SQL reviewed (CREATE TABLE + CREATE INDEX only), `npx prisma migrate deploy` applied it to the dev branch only.
@@ -311,3 +325,4 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - 2026-11-26 Fury: merged origin/main (PR 4 aedae02) into the branch. Conflicts in `schema.prisma` (kept both models) and the settings page doc comment (kept Stores and AI features). `prisma validate` and `tsc` clean after.
 - 2026-11-26 Captain pass 2 on C5 (after merge fa20e9b): **PASS**. All 3 blockers cleared; merge resolution clean; STRUCTURE.md entry accurate. Notes: `AiUsageCard.tsx:44` screen-reader label typed inline (move to vocabulary); `aiMeterPolicy.test.ts` one `formatUsd` line (fine); `recipes.ts` 415 and `recipeUrlImport.ts` 440, split before the next feature adds lines.
 - 2026-11-26 Strange pass 1: **BLOCKED**, 2 blockers (Nutrition sheet shows an accent "Try again" under the blocked notice; locked sentence does not name grocery sorting or pasted text). Seen live at 390 / 820 / 1180, light and dark: locked card with and without Upgrade, notices on paste, link, Nutrition, Add to groceries, Meal ideas, owner card $0.00. Not seen (no usage rows, admin only): used-up and percent states, owner per-feature line, photo notice, non-admin and kid views (code reviewed). Notes: Extract stays live under the notice (taken in C6); admin dead end without a Stripe link (Bryce: runbook requires it); 1180 Upgrade full width (taste, left); locked sentence overstates link import (left, Bryce's wording). launch.json restored, no DB writes.
+- 2026-11-26 Strange pass 2 on 2721905: **BLOCKED**, 1 new blocker (paste import: after editing, the leftover `error` shows "This month's AI allowance is used up." on a locked copy; photo `removePhoto` same in code). Both pass 1 blockers confirmed fixed live (Nutrition: notice, Upgrade, secondary Close, no Try again; new sentence on card, paste, groceries). Notes: groceries Close is a small pill vs Nutrition full width (older code, left); stepper live while blocked (harmless). Fix in C7.
