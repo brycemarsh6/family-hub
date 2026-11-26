@@ -249,3 +249,124 @@ export const CELEBRATIONS_WORDS = {
   notAllowed: "Only parents, admins and the wall tablet can change this.",
   deviceRefused: "A shared device changes this on Wall tablet settings.",
 } as const;
+
+// R5 (mission 83): Manage rewards, bonus and taken stars, and star history.
+
+/** Manage page and its sections. */
+export const MANAGE_BUTTON_LABEL = "Manage";
+export const MANAGE_PAGE_TITLE = "Manage rewards";
+export const ADJUST_SECTION_TITLE = "Give or take stars";
+export const RECENT_SECTION_TITLE = "Recent";
+export const NO_WISHES_TEXT = "No wishes waiting.";
+export const NO_RECENT_TEXT = "Nothing in the last 30 days.";
+export const SET_COST_LABEL = "Set cost";
+export const RECENT_UNDO_LABEL = "Undo";
+
+/** "Wishes waiting for a cost (2)" */
+export function wishesTitleText(count: number): string {
+  return `Wishes waiting for a cost (${count})`;
+}
+
+/** "Ellie's wish" */
+export function wishOfText(name: string): string {
+  return `${name}'s wish`;
+}
+
+/** The give or take form's fields and buttons. */
+export const ADJUST_GIVE_LABEL = "Give";
+export const ADJUST_TAKE_LABEL = "Take away";
+export const ADJUST_NOTE_LABEL = "What for? (optional)";
+/** The most letters a bonus or taken-star note may hold. */
+export const ADJUST_NOTE_MAX = 60;
+export const ADJUST_PERSON_LABEL = "Who";
+export const ADJUST_DIRECTION_LABEL = "Give or take away";
+export const ADJUST_AMOUNT_LABEL = "Stars";
+
+/** "Give Ellie 5 stars" */
+export function giveButtonText(name: string, stars: number): string {
+  return `Give ${name} ${starCountText(stars)}`;
+}
+
+/** "Take 5 stars from Ellie" */
+export function takeButtonText(name: string, stars: number): string {
+  return `Take ${starCountText(stars)} from ${name}`;
+}
+
+/** Refusals for a bonus or taken star line. */
+export const ADJUST_AMOUNT_REFUSAL = "Pick a number of stars from the list.";
+export const ADJUST_DIRECTION_REFUSAL = "Choose Give or Take away.";
+export const ADJUST_NOTE_REFUSAL = `Keep the note to ${ADJUST_NOTE_MAX} letters or fewer.`;
+export const ADJUST_PERSON_REFUSAL = "Pick a person from the family.";
+
+/** Star history. */
+export const HISTORY_TODAY = "Today";
+export const HISTORY_YESTERDAY = "Yesterday";
+export const HISTORY_LATE_SUB = "Late";
+export const HISTORY_PRIVATE_HABIT = "A private habit";
+export const HISTORY_FOOTER = "Showing the last 30 days. Older stars still count in the total.";
+export const HISTORY_EMPTY = "No stars in the last 30 days.";
+export const HISTORY_LOADING = "Loading…";
+export const HISTORY_FAILED = "Couldn't load the star history. Please try again.";
+export const BONUS_NO_GIVER = "Bonus stars";
+export const TAKEN_NO_GIVER = "Stars taken away";
+
+/** "Ellie's stars" (the history sheet's title) */
+export function historyTitleText(name: string): string {
+  return `${name}'s stars`;
+}
+
+/** "Ellie's star history" (the link and the wide bank button's label) */
+export function historyLinkText(name: string): string {
+  return `${name}'s star history`;
+}
+
+/** "Ledger's star history, 5 stars" (the wide bank button's label: the count is read out too) */
+export function historyBankLabelText(name: string, stars: number): string {
+  return `${historyLinkText(name)}, ${starCountText(stars)}`;
+}
+
+/** "Undo: Bonus: Chores" (a Recent row's Undo, named by its row) */
+export function recentUndoLabelText(title: string): string {
+  return `${RECENT_UNDO_LABEL}: ${title}`;
+}
+
+/** "Bonus from Dad" */
+export function bonusFromText(giver: string | null): string {
+  return giver === null ? BONUS_NO_GIVER : `Bonus from ${giver}`;
+}
+
+/** "Taken away by Dad" */
+export function takenByText(giver: string | null): string {
+  return giver === null ? TAKEN_NO_GIVER : `Taken away by ${giver}`;
+}
+
+/** "Redeemed Cupcake" */
+export function historyRedeemedText(title: string): string {
+  return `Redeemed ${title}`;
+}
+
+/** "+5" or "-20": a signed star amount (a plain hyphen, the starCountText rule). */
+export function signedStarsText(amount: number): string {
+  return amount > 0 ? `+${amount}` : `${amount}`;
+}
+
+/** Manage's Recent list titles: "Cupcake redeemed", "Bonus: Cleaned the garage". */
+export function recentRedeemedTitle(title: string): string {
+  return `${title} redeemed`;
+}
+export function recentBonusTitle(note: string | null): string {
+  return note === null ? BONUS_NO_GIVER : `Bonus: ${note}`;
+}
+export function recentTakenTitle(note: string | null): string {
+  return note === null ? TAKEN_NO_GIVER : `Taken away: ${note}`;
+}
+
+/** "Ellie · 20 stars · Today" */
+export function recentRedeemSub(name: string, cost: number, day: string): string {
+  return `${name} · ${starCountText(cost)} · ${day}`;
+}
+
+/** "Ellie · +5 from Dad · Today" (no giver: "Ellie · +5 · Today") */
+export function recentAdjustSub(name: string, amount: number, giver: string | null, day: string): string {
+  return `${name} · ${signedStarsText(amount)}${giver === null ? "" : ` from ${giver}`} · ${day}`;
+}

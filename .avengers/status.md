@@ -6,6 +6,29 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Parent PIN, kid and tablet redeem, wishes (mission 82, R4)**, about
+  6 minutes, on the iPad (as the Tablet) and your iPhone, light and dark.
+  As a parent: Settings, Rewards, Parent PIN, set a 4-digit PIN. Sign the
+  iPad in as the Tablet and open Rewards: Redeem asks for the PIN; a wrong
+  PIN says so, five wrong locks it for 5 minutes (a parent's phone never
+  asks). Add a wish for a kid: it shows with a dashed edge and no cost;
+  as a parent tap Set cost on Manage. As the Tablet, add a reward: the
+  PIN is asked to save. Turn the PIN switch off in Settings: the Tablet
+  redeems with no PIN. Check the words: "Enter the PIN.", "Pick on or
+  off." and the undo refusal "Only a parent can undo this now." Delete
+  your test wish and undo test redeems when done.
+- **Manage rewards and star history (mission 83, R5)**, about 5 minutes,
+  on your iPhone and the iPad, light and dark. On Rewards (as a parent) tap
+  Manage at the top. Give or take stars: pick a person, Give, step to 10,
+  type "zz test" as the note, tap "Give (name) 10 stars"; their bank goes
+  up 10. Take 5 the same way. Both show in Recent with Undo; Undo one and
+  the bank goes back. A wish (a reward with no cost) shows with Set cost.
+  Back on Rewards: on the iPad tap a person's star bank, on the phone the
+  "(name)'s star history" link under the chips. The sheet lists the last
+  30 days by day: checks with their stars, "Late" under a late one, your
+  bonus and take-away with the note, redeems with the picture. Sign in as
+  a kid: no Manage button, and a private habit of yours reads "A private
+  habit" in your history. Undo your test lines when done.
 - **Rewards page (mission 81, R3)**, about 5 minutes, on your iPhone and
   the iPad, light and dark. Open Rewards in the side menu. As a parent,
   tap Add reward under your name: pick a picture (or Any emoji for your
@@ -386,6 +409,13 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Parent PIN follow-ups (mission 82 gate NOTEs): the PIN check's catch
+  logs nothing; the lock panel is taller, so the keys drop 8px when a lock
+  starts; RewardSheet's plain refusal branch does not clear the PIN error;
+  a stale "no PIN set" lasts until reload; mock D's "Parent PIN" heading
+  is missing on the Add-reward version; the settings page fallback copies
+  `loadPinStatus`'s default; the words-with-numbers rule could go
+  app-wide (Bryce's call); tablet habit star values are parked (plan).
 - Rewards page follow-ups (mission 81 Delivery): a refused redeem can
   show a stale bank (the board keeps its own copy); Done and Undo redeem
   look disabled for about a second after a redeem; the star rain is per

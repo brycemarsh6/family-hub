@@ -10,6 +10,7 @@ import {
   formatHouseholdClock,
   formatLongCalendarDate,
   formatShortCalendarDate,
+  formatWeekdayShortDate,
   formatWeekTitle,
   hourInZone,
   instantAtWallClock,
@@ -238,4 +239,9 @@ test("formatLongCalendarDate: weekday, full month and day, no year, in the asked
   const instant = new Date("2026-11-25T03:30:00Z");
   assert.equal(formatLongCalendarDate(calendarDateInZone(instant, DENVER)), "Tuesday, November 24");
   assert.equal(formatLongCalendarDate(calendarDateInZone(instant, "UTC")), "Wednesday, November 25");
+});
+
+test("formatWeekdayShortDate: short weekday, short month and day", () => {
+  assert.equal(formatWeekdayShortDate({ year: 2026, month: 11, day: 21 }), "Sat, Nov 21");
+  assert.equal(formatWeekdayShortDate({ year: 2026, month: 1, day: 1 }), "Thu, Jan 1");
 });

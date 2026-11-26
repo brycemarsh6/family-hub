@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   REDEEM_UNDO_WINDOW_MS,
+  canAdjustStars,
   canManageRewards,
   canRedeemRewards,
   canSetRewardPin,
@@ -67,4 +68,10 @@ test("canUndoRedeem: managers always, anyone else only their own within 10 minut
   assert.equal(canUndoRedeem(tablet, redeemedAgo(1000, "d1"), NOW), true);
   assert.equal(canUndoRedeem(tablet, redeemedAgo(1000, "k1"), NOW), false);
   assert.equal(canUndoRedeem(tablet, redeemedAgo(REDEEM_UNDO_WINDOW_MS + 1, "d1"), NOW), false);
+});
+
+test("only admins and parents may give or take stars", () => {
+  assert.equal(canAdjustStars("admin"), true);
+  assert.equal(canAdjustStars("parent"), true);
+  for (const role of ["kid", "device", "", "ADMIN", "guest"]) assert.equal(canAdjustStars(role), false);
 });

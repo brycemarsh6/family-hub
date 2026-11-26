@@ -301,7 +301,7 @@ amendment id.
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58), `useEventMoves` (mission-70, through `onError`);
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58), `useEventMoves` (mission-70, through `onError`), `RewardActivityList` and `StarAdjustForm` (mission-83);
   `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
   wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
@@ -624,6 +624,10 @@ amendment id.
   (mission-71; docs/structure/calendar.md, "A repeating series belongs to
   Google"). `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
+  `formatWeekdayShortDate(date)` is the only zone-explicit "Sat, Nov 21"
+  (from a `CalendarDate`; mission-83: the star history's day labels, and the
+  feedback sheet's stamp before its time). `CalendarSearch`'s `dayLabel` is
+  its browser-local twin (a `Date`, with the year outside this year).
   `formatLongCalendarDate(date)` is the only zone-explicit "Tuesday,
   November 24" (weekday, long month, day, from a `CalendarDate`), built
   from `mealPlanDates.ts`'s `FULL_DAY_NAMES` and `FULL_MONTH_NAMES`
@@ -672,17 +676,19 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
-- **Rewards (missions 79 and 81, `.avengers/plans/rewards-v1.md`).** Star
+- **Rewards (missions 79, 81, 82 and 83, `.avengers/plans/rewards-v1.md`).** Star
   and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
-  rules in `src/lib/rewards/`, one row reader per table
-  (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`), one write
-  module (`rewardWrites.ts`), one bank sum and one serializable redeem;
-  since R4 one gate (`rewardGates.ts`) for who may do what and whether
-  the parent PIN is asked, and the PIN checked only on the server.
-  (Rules: docs/structure/rewards.md, "Stars and the star bank" and "The
-  parent PIN and wishes". Added 2026-11-24 on Captain's ruling; Bryce
-  approved. R3 homes added 2026-11-25, mission-81; R4 homes 2026-11-25,
-  mission-82.)
+  rules in `src/lib/rewards/`, named row readers per table
+  (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`,
+  `starHistoryRead.ts`), one write module each (`rewardWrites.ts` for
+  Reward, RewardRedemption and RewardSettings, `starAdjustmentWrites.ts`),
+  one bank sum and one serializable redeem; since R4 one gate
+  (`rewardGates.ts`) for who may do what and whether the parent PIN is
+  asked, and the PIN checked only on the server. (Rules:
+  docs/structure/rewards.md, "Stars and the star bank" and "The parent
+  PIN and wishes". Added 2026-11-24 on Captain's ruling; Bryce approved.
+  R3 homes 2026-11-25, mission-81; R4 and R5 homes 2026-11-25, missions
+  82 and 83.)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
@@ -939,8 +945,8 @@ amendment id.
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
-  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309;
-  2026-11-25 (mission-82) `rewards.md` 238 (was 193). (Added
+  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

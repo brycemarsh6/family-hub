@@ -528,6 +528,8 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 | 2 | Vision (HEAD 0718cc3; Denver 2249/0 skip, UTC 2239 + 10 DST skips) | PASS | Both fixed: bursts of 20 and 40 leave the count at exactly 5 and refuse the right PIN after the 5th; a held row lock answers refused (fail closed); stale `needed` shows the pad | the PIN check's catch logs nothing; Prisma's timeout waits for a held lock (17s seen); a burst ties up the pool about 2s; Close after a lock ends; stale noPin until reload. Vision's first probe crashed and left a test hash on dev about a minute; restored and verified |
 | 2 | Captain (HEAD 0718cc3) | PASS | Pass-1 blocker fixed (length passed as a number; a test pins the words) | STRUCTURE.md size line says 238, rewards.md is 250 (fix at delivery); settings page fallback copies the default (follow-up); rewards.md line 23 joined; the words-with-numbers rule could go app-wide (Bryce) |
 | 2 | Strange (HEAD 0718cc3, signed in as the Tablet by Bryce; 1180, 820 portrait, 390; light and dark; Largest) | BLOCKED | A wrong PIN then the right one: the celebration still shows "That PIN isn't right." (shots 07, 24) | Pass-1 blockers fixed (lock words clear when a lock ends, seen live). Mock D's "Parent PIN" heading missing on the Add-reward version; Close stays after a lock ends; dark scrollbars white (pre-R4, no `color-scheme`); keys move down on a wrong PIN; Hide earned switch 44px (pre-R4) |
+| 3 | Vision (HEAD fe31bd5) | PASS | F2 checked: the old wrong-PIN words clear on the celebration; the pad stays steady | none new |
+| 3 | Strange (HEAD fe31bd5, signed in as the Tablet by Bryce; 1180, 820 portrait, 390; light and dark; Largest) | PASS | Pass-2 blocker fixed, seen live | dev rows cleaned, RewardSettings and the Tablet's Text size restored |
 
 ## Handoff log
 
@@ -542,7 +544,31 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   Stark at 86cd308.
   **Resume:** if C1's files exist in `git status`, wait for or re-read
   Stark's report; otherwise re-dispatch C1.
+- 2026-11-25 - All gates passed (pass 3). Synced with main after R5
+  merged; Gauntlet green after the sync. Next: PR, Gauntlet check, merge,
+  production deploy check.
 
 ## Delivery
 
-(Not yet.)
+- **Gates:** Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS
+  (pass 3, signed in as the Tablet). Fixes: F1 (the PIN burst race, stale
+  `needed`, PIN length in words, switch-off help line, lock words after a
+  lock ends) and F2 (the celebration's old wrong-PIN words).
+- **Synced with main after R5 (mission 83) merged.** Conflicts were both
+  sides' additions (access, its test, the Rewards page, the board,
+  DESIGN.md, STRUCTURE.md, rewards.md); every file keeps both. One join
+  Fury made: R5's `/rewards/manage` opens `RewardSheet`, which R4 made
+  need a `gate`, so the Manage page now asks `manageGate` (always "open"
+  there, since only managers reach it) and its wish filter uses `isWish`.
+  After the sync: tsc, eslint, build clean; tests 2273 pass Denver, 2263
+  pass plus 10 DST skips UTC; `npx prisma migrate status` up to date (44
+  migrations); `/rewards` and `/rewards/manage` load as a parent.
+- **Migration order:** `20261126000000_reward_pin` sorts before
+  `20261126100000_star_adjustments`, which production already has, so
+  production applies reward_pin out of date order. Both are additive and
+  touch different tables.
+- **Leftovers** (in `.avengers/status.md`, "Parent PIN follow-ups"): the
+  gate NOTEs above that were not fixed, plus the words Bryce has not seen
+  live.
+- **PR and merge commit:** recorded in the PR (see `git log origin/main`
+  for the merge).

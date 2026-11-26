@@ -57,3 +57,8 @@ export function canUndoRedeem(
   if (redemption.redeemedById === null || redemption.redeemedById !== actor.userId) return false;
   return now.getTime() - redemption.redeemedAt.getTime() <= REDEEM_UNDO_WINDOW_MS;
 }
+
+/** Give or take stars (bonus and taken-away lines) and undo one (mission 83). */
+export function canAdjustStars(role: string): boolean {
+  return (MANAGER_ROLES as readonly string[]).includes(role);
+}
