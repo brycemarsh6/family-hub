@@ -8,10 +8,11 @@ import { HabitTodayList } from "./HabitTodayList";
 import { HabitsBar } from "./HabitsBar";
 import type { FamilyPage } from "@/lib/habitsFamily";
 import { habitsHref } from "@/lib/habitsDay";
+import { manageHref, personParam } from "@/lib/habitsManage";
 import type { TodayPage } from "@/lib/habitsRead";
 import type { HabitRowView } from "@/lib/habitsToday";
 import type { LateStars } from "@/lib/rewardVocabulary";
-import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, stillHiddenPeople } from "@/lib/habitsReportScope";
+import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, shownColumns, stillHiddenPeople } from "@/lib/habitsReportScope";
 
 /**
  * The one client owner of the Habits page (mission 53): the Filter state (time
@@ -71,6 +72,10 @@ export function HabitsDayView({
   const people = family ? family.columns.map(({ id, displayName, avatarColor }) => ({ id, displayName, avatarColor })) : [];
   const hidden = stillHiddenPeople(hiddenPeople, people);
 
+  // Whole family with exactly one person left by the Filter: Manage opens on them (mission 86).
+  const onlyShown = isFamily ? shownColumns(people, hidden) : [];
+  const manageLink = manageHref(onlyShown.length === 1 ? personParam(onlyShown[0].id, viewerId) : null);
+
   const keep = (row: HabitRowView) => matchesHabitsFilter(row, { time, togetherOnly });
   const narrowed = narrowedFilterCount({ time, togetherOnly, hiddenPeople: hidden });
   const dayParam = (target: string | null) => (target && target !== todayKey ? target : null);
@@ -87,6 +92,7 @@ export function HabitsDayView({
       nextHref={next ? hrefFor(isFamily, next) : null}
       todayHref={hrefFor(isFamily, null)}
       canManage={canManage}
+      manageHref={manageLink}
     />
   );
 

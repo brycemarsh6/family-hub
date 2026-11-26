@@ -73,6 +73,8 @@ export function HabitForm({
   nextSunday,
   initial,
   canSetStars,
+  returnHref = "/habits/manage",
+  forPersonId,
 }: {
   people: Person[];
   viewerId: string;
@@ -82,6 +84,10 @@ export function HabitForm({
   initial?: FormInitial;
   /** Parents and admins only (mission 79); for anyone else the field is hidden and a save leaves stars alone. */
   canSetStars: boolean;
+  /** Where Save, Archive, Restore and Delete go next: the Manage list this form came from. */
+  returnHref?: string;
+  /** New only: the person whose list "Add" was tapped on, so "Just me" reads "Just Ledger" and they start picked. */
+  forPersonId?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -93,10 +99,10 @@ export function HabitForm({
   const [mode, setMode] = useState<HabitMode>(initial?.mode ?? "build");
   const [who, setWho] = useState<HabitWho>(initialWho(initial));
   // "Just me" means the item's own one person: a parent editing a kid's chore keeps it the kid's.
-  const soloId = soloPersonId(initial?.participantIds, viewerId);
+  const soloId = soloPersonId(initial?.participantIds ?? (forPersonId ? [forPersonId] : undefined), viewerId);
   const solo = soloWhoChoice(soloId === viewerId ? null : (people.find((person) => person.id === soloId)?.displayName ?? null));
   const whoChoices = HABIT_WHO_CHOICES.map((choice) => (choice.key === "me" ? { ...choice, ...solo } : choice));
-  const [selectedIds, setSelectedIds] = useState<string[]>(initial?.participantIds ?? [viewerId]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initial?.participantIds ?? [soloId]);
   const [everyone, setEveryone] = useState(initial?.everyone ?? false);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay | null>(initial?.timeOfDay ?? null);
   const [lifeArea, setLifeArea] = useState<string | null>(initial ? toLifeArea(initial.lifeArea) : null);
@@ -171,7 +177,7 @@ export function HabitForm({
       try {
         const result = await action();
         if (result.error) setError(result.error);
-        else router.push("/habits/manage");
+        else router.push(returnHref);
       } catch {
         setError("Couldn't save it. Try again.");
       }

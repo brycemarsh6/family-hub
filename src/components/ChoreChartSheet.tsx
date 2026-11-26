@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { RotateCcw, SkipForward } from "lucide-react";
+import Link from "next/link";
+import { Pencil, RotateCcw, SkipForward } from "lucide-react";
 import type { ChartWeekChore } from "@/lib/choreChart";
+import { editHabitHref } from "@/lib/habitsManage";
 import { CHORE_CHART_LABELS } from "@/lib/habitVocabulary";
 import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
@@ -21,6 +23,7 @@ const ROW = "flex min-h-12 items-center gap-3 rounded-xl px-3 text-left text-bas
 export function ChoreChartSheet({
   chore,
   column,
+  personId,
   onMove,
   onSkip,
   onClear,
@@ -28,6 +31,8 @@ export function ChoreChartSheet({
 }: {
   chore: ChartWeekChore;
   column: number;
+  /** The chart's person, so Edit chore comes back to their Manage. */
+  personId: string;
   onMove: (toWeekday: number) => void;
   onSkip: () => void;
   onClear: () => void;
@@ -101,6 +106,12 @@ export function ChoreChartSheet({
               <RotateCcw aria-hidden="true" size={18} className="text-muted" />
               {CHORE_CHART_LABELS.backToDefault}
             </button>
+          )}
+          {chore.canEdit && !chore.id.startsWith("new-") && (
+            <Link href={editHabitHref(chore.id, personId)} className={ROW}>
+              <Pencil aria-hidden="true" size={18} className="text-muted" />
+              {CHORE_CHART_LABELS.editChore}
+            </Link>
           )}
         </div>
       </div>

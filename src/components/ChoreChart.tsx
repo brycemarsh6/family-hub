@@ -251,6 +251,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
         <ChoreChartSheet
           chore={open.chore}
           column={open.column}
+          personId={chart.personId}
           onMove={(to) => {
             send({ type: "move", habitId: open.chore.id, from: open.chore.fromWeekday, to: to as Weekday });
             setOpen(null);

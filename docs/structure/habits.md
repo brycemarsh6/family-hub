@@ -242,6 +242,18 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   filter option builder or matcher anywhere else, a component file included,
   is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
   `TIME_ICONS`.
+  **Manage other people's habits (mission-86).** `src/lib/habitsManage.ts`
+  is the only home of Manage's person (`resolveManagePerson`), the
+  `?person=` value (`personParam`), the chips (`managePersonChips`) and the
+  Manage, New, Edit and chart addresses (`manageHref`, `newHabitHref`,
+  `editHabitHref`, `choreChartHref`); a `"/habits/manage?person` string built
+  anywhere else is a BLOCKER. `canOpenManageOf` and `canReorderListOf` in
+  `habits/access.ts` are the only Manage and reorder policy, the page and
+  `reorderHabits` both call them. `loadManageLists` (`habitsRead.ts`) is the
+  Manage reader; `refillSlots` is the one slot rule for a reorder.
+  **Dependency direction:** `habitsManage.ts` imports only `habits/access.ts`,
+  `habits/types.ts` and `choreChart.ts`; no database, so the Habits page bar
+  (a client component) may import it.
   **Habits & Chores page (mission-53, Captain's A-L3-4 to A-L3-7).**
   `src/lib/habitsDay.ts` is the only home of the day browser
   (`resolveHabitsDay`) and the `/habits` URL builder (`habitsHref`); a
@@ -302,8 +314,8 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   about 300 code lines a concern gets its own file, and an exported word
   is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
   361 (about 288 code; mission-79 added stars plumbing only),
-  `habitsReportScope.ts` 275, `HabitForm.tsx` 339 (288 code),
-  `habitsRead.ts` 365, `habitsFamily.ts` 360 (its stats-page data is
+  `habitsReportScope.ts` 275, `HabitForm.tsx` 350 (298 code),
+  `habitsRead.ts` 406, `habitsFamily.ts` 360 (its stats-page data is
   the split seam), and the tests `habitsStats.test.ts` 426,
   `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
   `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and
