@@ -151,10 +151,13 @@ export async function extractRecipeFromText(
   const client = new Anthropic();
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 4096,
+    model: "claude-sonnet-5-5",
+    max_tokens: 8192,
     system: SYSTEM_TEXT,
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    output_config: {
+      effort: "medium",
+      format: { type: "json_schema", schema: SCHEMA },
+    },
     messages: [{ role: "user", content: text }],
   });
 
@@ -179,10 +182,13 @@ export async function extractRecipeFromPhotos(
   const client = new Anthropic();
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 4096,
+    model: "claude-sonnet-5-5",
+    max_tokens: 8192,
     system: SYSTEM_PHOTO,
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    output_config: {
+      effort: "medium",
+      format: { type: "json_schema", schema: SCHEMA },
+    },
     messages: [
       {
         role: "user",
