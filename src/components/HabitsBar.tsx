@@ -24,6 +24,7 @@ export function HabitsBar({
   nextHref,
   todayHref,
   canManage,
+  manageHref,
 }: {
   dateLabel: string;
   subtitle: ReactNode;
@@ -36,6 +37,8 @@ export function HabitsBar({
   nextHref: string | null;
   todayHref: string;
   canManage: boolean;
+  /** Where the Manage icon goes: the plain Manage, or one person's when Whole family shows just them. */
+  manageHref: string;
 }) {
   return (
     <div className="mb-3">
@@ -91,7 +94,7 @@ export function HabitsBar({
           </div>
           {canManage && (
             <>
-              <Link href="/habits/manage" aria-label={HABITS_BAR_LABELS.manage} className={ICON_BUTTON}>
+              <Link href={manageHref} aria-label={HABITS_BAR_LABELS.manage} className={ICON_BUTTON}>
                 <SlidersHorizontal aria-hidden="true" size={20} />
               </Link>
               <Link href="/habits/report" aria-label={HABITS_BAR_LABELS.report} className={ICON_BUTTON}>

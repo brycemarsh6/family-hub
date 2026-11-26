@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { AVATAR_COLORS } from "@/lib/constants";
 import { addCalendarDays, utcMidnightInstant, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { carrySince, habitStartDay } from "./habits/carryOver";
-import { othersPrivateHidden } from "./habits/access";
+import { canEditHabit, othersPrivateHidden } from "./habits/access";
 import { choreCacheFromRow, overrideWindowStart } from "./choreChart";
 import { logDayFromRow, specFromRow, timeEntryFromRow, vacationFromRow } from "./habits/habitRows";
 import { overrideFromRow } from "./habits/weekOverrides";
@@ -30,6 +30,9 @@ function vacationMap(rows: { userId: string; startDay: Date; endDay: Date }[]): 
   return map;
 }
 
+/** The stats page data plus whether the viewer may edit the habit (`canEditHabit`), for the page's Edit link. */
+export type HabitStatsLoad = HabitStatsData & { canEdit: boolean };
+
 /**
  * The stats page for `habitId` as plain data (days as "YYYY-MM-DD"), or null
  * when the habit is missing or the viewer may not open it (a private habit is
@@ -45,7 +48,7 @@ export async function loadHabitStats(
   habitId: string,
   today: CalendarDate,
   month: CalendarDate = today,
-): Promise<HabitStatsData | null> {
+): Promise<HabitStatsLoad | null> {
   const habit = await db.habit.findUnique({
     where: { id: habitId },
     include: {
@@ -100,7 +103,7 @@ export async function loadHabitStats(
     if (!spec) return [];
     return [{ kind: toHabitKind(other.kind), spec, since: carrySince(other.participants[0]?.joinedAt, habitStartDay(other.createdAt)), logs: monthLogs.get(other.id) ?? [] }];
   });
-  return buildStatsData({
+  const data = buildStatsData({
     viewer,
     habit,
     members,
@@ -113,6 +116,8 @@ export async function loadHabitStats(
     today,
     month,
   });
+  if (!data) return null;
+  return { ...data, canEdit: canEditHabit(viewer, { isPrivate: habit.isPrivate, participantIds: members.map((m) => m.userId) }) };
 }
 
 /**

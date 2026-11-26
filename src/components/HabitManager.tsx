@@ -8,10 +8,13 @@ import { HabitIcon } from "./HabitIcon";
 import { QUIT_TAG_CLASS } from "./HabitRow";
 import { SortableList } from "./SortableList";
 import { reorderHabits, restoreHabit } from "@/app/actions/habits";
+import { refillSlots } from "@/lib/habits/habitRows";
+import { editHabitHref, choreChartHref, newHabitHref } from "@/lib/habitsManage";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import {
   CHORE_CHART_LABELS,
   HABIT_SCHEDULE_SHORT_LABELS,
+  MANAGE_LABELS,
   TIME_OF_DAY_LABELS,
   habitWhoLabel,
   parseWeekdayMask,
@@ -93,15 +96,32 @@ function RowBody({ item }: { item: HabitManagerItem }) {
  * own list already held, so the Today order of the other kind never moves.
  * Reordering and restoring show at once and are put right if the save fails.
  */
-export function HabitManager({ active, archived }: { active: HabitManagerItem[]; archived: HabitManagerItem[] }) {
+export function HabitManager({
+  active,
+  archived,
+  personParam,
+  canReorder,
+  subjectName,
+  own,
+}: {
+  active: HabitManagerItem[];
+  archived: HabitManagerItem[];
+  /** The `?person=` that carries this list's person through the links: null for your own list. */
+  personParam: string | null;
+  /** Show the drag grip (the server's `canReorderListOf`, passed down). */
+  canReorder: boolean;
+  /** The list person's first name, for the empty state of someone else's list. */
+  subjectName: string;
+  /** Your own list (the settings card shows only here). */
+  own: boolean;
+}) {
   const [state, applyOptimistic] = useOptimistic<ManagerState, ManagerChange>({ active, archived }, applyManagerChange);
   const { run, error } = useOptimisticRun(applyOptimistic);
 
-  function reorderWithin(kind: HabitManagerItem["kind"], groupIds: string[]) {
+  function reorderWithin(groupIds: string[]) {
     // Put the group's new order into the slots the group held in the full list.
-    const queue = [...groupIds];
-    const ids = state.active.map((item) => (item.kind === kind ? (queue.shift() ?? item.id) : item.id));
-    run({ type: "order", ids }, () => reorderHabits(ids));
+    const ids = refillSlots(state.active.map((item) => item.id), groupIds);
+    run({ type: "order", ids }, () => reorderHabits(ids, personParam ?? undefined));
   }
 
   const groups = [
@@ -112,7 +132,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
   return (
     <div>
       <Link
-        href="/habits/new"
+        href={newHabitHref(personParam)}
         className="mt-4 inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg"
       >
         <Plus aria-hidden="true" size={18} />
@@ -127,7 +147,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
 
       {state.active.length === 0 && (
         <div className="mt-5">
-          <EmptyState emoji="🌱" title="Nothing here yet" hint="Add a habit or chore to start your list." />
+          <EmptyState emoji="🌱" title={MANAGE_LABELS.emptyTitle} hint={own ? MANAGE_LABELS.emptyOwn : MANAGE_LABELS.emptyOther(subjectName)} />
         </div>
       )}
 
@@ -147,19 +167,19 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
                 <SortableList
                   items={group.items}
                   label={(item) => item.title}
-                  onReorder={(ids) => reorderWithin(group.kind, ids)}
+                  onReorder={(ids) => reorderWithin(ids)}
                   className="divide-y divide-line"
                   itemClassName="flex min-h-15 items-center gap-3"
                   renderItem={(item, { grip }) => (
                     <>
                       <Link
-                        href={`/habits/${item.id}/edit`}
+                        href={editHabitHref(item.id, personParam)}
                         className="flex min-h-15 min-w-0 flex-1 items-center gap-3 self-stretch"
                         aria-label={`Edit ${item.title}`}
                       >
                         <RowBody item={item} />
                       </Link>
-                      {grip}
+                      {canReorder && grip}
                     </>
                   )}
                 />
@@ -174,7 +194,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
           DOM order stays chart, Archived, settings so a phone reads as it always has. */}
       <div className="@container">
         <div className="grid grid-cols-1 items-start gap-x-4 @min-[45rem]:grid-cols-2">
-      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
+      <Link href={choreChartHref(personParam)} className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <CalendarDays aria-hidden="true" size={20} />
         </div>
@@ -199,7 +219,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
             {state.archived.map((item) => (
               <li key={item.id} className="flex min-h-15 items-center gap-3">
                 <Link
-                  href={`/habits/${item.id}/edit`}
+                  href={editHabitHref(item.id, personParam)}
                   className="flex min-h-15 min-w-0 flex-1 items-center gap-3 self-stretch"
                   aria-label={`Edit ${item.title}`}
                 >
@@ -221,6 +241,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </section>
       )}
 
+      {own && (
       <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <SlidersHorizontal aria-hidden="true" size={20} />
@@ -231,6 +252,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </span>
         <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
       </Link>
+      )}
         </div>
       </div>
     </div>

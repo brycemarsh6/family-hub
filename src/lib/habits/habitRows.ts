@@ -20,6 +20,9 @@ import type { HabitLogDay, ScheduleSpec, TimeEntry, Vacation } from "./types";
 // Row-shaped glue between the stored habit tables and the pure engine, kept
 // out of the server modules so it can be tested without a database. Nothing
 // here imports Prisma: the shapes below are just the columns the engine needs.
+// It also holds `refillSlots`, the slot rule for a reorder (the client list calls it
+// directly; the server side reaches it through `participantWrites.ts`
+// (`reorderHabits`)).
 // Stored days are UTC midnight, so they are read once with
 // `calendarDateFromUtcMidnight` and written with `utcMidnightInstant`.
 
@@ -213,4 +216,18 @@ export function habitColumns(fields: HabitFields): HabitColumns {
     }
   }
   return out;
+}
+
+/**
+ * The one slot rule for a reorder (mission 89): the items of `order` that are
+ * in `wanted` take `wanted`'s order in the slots they held; every other item
+ * keeps its slot, so a hidden or archived habit never moves. Ids in `wanted`
+ * that are not in `order` are ignored, and a repeat counts once.
+ */
+export function refillSlots<T>(order: readonly T[], wanted: readonly T[]): T[] {
+  const held = new Set(order);
+  const sequence = [...new Set(wanted)].filter((item) => held.has(item));
+  const taking = new Set(sequence);
+  let next = 0;
+  return order.map((item) => (taking.has(item) ? sequence[next++] : item));
 }

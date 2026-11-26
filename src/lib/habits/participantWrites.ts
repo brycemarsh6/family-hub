@@ -10,6 +10,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { loadHouseholdPeople } from "../householdPeople";
+import { refillSlots } from "./habitRows";
 
 type Client = Prisma.TransactionClient;
 
@@ -100,20 +101,23 @@ export async function joinHouseholdToHabit(habitId: string, client: Prisma.Trans
 }
 
 /**
- * Writes `ids` as this person's order (0, 1, 2...) in their own list only.
- * Ids they do not take part in are ignored, repeats count once.
+ * Puts this person's habits shown in `ids` in that order, in their own list
+ * only. Ids they do not take part in are ignored, repeats count once. The
+ * rest of their list (a private habit the screen did not show, an archived
+ * habit) keeps its slot (`refillSlots`), and the whole list is renumbered
+ * 0, 1, 2... with only the changed rows written.
  */
 export async function reorderHabits(userId: string, ids: readonly string[], client: Prisma.TransactionClient = db): Promise<void> {
   const wanted = [...new Set(ids)];
   if (wanted.length === 0) return;
   await atomically(client, async (tx) => {
-    const mine = await tx.habitParticipant.findMany({ where: { userId, habitId: { in: wanted } }, select: { habitId: true } });
-    const valid = new Set(mine.map((p) => p.habitId));
-    let sortOrder = 0;
-    for (const habitId of wanted) {
-      if (!valid.has(habitId)) continue;
+    const rows = await tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true, sortOrder: true, habit: { select: { createdAt: true } } } });
+    const current = [...rows].sort((a, b) => a.sortOrder - b.sortOrder || a.habit.createdAt.getTime() - b.habit.createdAt.getTime());
+    const refilled = refillSlots(current.map((row) => row.habitId), wanted);
+    const before = new Map(rows.map((row) => [row.habitId, row.sortOrder]));
+    for (const [sortOrder, habitId] of refilled.entries()) {
+      if (before.get(habitId) === sortOrder) continue;
       await tx.habitParticipant.updateMany({ where: { userId, habitId }, data: { sortOrder } });
-      sortOrder += 1;
     }
   });
 }
