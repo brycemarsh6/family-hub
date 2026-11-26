@@ -42,9 +42,13 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 // first; the route checks the signed-in manager and the one-time state cookie
 // itself, and sends everything else to /settings/calendars?error=.
 //
+// /api/feedback-inbox is a relative's copy sending feedback to Bryce's copy
+// with no session cookie. The route's own isOwnerCopy and FEEDBACK_INBOX_KEY
+// bearer checks, its first steps, are the gate; proxy is only UX. Exact match.
+//
 // /privacy is the public privacy policy page Google's consent screen links to.
 // Static text, no data; an exact match so nothing else opens with it.
-const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/cron/calendar-pull", "/api/google/callback"];
+const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/cron/calendar-pull", "/api/google/callback", "/api/feedback-inbox"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,

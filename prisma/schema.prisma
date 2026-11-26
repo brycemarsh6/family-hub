@@ -1253,6 +1253,9 @@ model Feedback {
   screenshot     Bytes?
   screenshotType String?
 
+  /// Set only on reports forwarded from a relative's copy (mission 90).
+  sourceFamily String?
+
   doneAt    DateTime?
   createdAt DateTime  @default(now())
 

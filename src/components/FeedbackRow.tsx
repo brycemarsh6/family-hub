@@ -25,6 +25,7 @@ export function FeedbackRow({
   onToggleDone: () => void;
   onDelete: () => void;
 }) {
+  const who = item.sourceFamily ? `${item.authorName}, ${item.sourceFamily}` : item.authorName;
   return (
     <li
       aria-current={selected ? "true" : undefined}
@@ -35,14 +36,14 @@ export function FeedbackRow({
         actions={[
           {
             label: done ? "Mark new" : "Mark done",
-            accessibleLabel: `${done ? "Mark new" : "Mark done"}: feedback from ${item.authorName}`,
+            accessibleLabel: `${done ? "Mark new" : "Mark done"}: feedback from ${who}`,
             icon: done ? <RotateCcw aria-hidden="true" size={18} /> : <Check aria-hidden="true" size={18} />,
             onAction: onToggleDone,
             tone: "neutral",
           },
           {
             label: "Delete",
-            accessibleLabel: `Delete feedback from ${item.authorName}`,
+            accessibleLabel: `Delete feedback from ${who}`,
             icon: <Trash2 aria-hidden="true" size={18} />,
             onAction: onDelete,
             tone: "danger",
@@ -56,7 +57,8 @@ export function FeedbackRow({
         >
           <span className="flex items-center justify-between gap-3 text-sm text-muted">
             <span className="min-w-0 truncate">
-              <span className="font-semibold text-fg">{item.authorName}</span> · {navLabelForPath(item.pagePath)}
+              <span className="font-semibold text-fg">{item.authorName}</span>
+              {item.sourceFamily && ` · ${item.sourceFamily}`} · {navLabelForPath(item.pagePath)}
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {item.hasScreenshot && <ImageIcon aria-label="Has a screenshot" size={16} />}

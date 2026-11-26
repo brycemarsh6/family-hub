@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, Check, Send } from "lucide-react";
+import { Camera, CheckCircle2, Check, Send, Share2 } from "lucide-react";
 import { sendFeedback } from "@/app/actions/feedback";
 import { captureScreenshot } from "@/lib/captureScreenshot";
 import { MESSAGE_MAX, normalizeMessage } from "@/lib/feedback";
+import { ToggleSwitch } from "@/components/ToggleSwitch";
 
 const CLOSE_AFTER_SENT_MS = 1200;
 
@@ -13,26 +14,39 @@ const CLOSE_AFTER_SENT_MS = 1200;
  * of the page is started the moment the sheet opens, so it shows the page and
  * not the sheet; Send waits for it (the capture gives up on its own after
  * 4 seconds) and a failed picture is dropped; the success state then says
- * "Sent, no screenshot". After a
+ * "Sent, no screenshot". On a relative's copy (`forwardsToOwner`) a second,
+ * off-by-default switch shares the picture with Bryce as well. After a
  * successful send the button area says "Sent" and the sheet closes itself.
  */
 export function FeedbackSheet({
   open,
   pagePath,
+  forwardsToOwner = false,
   onClose,
 }: {
   open: boolean;
   pagePath: string;
+  /** True when this copy also sends feedback to Bryce, which adds the share switch. */
+  forwardsToOwner?: boolean;
   onClose: () => void;
 }) {
   if (!open) return null;
-  return <FeedbackDialog pagePath={pagePath} onClose={onClose} />;
+  return <FeedbackDialog pagePath={pagePath} forwardsToOwner={forwardsToOwner} onClose={onClose} />;
 }
 
 // Mounted fresh on every open, so the draft, the tick box and any error start clean.
-function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () => void }) {
+function FeedbackDialog({
+  pagePath,
+  forwardsToOwner,
+  onClose,
+}: {
+  pagePath: string;
+  forwardsToOwner: boolean;
+  onClose: () => void;
+}) {
   const [message, setMessage] = useState("");
   const [includeShot, setIncludeShot] = useState(true);
+  const [shareWithBryce, setShareWithBryce] = useState(false);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sentWithoutShot, setSentWithoutShot] = useState(false);
@@ -81,7 +95,8 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
     setError(null);
     setPending(true);
     try {
-      const screenshot = includeShot && shot.current ? await shot.current : null;
+      const wantShot = includeShot || shareWithBryce;
+      const screenshot = wantShot && shot.current ? await shot.current : null;
       const result = await sendFeedback({
         message,
         pagePath,
@@ -89,9 +104,11 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
         viewport: `${window.innerWidth}x${window.innerHeight}`,
         touch: navigator.maxTouchPoints > 0,
         screenshot,
+        keepScreenshot: includeShot,
+        shareScreenshotWithOwner: shareWithBryce,
       });
       if (result.ok) {
-        setSentWithoutShot(includeShot && !screenshot);
+        setSentWithoutShot(wantShot && !screenshot);
         setSent(true);
       }
       else setError(result.error);
@@ -147,7 +164,7 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
         <div className="mt-1 flex items-center justify-between text-sm text-muted">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 size={16} aria-hidden="true" />
-            Sent to admin only
+            {forwardsToOwner ? "Sent to your admin and to Bryce" : "Sent to admin only"}
           </span>
           <span>
             {message.length} / {MESSAGE_MAX}
@@ -171,6 +188,32 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
             </span>
           </span>
         </label>
+
+        {forwardsToOwner && (
+          // One control for screen readers: the switch. The text is a plain
+          // element whose tap flips the same state, so the whole card works.
+          <div
+            onClick={() => setShareWithBryce((on) => !on)}
+            className="mt-3 flex min-h-12 cursor-pointer items-start gap-3 rounded-xl bg-surface-2 px-4 py-3"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-base font-medium text-fg">
+                <Share2 size={18} aria-hidden="true" />
+                Share screenshot with Bryce
+              </span>
+              <span className="block text-sm text-muted">
+                Bryce will see whatever is on this screen right now.
+              </span>
+            </span>
+            <span onClick={(event) => event.stopPropagation()}>
+              <ToggleSwitch
+                checked={shareWithBryce}
+                onChange={setShareWithBryce}
+                label="Share screenshot with Bryce"
+              />
+            </span>
+          </div>
+        )}
 
         {error && (
           <p role="alert" className="mt-3 text-sm text-warn">

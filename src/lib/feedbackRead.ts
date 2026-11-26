@@ -15,6 +15,7 @@ export type FeedbackListItem = {
   pagePath: string;
   userAgent: string | null;
   viewport: string | null;
+  sourceFamily: string | null;
   hasScreenshot: boolean;
   doneAt: Date | null;
   createdAt: Date;
@@ -32,6 +33,7 @@ export async function loadFeedbackList(status: "new" | "done"): Promise<Feedback
       pagePath: true,
       userAgent: true,
       viewport: true,
+      sourceFamily: true,
       doneAt: true,
       createdAt: true,
       screenshotType: true,
