@@ -50,6 +50,15 @@
      (others).
    - No `STRIPE_PAYMENT_LINK_URL`: no Upgrade button anywhere.
 
+5. **(Bryce, 2026-11-26, after Strange pass 1)** The locked sentence widens to
+   "Recipe import, meal ideas, nutrition estimates and grocery sorting come
+   with the AI upgrade." (one constant, used by the card and every notice).
+6. **(Bryce, 2026-11-26)** `STRIPE_PAYMENT_LINK_URL` is required for every
+   relative's copy in the PR 10 runbook; no extra words on screen when it is
+   missing.
+7. **(Fury, 2026-11-26, told Bryce)** A locked copy's notice shows the locked
+   sentence, never "used up" or "resets".
+
 Cost basis shown to Bryce (Sonnet 5.5, $2 / $10 per million tokens in / out,
 thinking billed as output; estimates, not measured): recipe import about
 4 cents, meal ideas about 3 cents, nutrition or grocery sort about 1 cent,
@@ -277,6 +286,21 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Evidence:** outputs, `git diff --stat`.
 - **Done:** all pass; `grep -rn "aiBlockedResetsText" src` empty.
 
+### C6 — Strange pass 1 fixes
+
+- **Objective:** clear Strange's blockers and take the cheap notes.
+- **Boundaries:**
+  - May touch: `src/lib/aiMeterVocabulary.ts`, `src/lib/aiMeterVocabulary.test.ts`, `src/components/NutritionSection.tsx`, `src/components/PasteImportForm.tsx`, `src/components/PhotoImportForm.tsx`, `src/components/AiUsageCard.tsx`.
+  - Must not touch: everything else (link import keeps its live button: pages with recipe data import without AI).
+- **Content:**
+  1. `AI_LOCKED_TEXT` becomes Decision 5's sentence exactly; update its test.
+  2. `NutritionSection`: while `aiBlocked` is set, the Calculate / Try again button is not rendered (same as `SlotEditSheet`); if the sheet then has no exit besides its X, add the secondary Close styled like `AddToGroceriesSheet`'s.
+  3. Paste and photo import: the main Extract button is disabled while `aiBlocked` is set, cleared when the input changes.
+  4. `AiUsageCard`'s progress bar label moves into the vocabulary file (`AI_USED_BAR_LABEL`).
+- **Verification:** the gauntlet in full.
+- **Evidence:** outputs, `git diff --stat`.
+- **Done:** all pass; `grep -n "This month's AI used" src/components` is empty.
+
 ## Gate log
 
 - 2026-11-26 Fury: dev DB host confirmed `ep-hidden-pine` (dev branch). `migrate status` showed PR 4 had already applied `20261126200000_household_settings` there, the same stamp as ours, so ours was renamed to `20261126300000_ai_usage` (sorts after PR 4 whichever merges first). SQL reviewed (CREATE TABLE + CREATE INDEX only), `npx prisma migrate deploy` applied it to the dev branch only.
@@ -285,3 +309,5 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - 2026-11-26 Vision pass 1 on dec5966: **PASS**, no blockers. Re-ran the full gauntlet (2320 / UTC 2310 + 10 skipped, build exit 0, grep one hit). Notes: branch behind main, PR 4 (aedae02) conflicts in `schema.prisma` and settings page, re-run the gauntlet on the merged tree; `recipeUrlImport.ts:62-65` docstring still says "Never throws"; assistant routes answer 503 "try again" on a blocked copy (owner-only API, accepted); `aiBlocked.ts:34` error string always the used-up title (not shown while `aiBlocked` is set); relative's copy fails closed if the month query throws.
 - 2026-11-26 Captain pass 1 on dec5966: **BLOCKED**, 3 blockers (dormant `aiBlockedResetsText`; `priceForModel` exported with no outside caller; vocabulary tests living in `aiMeterPolicy.test.ts`). Notes: `AiAllowanceError` message repeats user words; reason union written 3 times; Upgrade link drawn twice; `aiBlockedResult` re-reads the session; `canSyncCalendars` name reused for the AI card; size trend (`recipes.ts` 411, `recipeUrlImport.ts` 440, `SlotEditSheet.tsx` 321); STRUCTURE.md amendment drafted. All taken in C5.
 - 2026-11-26 Fury: merged origin/main (PR 4 aedae02) into the branch. Conflicts in `schema.prisma` (kept both models) and the settings page doc comment (kept Stores and AI features). `prisma validate` and `tsc` clean after.
+- 2026-11-26 Captain pass 2 on C5 (after merge fa20e9b): **PASS**. All 3 blockers cleared; merge resolution clean; STRUCTURE.md entry accurate. Notes: `AiUsageCard.tsx:44` screen-reader label typed inline (move to vocabulary); `aiMeterPolicy.test.ts` one `formatUsd` line (fine); `recipes.ts` 415 and `recipeUrlImport.ts` 440, split before the next feature adds lines.
+- 2026-11-26 Strange pass 1: **BLOCKED**, 2 blockers (Nutrition sheet shows an accent "Try again" under the blocked notice; locked sentence does not name grocery sorting or pasted text). Seen live at 390 / 820 / 1180, light and dark: locked card with and without Upgrade, notices on paste, link, Nutrition, Add to groceries, Meal ideas, owner card $0.00. Not seen (no usage rows, admin only): used-up and percent states, owner per-feature line, photo notice, non-admin and kid views (code reviewed). Notes: Extract stays live under the notice (taken in C6); admin dead end without a Stripe link (Bryce: runbook requires it); 1180 Upgrade full width (taste, left); locked sentence overstates link import (left, Bryce's wording). launch.json restored, no DB writes.
