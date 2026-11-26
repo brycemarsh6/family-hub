@@ -6,6 +6,7 @@ import { RewardActivityList } from "./RewardActivityList";
 import { RewardSheet } from "./RewardSheet";
 import { StarAdjustForm } from "./StarAdjustForm";
 import type { HouseholdPerson } from "@/lib/householdPeople";
+import type { Gate } from "@/lib/rewardGates";
 import type { RewardView } from "@/lib/rewardsRead";
 import type { RecentLine } from "@/lib/rewards/starHistory";
 import { ADJUST_SECTION_TITLE, NO_WISHES_TEXT, RECENT_SECTION_TITLE, SET_COST_LABEL, wishOfText, wishesTitleText } from "@/lib/rewardVocabulary";
@@ -23,11 +24,13 @@ export function RewardsManage({
   wishes,
   recent,
   defaultPersonId,
+  gate,
 }: {
   people: HouseholdPerson[];
   wishes: RewardView[];
   recent: RecentLine[];
   defaultPersonId: string;
+  gate: Gate;
 }) {
   const [editing, setEditing] = useState<RewardView | null>(null);
 
@@ -80,7 +83,7 @@ export function RewardsManage({
         </div>
       </div>
 
-      {editing && <RewardSheet key={editing.id} initial={editing} ownerId={editing.ownerId} people={people} onClose={() => setEditing(null)} />}
+      {editing && <RewardSheet key={editing.id} initial={editing} ownerId={editing.ownerId} people={people} gate={gate} onClose={() => setEditing(null)} />}
     </>
   );
 }

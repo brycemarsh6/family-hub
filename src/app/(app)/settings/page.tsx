@@ -18,7 +18,7 @@ import { requireVerifiedUser } from "@/lib/dal";
 import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
 import { canSetStars } from "@/lib/rewards/access";
-import { loadLateStars } from "@/lib/rewardSettingsRead";
+import { loadLateStars, loadPinStatus } from "@/lib/rewardSettingsRead";
 import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
@@ -56,6 +56,7 @@ export default async function SettingsPage() {
   // Late checks pay stars, so the Rewards section is for the same people who set them.
   const canSetRewards = canSetStars(user.role);
   const lateStars = canSetRewards ? await loadLateStars() : "full";
+  const pinStatus = canSetRewards ? await loadPinStatus() : { pinSet: false, pinRequired: true };
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (
@@ -195,7 +196,7 @@ export default async function SettingsPage() {
                 </div>
                 <div className="order-6">
                   <VacationCard vacations={vacations} today={formatCalendarDate(today)} />
-                  {canSetRewards && <RewardsSettings lateStars={lateStars} />}
+                  {canSetRewards && <RewardsSettings lateStars={lateStars} pinStatus={pinStatus} />}
                 </div>
               </>
             )}

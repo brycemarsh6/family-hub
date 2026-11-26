@@ -1453,6 +1453,16 @@ model RewardSettings {
 
   lateStars String @default("full")
 
+  /// The parent PIN (mission 82, Rewards R4). `pinHash` is a bcrypt hash
+  /// made by src/lib/password.ts; null is "no PIN set yet", and the PIN
+  /// itself is never stored. `pinRequired` is the Settings switch (on by
+  /// default). `pinFailCount` and `pinLockedUntil` are the PIN's own
+  /// wrong-try lock, never the sign-in lock (`LoginAttempt`).
+  pinHash        String?
+  pinRequired    Boolean   @default(true)
+  pinFailCount   Int       @default(0)
+  pinLockedUntil DateTime?
+
   updatedAt   DateTime @updatedAt
   updatedById String?
 }

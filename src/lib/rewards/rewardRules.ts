@@ -35,6 +35,11 @@ export function nextCostStep(cost: number | null, dir: "up" | "down"): number {
   return COST_STEPS[dir === "up" ? Math.min(index + 1, COST_STEPS.length - 1) : Math.max(index - 1, 0)];
 }
 
+/** A wish is a reward with no cost yet (R4): the one test for it. (Where a caller then needs the number, TypeScript wants the `typeof` form; the meaning is this.) */
+export function isWish(reward: { cost: number | null }): boolean {
+  return reward.cost === null;
+}
+
 /** A one-time reward that has been redeemed once is earned for good; a repeatable one never is. */
 export function isEarned(reward: { repeatable: boolean; redeemedCount: number }): boolean {
   return !reward.repeatable && reward.redeemedCount >= 1;
@@ -80,11 +85,8 @@ export function redeemRefusal(
 
 export type RewardInput = { title: string; emoji: string | null; cost: number; repeatable: boolean; ownerId: string };
 
-/** The reward sheet's input, checked: the clean value or the refusal to show. */
-export function checkRewardInput(raw: unknown): { ok: true; value: RewardInput } | { ok: false; error: string } {
-  if (typeof raw !== "object" || raw === null) return { ok: false, error: REWARD_SAVE_FAILED };
-  const input = raw as Record<string, unknown>;
-
+/** The title and picture checks both sheets share: the clean pair or the refusal to show. */
+function checkTitleAndEmoji(input: Record<string, unknown>): { ok: true; title: string; emoji: string | null } | { ok: false; error: string } {
   const title = typeof input.title === "string" ? input.title.trim() : "";
   if (title.length === 0 || title.length > REWARD_TITLE_MAX) return { ok: false, error: REWARD_NAME_REFUSAL };
 
@@ -96,13 +98,38 @@ export function checkRewardInput(raw: unknown): { ok: true; value: RewardInput }
       if (emoji === null) return { ok: false, error: REWARD_NOT_EMOJI_REFUSAL };
     }
   }
+  return { ok: true, title, emoji };
+}
+
+/** The reward sheet's input, checked: the clean value or the refusal to show. */
+export function checkRewardInput(raw: unknown): { ok: true; value: RewardInput } | { ok: false; error: string } {
+  if (typeof raw !== "object" || raw === null) return { ok: false, error: REWARD_SAVE_FAILED };
+  const input = raw as Record<string, unknown>;
+
+  const text = checkTitleAndEmoji(input);
+  if (!text.ok) return text;
 
   const cost = toRewardCost(input.cost);
   if (cost === null) return { ok: false, error: REWARD_COST_REFUSAL };
   if (typeof input.repeatable !== "boolean") return { ok: false, error: REWARD_SAVE_FAILED };
   if (typeof input.ownerId !== "string" || input.ownerId.length === 0) return { ok: false, error: REWARD_SAVE_FAILED };
 
-  return { ok: true, value: { title, emoji, cost, repeatable: input.repeatable, ownerId: input.ownerId } };
+  return { ok: true, value: { title: text.title, emoji: text.emoji, cost, repeatable: input.repeatable, ownerId: input.ownerId } };
+}
+
+/** A wish: a reward with no cost yet (R4). It never carries a cost or a repeat setting; a parent sets the cost later. */
+export type WishInput = { title: string; emoji: string | null; ownerId: string };
+
+/** The wish sheet's input, checked: the clean value or the refusal to show. Any cost or repeat setting sent is dropped. */
+export function checkWishInput(raw: unknown): { ok: true; value: WishInput } | { ok: false; error: string } {
+  if (typeof raw !== "object" || raw === null) return { ok: false, error: REWARD_SAVE_FAILED };
+  const input = raw as Record<string, unknown>;
+
+  const text = checkTitleAndEmoji(input);
+  if (!text.ok) return text;
+  if (typeof input.ownerId !== "string" || input.ownerId.length === 0) return { ok: false, error: REWARD_SAVE_FAILED };
+
+  return { ok: true, value: { title: text.title, emoji: text.emoji, ownerId: input.ownerId } };
 }
 
 /** The celebration's three lines; `dateText` is the already-formatted day ("Tuesday, November 24"). */

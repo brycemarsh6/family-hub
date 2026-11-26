@@ -4,7 +4,9 @@ import { RewardsBoard } from "@/components/RewardsBoard";
 import { requireVerifiedUser } from "@/lib/dal";
 import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { loadRewards } from "@/lib/rewardsRead";
-import { canManageRewards, canRedeemRewards } from "@/lib/rewards/access";
+import { rewardRights } from "@/lib/rewardGates";
+import { canManageRewards } from "@/lib/rewards/access";
+import { loadPinStatus } from "@/lib/rewardSettingsRead";
 import { MANAGE_BUTTON_LABEL, REWARDS_PAGE_TITLE } from "@/lib/rewardVocabulary";
 import { loadStarBanks } from "@/lib/starBankRead";
 
@@ -14,7 +16,9 @@ export default async function RewardsPage() {
   const user = await requireVerifiedUser();
   const people = await loadHouseholdPeople();
   const ids = people.map((person) => person.id);
-  const [banks, rewards] = await Promise.all([loadStarBanks(ids), loadRewards(ids)]);
+  const [banks, rewards, pinStatus] = await Promise.all([loadStarBanks(ids), loadRewards(ids), loadPinStatus()]);
+  // The board never tests a role, a device or the PIN switch itself; it reads these answers.
+  const rights = rewardRights({ userId: user.userId, role: user.role }, ids, pinStatus);
 
   const canManage = canManageRewards(user.role);
 
@@ -37,8 +41,7 @@ export default async function RewardsPage() {
         banks={banks}
         rewards={rewards}
         viewerId={user.userId}
-        canManage={canManage}
-        canRedeem={canRedeemRewards(user.role)}
+        rights={rights}
       />
     </div>
   );

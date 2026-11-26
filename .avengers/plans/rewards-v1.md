@@ -1,7 +1,7 @@
 # Rewards v1: stars for habits and chores, and a Rewards page
 
-**Status (2026-11-25):** R1 (mission 79), R2 (80), R3 (81) and R5 (83) built;
-R4 (82) is the last open PR. Each mission file's Delivery section has the record.
+**Status (2026-11-25): finished.** R1 (mission 79), R2 (80), R3 (81), R4 (82)
+and R5 (83) are all built. Each mission file's Delivery section has the record.
 
 ## Context
 
@@ -152,6 +152,9 @@ that PR, and builds after Bryce confirms.
   needs to set a PIN first".
 - `tabletRules.ts` gains the tablet's reward permissions. With the PIN, the
   tablet may also change star values and reward costs (decision 6).
+  **Bryce, 2026-11-25 (mission 82):** reward costs only in R4; tablet habit
+  star values are parked for a later PR (the tablet cannot open the habit
+  editor at all today).
 - Wishes: a kid for themselves, the tablet for anyone; no cost until a
   parent sets one.
 
