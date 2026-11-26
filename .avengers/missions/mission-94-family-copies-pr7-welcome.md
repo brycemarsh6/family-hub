@@ -132,3 +132,12 @@ line from AGENTS.md, `npm run build`.
 - C3 DONE (Stark): 2433 tests pass.
 - Docs: Household settings entry and setup words moved to `docs/structure/family-copies.md`
   (Captain's mission-91 recommendation) with PR 7's rules.
+- **Gates pass 1:** Vision PASS (notes: dash test, stale comment, progressbar label, x of 4,
+  missing logo). Captain BLOCKED (3: inline household-people filter twice, direct
+  LinkedAccount read, role labels copied). Fixed in **C4** (`countHouseholdPeople`,
+  `loadHouseholdPersonInfos`, `hasAnyLinkedAccount`, `ROLE_LABELS`; tablet fact via
+  `loadTabletStartPage`), plus Captain's doc notes (layout map rows, write rule, dashboard.md pointer).
+- **Strange pass 1: BLOCKED** (2, both the card): rows stretched on iPad; hand-made progress
+  bar instead of `ProgressBar`. Notes taken in the same batch (**C5**): the Marshee mark above
+  welcome step 1 (in the approved mock), muted "Kid, profile" pill (in the mock). Left as a note:
+  dark-mode segmented switch contrast (an app-wide token pairing, out of scope).

@@ -6,6 +6,7 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { CreatePersonSheet } from "@/components/CreatePersonSheet";
 import { InstallHelp } from "@/components/InstallHelp";
+import { MarsheeIcon } from "@/components/MarsheeIcon";
 import { ROLE_LABELS } from "@/lib/constants";
 import type { PersonInfo } from "@/lib/personInfo";
 import { INSTALL_WORDS, WELCOME_WORDS } from "@/lib/welcomeVocabulary";
@@ -63,6 +64,7 @@ export function WelcomeSteps({ initialPeople }: { initialPeople: PersonInfo[] })
 
   return (
     <div className="flex flex-col gap-1">
+      <MarsheeIcon className="mx-auto mb-2 h-14 w-14" />
       <Dots step={1} />
       <p className="mt-1 text-center text-sm text-muted">{WELCOME_WORDS.step1Count}</p>
       <h1 className="mt-3 text-2xl font-bold tracking-tight">{WELCOME_WORDS.step1Title}</h1>
@@ -76,7 +78,11 @@ export function WelcomeSteps({ initialPeople }: { initialPeople: PersonInfo[] })
           >
             <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={40} />
             <span className="min-w-0 flex-1 truncate text-base font-semibold">{person.displayName}</span>
-            <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs font-bold">
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
+                person.role === "kid" && !person.hasAccount ? "bg-surface-2 text-muted" : "bg-accent-soft"
+              }`}
+            >
               {roleWords(person)}
             </span>
           </li>

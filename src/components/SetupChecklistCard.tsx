@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
 import { dismissSetupChecklistAction } from "@/app/actions/setupChecklist";
+import { ProgressBar } from "@/components/ProgressBar";
 import type { ChecklistItem } from "@/lib/setupChecklist";
 import { CHECKLIST_WORDS, checklistCount } from "@/lib/welcomeVocabulary";
 
@@ -59,23 +60,16 @@ export function SetupChecklistCard({
   const doneCount = items.filter((item) => item.done).length;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-4">
+    <section className="@container rounded-2xl border border-line bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-bold">{CHECKLIST_WORDS.title}</h2>
         <span className="text-sm text-muted">{checklistCount(doneCount, items.length)}</span>
       </div>
-      <div
-        role="progressbar"
-        aria-label={CHECKLIST_WORDS.title}
-        aria-valuemin={0}
-        aria-valuemax={items.length}
-        aria-valuenow={doneCount}
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2"
-      >
-        <div className="h-full bg-accent" style={{ width: `${(doneCount / items.length) * 100}%` }} />
+      <div className="mt-2">
+        <ProgressBar fraction={doneCount / items.length} label={CHECKLIST_WORDS.title} />
       </div>
 
-      <ul className="mt-2">
+      <ul className="mt-2 grid grid-cols-1 @min-[45rem]:grid-cols-2 @min-[45rem]:gap-x-6">
         {items.map((item) => {
           const optional = item.optional && (
             <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
@@ -83,7 +77,7 @@ export function SetupChecklistCard({
             </span>
           );
           return (
-            <li key={item.id} className="border-t border-line first:border-t-0">
+            <li key={item.id} className="border-t border-line first:border-t-0 @min-[45rem]:[&:nth-child(2)]:border-t-0">
               {item.done ? (
                 <div className="flex min-h-14 items-center gap-3">
                   <span className={`${RING} border-accent bg-accent text-accent-fg`}>
