@@ -1,7 +1,7 @@
 # Mission 91: Family copies PR 6, setup link and recovery code
 
 **Project:** family-hub (Marshee)
-**Status:** GATES (C1 to C3 committed; draft PR #145)
+**Status:** DELIVERING (all gates PASS; merge and production check in Delivery)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr6-setup` (cut from `main` at 6436299)
 **Plan:** `.avengers/plans/family-copies-v1.md`, "PR 6", "How a copy is configured"
@@ -470,3 +470,36 @@ recovery code reuse · two setup submits at once (only one admin).
   `noindex, nofollow`; `/login` 200; a made-up path 307 to `/login` (proxy, as
   before). Positive control for the open page is the CI attack step (the page
   and the actions share `isSetupOpen()`); dev cannot open setup (real users).
+- **Captain pass 3: PASS.** Layout map true; C4 texts that stand still hold;
+  merge consistent. NOTES (Fury applies after the other gates, doc/comment
+  only): the `(app)` row's "never" cell names all three chrome-free root
+  layouts; the settings page header comment names the Recovery code card.
+  Empty `src/app/(app)/setup/` folder removed locally (untracked). Shared
+  `fonts.ts` if a fifth root layout appears.
+- **Vision pass 3: PASS** at b31f3f3 (CI run 45891172960: `ok 1` to `ok 18`,
+  build lists `/setup`). It saw Strange's temporary harness mid-run; Fury
+  confirmed the tree clean of it before the next commit.
+- **Strange pass 2: PASS.** All three blockers fixed and measured: pill 4.74:1
+  light; first code says "Save your recovery code"; closed `/setup` HTTP 404
+  signed in and with credentials omitted, no app chrome. Harness removed,
+  `git status` clean but for this file.
+
+## Delivery
+
+- Captain's pass-3 notes applied (doc and comment only): the `(app)` row's
+  root-layout cell, the settings page header names the Recovery code card.
+- CLAUDE.md "Family accounts" line names setup and the recovery code (still 250 lines).
+- `.avengers/status.md`: Bryce's phone check for the Recovery code card and Forgot password.
+- **Deliberate leftovers (notes, not blockers):**
+  - The failed-create line reuses D5's link-check sentence; Strange suggests a
+    create-specific line ("Couldn't reach Marshee. Check your connection, then
+    tap Create my family again."), which needs Bryce's yes.
+  - If a create commits but the reply is lost, the relative misses the one-time
+    code; they can sign in and make a new one in Settings.
+  - `prisma/setup-attack-smoke.ts` is at 344 lines: split shared steps out before the next case.
+  - Lockout nuisance on the global "setup" key and on an admin's login budget (by design).
+  - Recovery does not end other sessions (matches `resetPassword`).
+  - Four client sheets word "passwords don't match" their own way (pre-existing).
+  - Inter/Manrope set up in four root layouts; a shared `fonts.ts` if a fifth appears.
+  - Continue's sign-in after setup was not tried live (dev has users); the
+    throwaway-copy dress rehearsal covers it.

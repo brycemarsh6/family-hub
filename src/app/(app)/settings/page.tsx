@@ -35,17 +35,17 @@ export const dynamic = "force-dynamic";
  * App-wide settings: your account card first (taps through to /profile),
  * "Menu style" for everyone (devices too), "Text size", "Open Marshee on"
  * (accounts only: the tablet sets its own on the Wall tablet page), the
- * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
+ * admin-only doors "Manage family" and "Feedback" and the admin "Recovery code" card, the parent and admin doors "Synced calendars"
  * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), the parent and admin "Stores" door, and last the "Habits & Chores" section
  * and the Vacation mode card with the parent and admin "Rewards" section right under it (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
- * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Stores, Feedback, Sign out. Right:
+ * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Stores, Feedback, Recovery code, Sign out. Right:
  * Habits & Chores, Vacation then Rewards, AI features (parents and admins), Winnie. A phone keeps one column in this order:
  * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos, Wall tablet and Stores (they
- * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
+ * share order-3, so source order decides), 4 Feedback then Recovery code (they share order-4, so source order decides), 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
  * 7 AI features (parents and admins) then Winnie (they share order-7, so source order decides), 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
  * the tablet's Sign out) portal to the body, so the container holds none.

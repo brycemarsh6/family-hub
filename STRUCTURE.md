@@ -15,7 +15,7 @@ a one-line pointer.
 
 | Path | What lives here | What never lives here |
 |---|---|---|
-| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
+| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout | Pages needing a genuinely chrome-free root layout; those get their own top-level folder beside `(app)`, as `src/app/share/`, `src/app/privacy/` and `src/app/setup/` do |
 | `src/app/privacy/` | The one public static policy page (own root layout, no chrome, indexable) | Anything session-dependent |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/setup/` | A relative's first-run setup page (own root layout like `/privacy`, no chrome, `noindex`; `notFound()` unless `isSetupOpen()`; no `loading.tsx`, so the 404 is a real HTTP 404 and not a 200 with a not-found screen) | A `loading.tsx`; any session read |
