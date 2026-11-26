@@ -28,6 +28,8 @@ export type HabitRow = StoredScheduleFields & StoredHoursFields & {
   sharing: string;
   isPrivate: boolean;
   everyone: boolean;
+  /** Stars one check pays; null for none. */
+  stars: number | null;
   archivedAt: Date | null;
   participants: {
     userId: string;
@@ -77,6 +79,7 @@ export function toHabit(row: HabitRow, ctx: StreakContext) {
     sharing: row.sharing,
     isPrivate: row.isPrivate,
     everyone: row.everyone,
+    stars: row.stars,
     archived: row.archivedAt !== null,
     track: toHabitTrack(row.track),
     weeklyMinutes: row.weeklyMinutes,
@@ -151,6 +154,7 @@ export function toTodayRow(row: HabitRowView) {
     dueState: row.dueState,
     state: row.doneToday ? "done" : row.skippedToday ? "skipped" : "left",
     carriedFrom: row.carriedFrom ? formatCalendarDate(row.carriedFrom) : null,
+    stars: row.stars ?? null,
     onVacation: row.onVacation,
     skippedThisWeek: row.skippedThisWeek,
     hours: row.hours

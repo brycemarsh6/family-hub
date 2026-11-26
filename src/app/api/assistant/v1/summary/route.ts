@@ -1,6 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { summaryQuery } from "@/lib/assistant/schemas";
 import { requireHouseholdToday } from "@/lib/assistant/today";
+import { readStarSummary } from "@/lib/assistant/rewardReads";
 import { readSummaryData } from "@/lib/assistant/summaryReads";
 import { toAssistantEvent } from "@/lib/assistant/serializeCalendar";
 import {
@@ -27,7 +28,10 @@ export const GET = assistantRoute({
     const tomorrow = addCalendarDays(today, 1);
     const sunday = startOfWeek(today);
 
-    const { pantry, groceries, recipeCount, plans, events } = await readSummaryData(today, sunday);
+    const [{ pantry, groceries, recipeCount, plans, events }, stars] = await Promise.all([
+      readSummaryData(today, sunday),
+      readStarSummary(),
+    ]);
 
     const plan = findPlanForWeek(plans, sunday, HOUSEHOLD_TIME_ZONE);
     const meals = slotsForDay(plan?.entries ?? [], calendarDaysBetween(sunday, today));
@@ -47,6 +51,7 @@ export const GET = assistantRoute({
         recipes: { count: recipeCount },
         // Tasks join the calendar section in mission 24.
         calendar: { today: day(today), tomorrow: day(tomorrow) },
+        stars,
       },
     };
   },
