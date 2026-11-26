@@ -543,7 +543,7 @@ amendment id.
   `src/lib/safeFetch.ts` (`server-only`, no auth; callers guard) is the only
   way server code fetches an address that came from a person, or one that a
   fetched page or redirect pointed to (recipe link import: blog pages,
-  Pinterest pins and their source links, the TikTok oEmbed call). It checks
+  Pinterest pins and their source links, the TikTok oEmbed and page fetches). It checks
   every hop and connects to the exact address its own DNS lookup checked.
   The refusal rules (schemes, ports, logins in the URL, localhost, unsafe
   IPv4 and IPv6 ranges) live only in pure `src/lib/urlSafety.ts`

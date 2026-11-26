@@ -1,7 +1,7 @@
 # Mission 86: Family copies PR 1, safe fetch for recipe link import
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERED (PR opened 2026-11-26; merge and the production check follow it)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 
 ## Brief
@@ -165,3 +165,18 @@ machine (which must be refused before any connection).
   no plain fetch left, refusals and both positive blogs re-proven. Note: C2's
   "`::ffff:0:0/96` (SIIT)" was Fury's wrong prefix (that is IPv4-mapped);
   Stark correctly refused the real SIIT form `::ffff:0:a.b.c.d`.
+- 2026-11-26: Vision pass 2 PASS. Re-ran the gauntlet; live proof that a
+  lookalike `*tiktok.com` host resolving to 169.254.169.254 is refused on the
+  TikTok page fetch. SIIT ruling: Stark's reading is right. Notes only; the
+  STRUCTURE.md caller list now names the TikTok page fetch too.
+
+## Delivery
+
+- Gates: Captain PASS (pass 1), Vision PASS (pass 2 of 3).
+- Deliberately left (Vision notes, not security issues): a 3xx with no
+  Location shows the generic message instead of "error 302"; `text()` is
+  always UTF-8 (as before); ports 80 and 443 allowed on either scheme;
+  `isTikTok` / `isPinterest` still match by host suffix (safe now that every
+  fetch goes through `safeFetch`); `recipeUrlImport.ts` stays over the 350
+  soft cap (existing debt, smaller after this PR).
+- No screens changed, so no phone test for Bryce.
