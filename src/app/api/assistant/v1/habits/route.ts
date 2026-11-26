@@ -1,7 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { notFound, toWriteFailure } from "@/lib/assistant/errors";
 import { getHabit, habitSnapshot, listHabits } from "@/lib/assistant/habitReads";
-import { habitCreateBody, habitListQuery, newHabitInput } from "@/lib/assistant/schemasHabits";
+import { habitCreateBody, habitListQuery, habitStarsRefusal, newHabitInput } from "@/lib/assistant/schemasHabits";
 import { habitChanges } from "@/lib/assistant/serializeHabits";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { assistantHabitActor } from "@/lib/assistant/habitActorEnv";
@@ -31,7 +31,10 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof habitC
     const household = await householdParticipantIds();
     // The app's own rules and words decide what is acceptable.
     const actor = assistantHabitActor();
-    const checked = checkHabitInput(newHabitInput(body, household, actor.userId), household);
+    const input = newHabitInput(body, household, actor.userId);
+    const noStars = habitStarsRefusal(input);
+    if (noStars) throw toWriteFailure(invalid(noStars));
+    const checked = checkHabitInput(input, household);
     if ("error" in checked) throw toWriteFailure(invalid(checked.error));
     // The app's rule: you may not make what you could not edit afterwards.
     if (!canEditHabit(actor, { isPrivate: checked.fields.isPrivate ?? false, participantIds: checked.participantIds })) {

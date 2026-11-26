@@ -9,6 +9,7 @@ import {
   habitTapQuery,
 } from "./schemasHabits";
 import type { Operation } from "./openapiTypes";
+import { STAR_STEPS } from "@/lib/rewardVocabulary";
 
 // The registry rows for the habit and chore routes. Adding a route means
 // adding its row here; openapi.test.ts fails until you do.
@@ -78,7 +79,7 @@ export const habitOperations: Operation[] = [
     summary:
       "Add a habit or chore. Send title and who it is for: participantIds, or everyone: true (the whole household, and later joiners). " +
       "Defaults: kind habit, mode build, schedule daily (a chore: weekdays, which needs weekdays), sharing each, track checks, no carry-over, times 1 for weekly and monthly, " +
-      "hours counted monsat. weekdays is seven 0/1 characters, Sunday first; biweekly needs a Sunday anchorWeek; track hours needs weeklyHours (1 to 80), is for one person each, habits only. " +
+      `hours counted monsat. stars is what one check pays (${STAR_STEPS.slice(0, -1).join(", ")} or ${STAR_STEPS[STAR_STEPS.length - 1]}, or null for none; left out is none); an hours habit pays no stars (400). weekdays is seven 0/1 characters, Sunday first; biweekly needs a Sunday anchorWeek; track hours needs weeklyHours (1 to 80), is for one person each, habits only. ` +
       "The app's own rules and sentences refuse the rest (400). isPrivate is not accepted: an hours habit for one person is private by rule, so it is visible to Winnie only when it is the owner's. Undoable.",
     body: habitCreateBody,
     response: `201 { habit: ${HABIT} }. 400 for anything the habit form would refuse.`,
@@ -89,6 +90,7 @@ export const habitOperations: Operation[] = [
     action: "habits.update",
     summary:
       "Change any of the create fields (what is left out stays as it is) and the people (participantIds replaces them). archived: true archives it and archived: false brings it back, " +
+      "stars sets or clears what one check pays (same list; an hours habit can't have it, 400); " +
       "history kept; there is no delete. A change that changes nothing answers 200 and records nothing. isPrivate cannot be changed. Undoable.",
     body: habitPatchBody,
     response: `{ habit: ${HABIT} }. 400 for anything the habit form would refuse. 404 if missing or private to someone else.`,
