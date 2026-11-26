@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { REWARD_EMOJI_GROUPS, toRewardEmoji } from "./rewardEmoji";
+import { REWARD_EMOJI_GROUPS, isQuickPick, lastGrapheme, toRewardEmoji } from "./rewardEmoji";
 
 const ALL = REWARD_EMOJI_GROUPS.flatMap((group) => group.items);
 
@@ -33,4 +33,18 @@ test("spaces around an emoji are trimmed", () => {
 
 test("text, digits, two emoji, empty and non-strings fail", () => {
   for (const raw of ["a", "1", "🍪🍪", "🍪a", "", "   ", 5, null, undefined, {}, "🇺", "x".repeat(40)]) assert.equal(toRewardEmoji(raw), null);
+});
+
+test("lastGrapheme returns the last thing a person sees as one character", () => {
+  assert.equal(lastGrapheme(""), "");
+  assert.equal(lastGrapheme("a"), "a");
+  assert.equal(lastGrapheme("ab🍪"), "🍪");
+  assert.equal(lastGrapheme("🍪🇺🇸"), "🇺🇸");
+  assert.equal(lastGrapheme("x👨‍👩‍👧‍👦"), "👨‍👩‍👧‍👦");
+  assert.equal(lastGrapheme("a👍🏽"), "👍🏽");
+});
+
+test("isQuickPick is true for every quick pick and false for anything else", () => {
+  for (const item of ALL) assert.equal(isQuickPick(item.emoji), true, item.name);
+  for (const emoji of ["👍🏽", "🇺🇸", "a", "", "🧁🍭"]) assert.equal(isQuickPick(emoji), false);
 });

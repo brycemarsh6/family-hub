@@ -100,6 +100,10 @@ export const REWARD_UNDOING_LABEL = "Undoing…";
 /** An empty person's column: parents are offered the Add tile, others are pointed to one. */
 export const REWARD_EMPTY_PARENT = "No rewards yet.";
 export const REWARD_EMPTY_OTHER = "No rewards yet. Ask a parent to add one.";
+/** A person who has rewards, all of them earned and hidden by Hide earned. */
+export const REWARD_ALL_HIDDEN = "Earned rewards are hidden.";
+/** The phone's row of people. */
+export const REWARD_PEOPLE_LABEL = "People";
 
 /** The Any emoji tile: it opens the device's emoji keyboard. */
 export const ANY_EMOJI_LABEL = "Any emoji";
@@ -149,6 +153,16 @@ export function redeemedByText(name: string, cost: number, dateText: string): st
 /** A card's progress: "55 of 150" (a negative bank reads 0). */
 export function progressText(bank: number, cost: number): string {
   return `${Math.max(bank, 0)} of ${cost}`;
+}
+
+/** A person chip's spoken name: "Ellie, 55 stars". */
+export function personChipLabel(name: string, bank: number): string {
+  return `${name}, ${starCountText(bank)}`;
+}
+
+/** A card's progress bar label: "Cupcake progress". */
+export function rewardProgressLabel(title: string): string {
+  return `${title} progress`;
 }
 
 /** The phone's Add tile: "Add reward for Ellie". */

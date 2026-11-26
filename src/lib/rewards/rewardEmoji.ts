@@ -115,3 +115,14 @@ export function toRewardEmoji(raw: unknown): string | null {
   const grapheme = graphemes[0].segment;
   return PICTOGRAPHIC.test(grapheme) || FLAG.test(grapheme) || KEYCAP.test(grapheme) ? grapheme : null;
 }
+
+/** The last thing typed, as one character as a person sees it (a flag or a family is one). */
+export function lastGrapheme(text: string): string {
+  const parts = Array.from(SEGMENTER.segment(text), (part) => part.segment);
+  return parts[parts.length - 1] ?? "";
+}
+
+/** True when the emoji is one of the quick picks. */
+export function isQuickPick(emoji: string): boolean {
+  return REWARD_EMOJI_GROUPS.some((group) => group.items.some((item) => item.emoji === emoji));
+}

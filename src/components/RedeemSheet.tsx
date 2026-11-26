@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { StarRain } from "./StarRain";
 import { redeemReward, undoRedeem } from "@/app/actions/rewards";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { calendarDateInZone, formatLongCalendarDate } from "@/lib/householdDate";
 import { celebrationLines, redeemConfirmLines } from "@/lib/rewards/rewardRules";
 import type { RewardView } from "@/lib/rewardsRead";
 import {
@@ -34,13 +35,19 @@ export function RedeemSheet({ reward, ownerName, bank, onClose }: { reward: Rewa
   const [pending, startTransition] = useTransition();
   const [undoing, setUndoing] = useState(false);
 
+  // A redeem in flight is not stopped by a stray tap or Escape; after it lands the celebration may close freely.
+  const close = () => {
+    if (pending && !redemption) return;
+    onClose();
+  };
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") close();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  });
 
   function handleRedeem() {
     if (pending) return;
@@ -69,11 +76,11 @@ export function RedeemSheet({ reward, ownerName, bank, onClose }: { reward: Rewa
   const heading = redemption ? REWARD_REDEEMED_HEADING : REWARD_REDEEM_HEADING;
   const shownEmoji = redemption ? redemption.emoji : reward.emoji;
   const lines = reward.cost === null ? null : redeemConfirmLines({ title: reward.title, cost: reward.cost }, ownerName, bank);
-  const done = redemption ? celebrationLines({ ...redemption, redeemedAt: new Date(redemption.redeemedAt) }, HOUSEHOLD_TIME_ZONE) : null;
+  const done = redemption ? celebrationLines(redemption, formatLongCalendarDate(calendarDateInZone(new Date(redemption.redeemedAt), HOUSEHOLD_TIME_ZONE))) : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/40" />
+      <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-black/40" />
       <StarRain run={redemption !== null} />
 
       <div

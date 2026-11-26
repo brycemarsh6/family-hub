@@ -12,7 +12,7 @@ import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { canManageRewards, canRedeemRewards } from "@/lib/rewards/access";
 import { checkRewardInput } from "@/lib/rewards/rewardRules";
 import { REWARD_GONE_REFUSAL, REWARD_PARENT_REFUSAL, REWARD_SAVE_FAILED } from "@/lib/rewardVocabulary";
-import * as writes from "@/lib/rewardWrites";
+import { createReward, deleteReward as deleteRewardRow, redeemReward as writeRedemption, undoRedemption, updateReward } from "@/lib/rewardWrites";
 import { isWriteConflictError } from "@/lib/prismaErrors";
 
 function refreshRewards() {
@@ -24,6 +24,7 @@ function refreshRewards() {
 export async function saveReward(raw: unknown, id?: string): Promise<{ error?: string }> {
   const user = await getVerifiedUser();
   if (!user || !canManageRewards(user.role)) return { error: REWARD_PARENT_REFUSAL };
+  if (id !== undefined && (typeof id !== "string" || id.length === 0)) return { error: REWARD_GONE_REFUSAL };
   const checked = checkRewardInput(raw);
   if (!checked.ok) return { error: checked.error };
 
@@ -31,8 +32,8 @@ export async function saveReward(raw: unknown, id?: string): Promise<{ error?: s
     const people = await loadHouseholdPeople();
     if (!people.some((person) => person.id === checked.value.ownerId)) return { error: REWARD_SAVE_FAILED };
     if (id === undefined) {
-      await writes.createReward(checked.value, user.userId);
-    } else if ((await writes.updateReward(id, checked.value)) === null) {
+      await createReward(checked.value, user.userId);
+    } else if ((await updateReward(id, checked.value)) === null) {
       return { error: REWARD_GONE_REFUSAL };
     }
   } catch (error) {
@@ -46,8 +47,9 @@ export async function saveReward(raw: unknown, id?: string): Promise<{ error?: s
 export async function deleteReward(id: string): Promise<{ error?: string }> {
   const user = await getVerifiedUser();
   if (!user || !canManageRewards(user.role)) return { error: REWARD_PARENT_REFUSAL };
+  if (typeof id !== "string" || id.length === 0) return { error: REWARD_GONE_REFUSAL };
   try {
-    await writes.deleteReward(id);
+    await deleteRewardRow(id);
   } catch (error) {
     console.error("Reward delete failed", error);
     return { error: REWARD_SAVE_FAILED };
@@ -62,8 +64,9 @@ export async function redeemReward(
 ): Promise<{ error: string } | { redemption: { id: string; title: string; emoji: string | null; cost: number; ownerName: string; redeemedAt: string } }> {
   const user = await getVerifiedUser();
   if (!user || !canRedeemRewards(user.role)) return { error: REWARD_PARENT_REFUSAL };
+  if (typeof rewardId !== "string" || rewardId.length === 0) return { error: REWARD_GONE_REFUSAL };
   try {
-    const result = await writes.redeemReward(rewardId, user.userId);
+    const result = await writeRedemption(rewardId, user.userId);
     if (!result.ok) return { error: result.error };
     refreshRewards();
     return { redemption: { ...result.redemption, redeemedAt: result.redemption.redeemedAt.toISOString() } };
@@ -77,8 +80,9 @@ export async function redeemReward(
 export async function undoRedeem(redemptionId: string): Promise<{ error?: string }> {
   const user = await getVerifiedUser();
   if (!user || !canRedeemRewards(user.role)) return { error: REWARD_PARENT_REFUSAL };
+  if (typeof redemptionId !== "string" || redemptionId.length === 0) return {};
   try {
-    await writes.undoRedemption(redemptionId);
+    await undoRedemption(redemptionId);
   } catch (error) {
     console.error("Reward undo failed", error);
     return { error: REWARD_SAVE_FAILED };

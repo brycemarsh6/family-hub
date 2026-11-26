@@ -2,18 +2,12 @@
 
 import { useState } from "react";
 import { Smile } from "lucide-react";
-import { REWARD_EMOJI_GROUPS, toRewardEmoji } from "@/lib/rewards/rewardEmoji";
+import { REWARD_EMOJI_GROUPS, isQuickPick, lastGrapheme, toRewardEmoji } from "@/lib/rewards/rewardEmoji";
 import { ANY_EMOJI_HINT, ANY_EMOJI_LABEL, REWARD_NOT_EMOJI_REFUSAL, REWARD_NO_PICTURE_LABEL, REWARD_PICTURE_LABEL } from "@/lib/rewardVocabulary";
 
 const TILE = "flex h-12 min-w-12 items-center justify-center rounded-xl transition-colors";
 const PICKED = "border-2 border-accent bg-accent-soft";
 const NOT_PICKED = "border border-line bg-surface";
-
-/** The last thing typed, as one character as a person sees it (a flag or a family is one). */
-function lastGrapheme(text: string): string {
-  const parts = Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), (part) => part.segment);
-  return parts[parts.length - 1] ?? "";
-}
 
 /**
  * The reward picture grid: No picture, the quick picks in groups, then "Any
@@ -26,7 +20,7 @@ export function RewardEmojiPicker({ value, onChange }: { value: string | null; o
   const [typed, setTyped] = useState("");
   const [typedError, setTypedError] = useState<string | null>(null);
 
-  const inList = value !== null && REWARD_EMOJI_GROUPS.some((group) => group.items.some((item) => item.emoji === value));
+  const inList = value !== null && isQuickPick(value);
 
   function handleTyped(text: string) {
     const last = lastGrapheme(text);

@@ -8,14 +8,18 @@ import {
   ANY_EMOJI_LABEL,
   COST_STEPS,
   DEFAULT_REWARD_COST,
+  REWARD_ALL_HIDDEN,
+  REWARD_PEOPLE_LABEL,
   REWARD_TITLE_MAX,
   notEnoughStarsText,
+  personChipLabel,
   progressText,
   redeemButtonText,
   redeemQuestionText,
   redeemSpendText,
   redeemedByText,
   redeemedTitleText,
+  rewardProgressLabel,
   toRewardCost,
   LATE_STARS,
   LATE_STARS_HELP,
@@ -100,4 +104,12 @@ test("the Any emoji words and the redeem sheet's builders are the mock's", () =>
   assert.equal(redeemedByText("Ellie", 20, "Tuesday, November 24"), "By Ellie for 20 stars on Tuesday, November 24.");
   assert.equal(progressText(55, 150), "55 of 150");
   assert.equal(progressText(-4, 150), "0 of 150");
+});
+
+test("the people row, chip and progress words are pinned", () => {
+  assert.equal(REWARD_PEOPLE_LABEL, "People");
+  assert.equal(REWARD_ALL_HIDDEN, "Earned rewards are hidden.");
+  assert.equal(personChipLabel("Ellie", 55), "Ellie, 55 stars");
+  assert.equal(personChipLabel("Ellie", 1), "Ellie, 1 star");
+  assert.equal(rewardProgressLabel("Cupcake"), "Cupcake progress");
 });

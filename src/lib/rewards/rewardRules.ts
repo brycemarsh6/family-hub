@@ -56,9 +56,14 @@ export function rewardStatus(reward: { repeatable: boolean; redeemedCount: numbe
   return { kind: "saving", fraction, text: progressText(bank, reward.cost) };
 }
 
-/** Hide earned: drops earned rewards when the switch is on. */
+/** Earned rewards go after the rest; the added order holds inside each group. */
+export function orderRewards<T extends { repeatable: boolean; redeemedCount: number }>(rewards: readonly T[]): T[] {
+  return [...rewards.filter((reward) => !isEarned(reward)), ...rewards.filter(isEarned)];
+}
+
+/** Hide earned: drops earned rewards when the switch is on; otherwise earned ones sit last. */
 export function visibleRewards<T extends { repeatable: boolean; redeemedCount: number }>(rewards: readonly T[], hideEarned: boolean): T[] {
-  return hideEarned ? rewards.filter((reward) => !isEarned(reward)) : [...rewards];
+  return hideEarned ? rewards.filter((reward) => !isEarned(reward)) : orderRewards(rewards);
 }
 
 /** Why a redeem is refused, or null when it may go ahead: earned first, then no cost, then not enough stars. */
@@ -100,12 +105,11 @@ export function checkRewardInput(raw: unknown): { ok: true; value: RewardInput }
   return { ok: true, value: { title, emoji, cost, repeatable: input.repeatable, ownerId: input.ownerId } };
 }
 
-/** The celebration's three lines, the date in the given zone ("Tuesday, November 24"). */
+/** The celebration's three lines; `dateText` is the already-formatted day ("Tuesday, November 24"). */
 export function celebrationLines(
-  redemption: { title: string; ownerName: string; cost: number; redeemedAt: Date },
-  timeZone: string,
+  redemption: { title: string; ownerName: string; cost: number },
+  dateText: string,
 ): { heading: string; title: string; by: string } {
-  const dateText = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone }).format(redemption.redeemedAt);
   return { heading: REWARD_CELEBRATION_HEADING, title: redeemedTitleText(redemption.title), by: redeemedByText(redemption.ownerName, redemption.cost, dateText) };
 }
 

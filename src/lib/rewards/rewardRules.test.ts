@@ -8,6 +8,7 @@ import {
   checkRewardInput,
   isEarned,
   nextCostStep,
+  orderRewards,
   redeemConfirmLines,
   redeemRefusal,
   rewardStatus,
@@ -63,7 +64,20 @@ test("visibleRewards drops earned ones only when hiding", () => {
     { id: "c", repeatable: false, redeemedCount: 0 },
   ];
   assert.deepEqual(visibleRewards(list, true).map((r) => r.id), ["b", "c"]);
-  assert.deepEqual(visibleRewards(list, false).map((r) => r.id), ["a", "b", "c"]);
+  assert.deepEqual(visibleRewards(list, false).map((r) => r.id), ["b", "c", "a"]);
+});
+
+test("orderRewards puts earned last and keeps the added order inside each group", () => {
+  const list = [
+    { id: "a", repeatable: false, redeemedCount: 1 },
+    { id: "b", repeatable: false, redeemedCount: 0 },
+    { id: "c", repeatable: false, redeemedCount: 2 },
+    { id: "d", repeatable: true, redeemedCount: 3 },
+    { id: "e", repeatable: false, redeemedCount: 0 },
+  ];
+  assert.deepEqual(orderRewards(list).map((r) => r.id), ["b", "d", "e", "a", "c"]);
+  assert.deepEqual(list.map((r) => r.id), ["a", "b", "c", "d", "e"]);
+  assert.deepEqual(orderRewards([]), []);
 });
 
 test("redeemRefusal: earned first, then no cost, then not enough, else null", () => {
@@ -104,15 +118,12 @@ test("checkRewardInput refuses in the house words", () => {
   assert.equal(checkRewardInput(null).ok, false);
 });
 
-test("celebrationLines puts the date in the asked zone", () => {
-  const redeemedAt = new Date("2026-11-25T03:30:00Z");
-  const base = { title: "Cupcake", ownerName: "Ellie", cost: 20, redeemedAt };
-  assert.deepEqual(celebrationLines(base, "America/Denver"), {
+test("celebrationLines builds the three lines around the given date text", () => {
+  assert.deepEqual(celebrationLines({ title: "Cupcake", ownerName: "Ellie", cost: 20 }, "Tuesday, November 24"), {
     heading: "Great work!",
     title: "Cupcake redeemed.",
     by: "By Ellie for 20 stars on Tuesday, November 24.",
   });
-  assert.equal(celebrationLines(base, "UTC").by, "By Ellie for 20 stars on Wednesday, November 25.");
 });
 
 test("redeemConfirmLines are the mock's words", () => {

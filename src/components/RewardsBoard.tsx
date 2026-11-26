@@ -8,11 +8,12 @@ import { RewardCard } from "./RewardCard";
 import { RewardPersonChips } from "./RewardPersonChips";
 import { RewardSheet } from "./RewardSheet";
 import { StarBank } from "./StarBank";
+import { ToggleSwitch } from "./ToggleSwitch";
 import { setHideEarned, useHideEarned } from "@/lib/hideEarned";
 import type { HouseholdPerson } from "@/lib/householdPeople";
 import type { RewardView } from "@/lib/rewardsRead";
 import { visibleRewards } from "@/lib/rewards/rewardRules";
-import { REWARD_ADD_LABEL, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_HIDE_EARNED_LABEL, addRewardForText } from "@/lib/rewardVocabulary";
+import { REWARD_ADD_LABEL, REWARD_ALL_HIDDEN, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_HIDE_EARNED_LABEL, addRewardForText } from "@/lib/rewardVocabulary";
 
 // What the open redeem sheet was started with. It is kept as a copy: the page
 // refreshes after a redeem (the reward is now earned, the bank lower), and the
@@ -51,32 +52,22 @@ export function RewardsBoard({
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={hideEarned}
-          onClick={() => setHideEarned(!hideEarned)}
-          className="flex min-h-12 items-center gap-2 rounded-xl pl-3 text-sm font-medium text-muted active:bg-surface-2"
-        >
+      <div className="mb-3 flex min-h-12 items-center justify-end gap-2">
+        <span aria-hidden="true" className="text-sm font-medium text-muted">
           {REWARD_HIDE_EARNED_LABEL}
-          <span aria-hidden="true" className={`flex h-7 w-12 items-center rounded-full border-2 transition-colors ${hideEarned ? "border-transparent bg-accent" : "border-muted bg-surface-2"}`}>
-            <span className={`rounded-full transition-transform ${hideEarned ? "h-6 w-6 translate-x-5 bg-surface shadow" : "h-4 w-4 translate-x-1 bg-muted"}`} />
-          </span>
-        </button>
+        </span>
+        <ToggleSwitch checked={hideEarned} onChange={setHideEarned} label={REWARD_HIDE_EARNED_LABEL} />
       </div>
 
       <div className="@container">
         <div className="@min-[48rem]:hidden">
           <RewardPersonChips people={people} banks={banks} selectedId={selectedId} onSelect={setSelectedId} />
         </div>
-        <div className="grid grid-cols-1 gap-3 @min-[48rem]:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]">
+        <div className="grid grid-cols-1 gap-3 @min-[48rem]:grid-flow-col @min-[48rem]:auto-cols-[minmax(13.5rem,1fr)] @min-[48rem]:overflow-x-auto">
           {people.map((person) => {
             const bank = banks[person.id] ?? 0;
-            const shown = visibleRewards(
-              rewards.filter((reward) => reward.ownerId === person.id),
-              hideEarned,
-            );
+            const owned = rewards.filter((reward) => reward.ownerId === person.id);
+            const shown = visibleRewards(owned, hideEarned);
             return (
               <section
                 key={person.id}
@@ -88,7 +79,9 @@ export function RewardsBoard({
                   <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{person.displayName}</h2>
                   <StarBank stars={bank} />
                 </div>
-                {shown.length === 0 && <p className="mb-3 text-sm text-muted">{canManage ? REWARD_EMPTY_PARENT : REWARD_EMPTY_OTHER}</p>}
+                {shown.length === 0 && (
+                  <p className="mb-3 text-sm text-muted">{owned.length > 0 ? REWARD_ALL_HIDDEN : canManage ? REWARD_EMPTY_PARENT : REWARD_EMPTY_OTHER}</p>
+                )}
                 <ul className="flex flex-col gap-3">
                   {shown.map((reward) => (
                     <RewardCard
