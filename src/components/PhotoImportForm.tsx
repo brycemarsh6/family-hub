@@ -74,6 +74,7 @@ export function PhotoImportForm({
   }
 
   function removePhoto(index: number) {
+    setError(null);
     setAiBlocked(null);
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   }

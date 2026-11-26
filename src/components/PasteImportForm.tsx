@@ -80,6 +80,7 @@ export function PasteImportForm({
               value={text}
               onChange={(event) => {
                 setText(event.target.value);
+                setError(null);
                 setAiBlocked(null);
               }}
               rows={14}

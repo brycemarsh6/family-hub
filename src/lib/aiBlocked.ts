@@ -1,7 +1,7 @@
 import "server-only";
 import { aiUpgradeUrl, type AiAllowanceError } from "@/lib/aiMeter";
 import type { AiBlockReason } from "@/lib/aiMeterPolicy";
-import { AI_BLOCKED_TITLE, resetsLabel } from "@/lib/aiMeterVocabulary";
+import { AI_BLOCKED_TITLE, AI_LOCKED_TEXT, resetsLabel } from "@/lib/aiMeterVocabulary";
 
 // What a Server Action hands the screen when `meteredCreate` refuses an AI
 // call (mission 89). Plain data, so it crosses to the client. Only an admin
@@ -30,5 +30,6 @@ export function aiBlockedResult(
   error: AiAllowanceError,
   role: string,
 ): { error: string; aiBlocked: AiBlocked } {
-  return { error: AI_BLOCKED_TITLE, aiBlocked: buildAiBlocked(error, role) };
+  const text = error.reason === "locked" ? AI_LOCKED_TEXT : AI_BLOCKED_TITLE;
+  return { error: text, aiBlocked: buildAiBlocked(error, role) };
 }
