@@ -94,6 +94,21 @@ Same as AGENTS.md, plus:
   earned", "Earned", "Add reward", "Repeats" tag, sheet fields Picture,
   Name, Cost, "After it's redeemed" (One time / Repeatable), For.
 
+## Decided by Hill (Bryce away, bypass mode; Opus 5.5 high effort, run as a general agent reading `.claude/agents/hill.md` because the session could not load the hill agent type)
+
+- **H1 (2026-11-25):** with Hide earned on, a person whose rewards are all
+  hidden sees "Earned rewards are hidden." (everyone: parents, kids,
+  Tablet; parents still get the Add tile). A person with no rewards keeps
+  "No rewards yet." Why: the old line was false; DESIGN.md's honest empty
+  states. Confidence high.
+- **H2:** earned rewards sort to the end of each person's list; the rest
+  keep added order. Why: the approved mock puts Earned last; the top of a
+  kid's list is what they are working toward. Confidence high.
+- **H3:** a negative bank keeps "0 of 5" with an empty bar. Why: the minus
+  already shows beside the name and on the chip; "-3 of 5" would confuse a
+  kid. Confidence medium. **Bryce should look at this one first** (his plan
+  does not settle it); reversal is one line in `progressText`.
+
 ## Contracts
 
 Order: C1, then C2 and C3 in sequence (C3 wires C2's sheets into the
@@ -431,10 +446,92 @@ person.
   redemption, the chore at 5 stars, now un-checked): Fury removes it after
   the gates.
 
+### F1 - Gate fixes, pass 1 (Vision, Captain, Strange) and Hill's calls
+- **Status:** DISPATCHED 2026-11-25
+- **Objective:** Clear every pass-1 blocker and apply H1 to H3, in one
+  commit. Fury already made the doc fixes (STRUCTURE.md A1 to A6,
+  `docs/structure/rewards.md`).
+- **Boundaries:** may touch: `src/app/actions/rewards.ts`,
+  `src/lib/householdDate.ts`, `src/lib/householdDate.test.ts`,
+  `src/lib/rewards/rewardRules.ts`, `src/lib/rewards/rewardRules.test.ts`,
+  `src/lib/rewards/rewardEmoji.ts`, `src/lib/rewards/rewardEmoji.test.ts`,
+  `src/lib/rewardVocabulary.ts`, `src/lib/rewardVocabulary.test.ts`, new
+  `src/app/(app)/rewards/loading.tsx`, `src/components/RewardsBoard.tsx`,
+  `src/components/RewardCard.tsx`, `src/components/RewardPersonChips.tsx`,
+  `src/components/RedeemSheet.tsx`, `src/components/RewardEmojiPicker.tsx`
+  · must not touch: `DESIGN.md`, `STRUCTURE.md`, `docs/`, `prisma/`,
+  `src/components/ToggleSwitch.tsx`, `src/lib/mealPlanDates.ts` (import
+  only), `src/lib/rewardWrites.ts`, `src/lib/rewardsRead.ts`,
+  `src/lib/starBankRead.ts`, everything else.
+- **What to build:**
+  1. (Vision) `actions/rewards.ts`: right after each role guard, refuse a
+     non-string or empty id: `deleteReward` and `redeemReward` return
+     `{ error: REWARD_GONE_REFUSAL }`; `saveReward` does the same when `id`
+     is given and is not a non-empty string; `undoRedeem` returns `{}`.
+  2. (Captain 5) Replace `import * as writes` with named imports, aliasing
+     the collisions: `deleteReward as deleteRewardRow`,
+     `redeemReward as writeRedemption`.
+  3. (Captain 1) `householdDate.ts`: `formatLongCalendarDate(date:
+     CalendarDate): string` ("Tuesday, November 24") from `FULL_DAY_NAMES`
+     and `FULL_MONTH_NAMES` beside `formatShortCalendarDate`.
+     `celebrationLines` takes `(redemption: { title, ownerName, cost },
+     dateText: string)` and loses its `Intl` formatter; `RedeemSheet`
+     passes `formatLongCalendarDate(calendarDateInZone(new
+     Date(redemption.redeemedAt), HOUSEHOLD_TIME_ZONE))`. Move the
+     Denver/UTC assertions into `householdDate.test.ts` (03:30Z on Nov 25:
+     Denver "Tuesday, November 24", UTC "Wednesday, November 25");
+     `rewardRules.test.ts` keeps one plain `dateText` case.
+  4. (Captain 2) new `src/app/(app)/rewards/loading.tsx`: `<SkeletonPage
+     wide />` from `@/components/Skeleton`, with the header comment
+     `settings/loading.tsx` uses.
+  5. (Captain 3, Strange 3) `RewardsBoard.tsx`: the Hide earned row is a
+     `flex min-h-12 items-center justify-end gap-2` with an `aria-hidden`
+     label span and `<ToggleSwitch checked={hideEarned}
+     onChange={setHideEarned} label={REWARD_HIDE_EARNED_LABEL} />`; delete
+     the hand-made pill.
+  6. (Strange 1, H1) new `REWARD_ALL_HIDDEN = "Earned rewards are
+     hidden."`; a column whose person has rewards but none shown says it
+     (all viewers; the Add tile still shows for parents). No rewards at all
+     keeps the two existing lines.
+  7. (H2) earned rewards last: in `rewardRules.ts`, `visibleRewards` (or a
+     new `orderRewards` it uses) puts earned rewards after the rest,
+     keeping added order inside each group. Test it.
+  8. (H3) no change to "0 of 5"; leave `progressText` as is.
+  9. (Strange 2) `RewardCard.tsx`: the No picture label `text-muted`
+     becomes `text-muted-strong`.
+  10. (Strange 4) `RewardsBoard.tsx` wide layout: replace the auto-fit grid
+     with `@min-[48rem]:grid-flow-col
+     @min-[48rem]:auto-cols-[minmax(13.5rem,1fr)]
+     @min-[48rem]:overflow-x-auto`, so every person sits side by side and the
+     strip swipes when they do not fit. `RewardCard.tsx`: make the card a
+     `@container`, and below about 18rem wrap the row so Redeem (or "Ask a
+     parent") drops under the body at full width (`@max-[18rem]:w-full`).
+  11. (Strange 5) `RewardPersonChips.tsx`: `pr-8` end padding and a trailing
+     fade `[mask-image:linear-gradient(to_right,#000_calc(100%-2rem),transparent)]`
+     on the scroller.
+  12. (Strange 6, Vision note) `RedeemSheet.tsx`: `const close = () => { if
+     (pending && !redemption) return; onClose(); };` used by the backdrop
+     and the Escape handler.
+  13. (Captain notes) words into `rewardVocabulary.ts`:
+     `REWARD_PEOPLE_LABEL` ("People"), `personChipLabel(name, bank)`,
+     `rewardProgressLabel(title)`; move `lastGrapheme(text)` and
+     `isQuickPick(emoji)` from `RewardEmojiPicker.tsx` into
+     `rewards/rewardEmoji.ts` with tests.
+- **Verification:** full gauntlet; Denver and UTC counts up from 2195;
+  `grep -rn "Intl.DateTimeFormat" src/lib/rewards` empty; `grep -n "import
+  \* as" src/app/actions/rewards.ts` empty; `wc -l` of touched files.
+- **Evidence required:** gauntlet tails with counts, test names added,
+  `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** -
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD 4708afa, in parallel with Strange and Captain) | BLOCKED | actions/rewards.ts never type-checks ids: a forged `{ not: "" }` id makes `deleteMany`/`updateMany` hit every row (undoRedeem wipes every redemption) | redeem held under 4 concurrency probes; migration byte-identical to schema diff; RedeemSheet overlay/Escape close while pending spends silently (Strange); reassigned owner keeps old redemptions in redeemedCount; toRewardEmoji accepts text symbols like ©; foreign ownerId refusal says "didn't save"; Save/Add/Delete inline words in RewardSheet |
+| 1 | Captain (HEAD 4708afa) | BLOCKED | (1) rewardRules.ts:108 own Intl weekday/month formatter (householdDate.ts and mealPlanDates.ts rules): add `formatLongCalendarDate`, celebrationLines takes `dateText`; (2) no `rewards/loading.tsx` (layout.md wide pages); (3) RewardsBoard hand-made switch (ToggleSwitch is the only one); (4) Earned filled star vs rewards.md "appears nowhere else" (doc fix, Fury); (5) `import * as writes` in actions/rewards.ts (Domain write modules aliases) | rewards.md overstates "one reader"; three inline words to move (People, chip label, progress label); RewardEmojiPicker's own lastGrapheme/isQuickPick untested; page reads people first (A3); `Field` from HabitFormFields; six copies of the device-store pattern; R2 shares files. STRUCTURE.md amendments A1 to A6 for Fury |
+| 1 | Strange (HEAD 4708afa, running app, phone 375/390 and iPad 1180, light and dark) | BLOCKED | (1) Hide earned on: a column with only hidden rewards says "No rewards yet." (false); (2) "No picture" label `text-muted` on `surface-2` 4.33:1; (3) hand-made switch (ToggleSwitch is the only one); (4) iPad wraps the 5th person to a second row (Bryce: one column per person): side-by-side strip, Redeem drops below on narrow cards; (5) phone chips at 390 end cleanly with 2 people hidden: trailing fade; (6) RedeemSheet backdrop and Escape close while "Redeeming...", spending silently | Redeem flow not seen live (banks too low; pass 2 needs a bank of 5+); hydration flash on Hide earned reload; no wide loading.tsx; earned sorts first; negative bank reads "0 of 5"; picker open-state looks picked; two E and two L initials; dark cards close to column tone |
 
 ## Handoff log
 
