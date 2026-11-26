@@ -123,7 +123,7 @@ export function HabitForm({
   const peopleCount = who === "me" ? 1 : selectedIds.length;
   const hours = track === "hours";
   const canCarry = !hours && canCarryOver(schedule.schedule, schedule.days);
-  const canBePrivate = !(who === "me" && soloId !== viewerId) && canBePrivateWith(peopleCount); // not on another person's item (mission 86, D6)
+  const canBePrivate = (who === "me" ? soloId === viewerId : selectedIds[0] === viewerId) && canBePrivateWith(peopleCount); // only the viewer's own item (mission 86, D6)
 
   function pickWho(next: HabitWho) {
     setWho(next);

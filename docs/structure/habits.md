@@ -247,7 +247,10 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `?person=` value (`personParam`), the chips (`managePersonChips`) and the
   Manage, New, Edit and chart addresses (`manageHref`, `newHabitHref`,
   `editHabitHref`, `choreChartHref`), every one that carries `?person=`; a
-  hand-built `/habits/` address with `?person=` anywhere else is a BLOCKER.
+  hand-built Manage, New, Edit or chart address with `?person=` anywhere else
+  is a BLOCKER (the Report's lives in `reportHref`, `/habits`' in
+  `habitsHref`). `HabitManager` also imports the pure `habits/habitRows.ts`
+  for `refillSlots`.
   Client components (`HabitsDayView`, `HabitManager`, `ChoreChart`,
   `ChoreChartSheet`) may import it. `personChipsFor` (`choreChart.ts`) is the
   one chip order-and-name rule for the chart, Report and Manage; each caller
@@ -317,9 +320,9 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   new habit words stay there while its code is well under the cap, past
   about 300 code lines a concern gets its own file, and an exported word
   is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
-  387 (304 code; mission-79 added stars plumbing only),
+  387 (304 code),
   `habitsReportScope.ts` 275, `HabitForm.tsx` 350 (296 code),
-  `habitsRead.ts` 406 (303 code), `habitsFamily.ts` 360 (its stats-page data is
+  `habitsRead.ts` 406 (303 code; the next habits mission should plan its split), `habitsFamily.ts` 360 (its stats-page data is
   the split seam), and the tests `habitsStats.test.ts` 426,
   `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
   `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and

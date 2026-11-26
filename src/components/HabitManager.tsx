@@ -118,7 +118,7 @@ export function HabitManager({
   const [state, applyOptimistic] = useOptimistic<ManagerState, ManagerChange>({ active, archived }, applyManagerChange);
   const { run, error } = useOptimisticRun(applyOptimistic);
 
-  function reorderWithin(kind: HabitManagerItem["kind"], groupIds: string[]) {
+  function reorderWithin(groupIds: string[]) {
     // Put the group's new order into the slots the group held in the full list.
     const ids = refillSlots(state.active.map((item) => item.id), groupIds);
     run({ type: "order", ids }, () => reorderHabits(ids, personParam ?? undefined));
@@ -167,7 +167,7 @@ export function HabitManager({
                 <SortableList
                   items={group.items}
                   label={(item) => item.title}
-                  onReorder={(ids) => reorderWithin(group.kind, ids)}
+                  onReorder={(ids) => reorderWithin(ids)}
                   className="divide-y divide-line"
                   itemClassName="flex min-h-15 items-center gap-3"
                   renderItem={(item, { grip }) => (
