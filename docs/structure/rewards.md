@@ -48,9 +48,12 @@ code lines; past that a concern gets its own
   (`shownBanks`); a component adding the two itself is a BLOCKER (R2's
   count-up reads the helper). `habitChanges.ts` never learns stars.
 - `starMotion.ts` (mission 80): the star flight's numbers and shapes
-  (`RING_STARS`, the timings, `ringOffsets`, `flightKeyframes`,
-  `landsAfterMs`) and `countUpValue`, the only count-up step. A flight
-  timing or ring shape typed in a component is a BLOCKER.
+  (`RING_STARS`, `RING_RADIUS_REM`, the timings and `FLIGHT_EASING`,
+  `ringOffsets`, `flightKeyframes`, `landsAfterMs`,
+  `landingClearsAfterMs`), the all-done words' `ALL_DONE_WORDS_MS` and
+  `CONFETTI_Z_INDEX`, and `countUpValue`, the only count-up step. A flight
+  timing, ring shape or celebration layer number typed in a component is a
+  BLOCKER.
 - R3 to R5 add `rewardRules.ts`, `rewardEmoji.ts`, `pinPolicy.ts` and
   `starHistory.ts` here, each pure with its own test.
 
@@ -113,7 +116,8 @@ themselves.
 follow the flat `src/components/` rule.
 
 **The star flight (mission 80).** `src/lib/starFlights.ts`
-(`starPayments`) is the only "who gains what from this tap" answer: it is
+(`starPayments`, and `takeBackPayments` for a failed check's cancel) is
+the only "who gains what from this tap" answer: it is
 `starDiff` over the row before and after `applyHabitChange`, so a tap's
 flight and the bank's optimistic number come from the one pay rule. It
 sits at the top of `src/lib/` because it imports `habitChanges.ts`, which
@@ -131,9 +135,13 @@ is a per-login preference (not a `RewardSettings` column): read in
 `saveTabletCelebrations` (every active device login, the tablet start
 page precedent), and the tablet's value is read only by
 `loadTabletCelebrations` in `src/lib/tabletCelebrationsRead.ts`. Only
-`StarFlightLayer` reads the switch (`useCelebrations()`); the flight, the
-count-up and `HabitConfetti` take it from there. Reduce Motion is read with
-`usePrefersReducedMotion` and always wins over the switch.
+`StarFlightLayer` is the only client reader of the switch
+(`useCelebrations()`); the flight, the count-up and `HabitConfetti` take it
+from there. The actions live in `src/app/actions/preferences.ts`. Reduce
+Motion always wins over the switch and has two readers:
+`StarFlightLayer` uses `src/lib/usePrefersReducedMotion.ts`, and
+`HabitConfetti` calls `matchMedia` once when it fires, on purpose (the
+hook's first value on a fresh load is the server's guess, false).
 
 **Tests.** `src/lib/rewards/*.test.ts` is in `package.json`'s test
 script, both CI timezone steps and the AGENTS.md command (mission-79/C1).

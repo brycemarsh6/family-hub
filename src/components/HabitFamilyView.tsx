@@ -13,7 +13,7 @@ import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import type { LateStars } from "@/lib/rewardVocabulary";
 import { shownBanks, starDiff } from "@/lib/rewards/starDiff";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
-import { starPayments } from "@/lib/starFlights";
+import { starPayments, takeBackPayments } from "@/lib/starFlights";
 import { useStarFlight } from "./StarFlightLayer";
 
 /** A tap applied to every place the habit shows: each Together row and each column (an Each habit's `userId` keeps it to one person's own flags). */
@@ -101,9 +101,11 @@ export function HabitFamilyView({
     }
     const change = { habitId: row.id, userId: row.logForId };
     // The flight first (who the tap pays, over every row it reaches), then the save exactly as before.
-    fly(from ?? null, starPayments(pageRows(state), { ...change, type: row.doneToday ? "uncheck" : "check" }, lateStars));
-    if (row.doneToday) run({ ...change, type: "uncheck" }, () => uncheckHabit(row.id, row.logForId, dayOf(row)));
-    else run({ ...change, type: "check" }, () => checkHabit(row.id, row.logForId, dayOf(row)));
+    const payments = starPayments(pageRows(state), { ...change, type: row.doneToday ? "uncheck" : "check" }, lateStars);
+    fly(from ?? null, payments);
+    if (row.doneToday) return run({ ...change, type: "uncheck" }, () => uncheckHabit(row.id, row.logForId, dayOf(row)));
+    // A failed save cancels any ring still in the air for these people.
+    run({ ...change, type: "check" }, () => checkHabit(row.id, row.logForId, dayOf(row)), undefined, () => fly(null, takeBackPayments(payments)));
   }
 
   return (

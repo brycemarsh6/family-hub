@@ -12,6 +12,16 @@ export const STAGGER_MS = 30;
 export const COUNT_MS = 400;
 /** How far through a flight the star has popped out to its ring spot. */
 export const POP_AT = 0.3;
+/** The ring's radius round the tapped button, in rem so a larger Text size grows it too. */
+export const RING_RADIUS_REM = 2.25;
+/** The easing every star's flight uses. */
+export const FLIGHT_EASING = "ease-in-out";
+/** Keeps the count-up's landing time after the count is over, in case a late render reads it. */
+export const LANDING_GRACE_MS = 200;
+/** How long the all-done words stay up. */
+export const ALL_DONE_WORDS_MS = 3000;
+/** The confetti's z-index: above the sheets (z-60, z-61), below the all-done words and the flight layer (z-70). */
+export const CONFETTI_Z_INDEX = 65;
 
 export type Point = { x: number; y: number };
 
@@ -52,6 +62,11 @@ export function flightKeyframes(from: Point, to: Point | null, ringOffset: Point
 /** When the count-up should start, counted from the tap: star `index` has landed by then. */
 export function landsAfterMs(index: number): number {
   return Math.max(0, index) * STAGGER_MS + FLIGHT_MS;
+}
+
+/** How long after a tap a person's landing is kept: the last star lands, the count runs, then a short grace. */
+export function landingClearsAfterMs(): number {
+  return landsAfterMs(RING_STARS - 1) + COUNT_MS + LANDING_GRACE_MS;
 }
 
 /** The number to show `elapsedMs` into a count from `from` to `to`: a whole number, never past `to`, at `from` for a 0 or negative elapsed. */

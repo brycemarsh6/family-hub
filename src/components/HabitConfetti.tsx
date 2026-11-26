@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { getConfettiDay, setConfettiDay } from "@/lib/confettiSeen";
 import { ALL_DONE_LINE } from "@/lib/habitVocabulary";
+import { ALL_DONE_WORDS_MS, CONFETTI_Z_INDEX } from "@/lib/rewards/starMotion";
 import { useCelebrations } from "./StarFlightLayer";
-
-/** How long the all-done words stay up. */
-const WORDS_MS = 3000;
 
 /**
  * The one celebration (decisions 76 and 99, the words added in mission 80): a
@@ -33,7 +31,7 @@ export function HabitConfetti({ fire, today }: { fire: boolean; today: string })
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       import("canvas-confetti")
         .then(({ default: confetti }) => {
-          confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 }, disableForReducedMotion: true });
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.7 }, zIndex: CONFETTI_Z_INDEX, disableForReducedMotion: true });
         })
         .catch(() => {
           // The celebration is a bonus: a failed download is not worth a message.
@@ -43,14 +41,14 @@ export function HabitConfetti({ fire, today }: { fire: boolean; today: string })
 
   useEffect(() => {
     if (!showWords) return;
-    const hide = window.setTimeout(() => setShowWords(false), WORDS_MS);
+    const hide = window.setTimeout(() => setShowWords(false), ALL_DONE_WORDS_MS);
     return () => window.clearTimeout(hide);
   }, [showWords]);
 
   if (!showWords) return null;
   return (
     <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-      <p role="status" className="rounded-full border border-line bg-surface px-6 py-3 text-center text-xl font-bold text-fg">
+      <p role="status" className="rounded-full bg-fg px-6 py-3 text-center text-xl font-bold text-bg">
         {ALL_DONE_LINE}
       </p>
     </div>

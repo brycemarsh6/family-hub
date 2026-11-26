@@ -346,13 +346,17 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
 - **The star flight and the all-done words** (Bryce, 2026-11-24, from the
   mission-80 mock). A check that pays stars sends a ring of 8 filled
   `--star` stars out round the tapped check; they fly to that person's star
-  bank, shrinking, and the number counts up (about 1 second in all). Every
-  participant paid gets their own ring. With no bank on screen (a dashboard
-  tile) the ring pops in place and fades. An un-check never flies, and the
+  bank, shrinking, and the number counts up (about 1 second in all). Each
+  person paid whose star bank is on screen gets their own ring, flying to
+  their bank. Anyone paid whose bank is not on screen (a dashboard tile) is
+  shown by one shared ring that pops in place where the tap was and fades
+  (decided by Hill, 2026-11-25). A save that fails cancels any ring still
+  in the air. An un-check never flies, and the
   number drops at once. The flight sits on a layer that never takes taps,
   so a second tap mid-flight always works. When every required item is
-  done, the daily confetti falls behind a centred pill, "You did it! All
-  done today." (`ALL_DONE_LINE`), gone after 3 seconds; it never takes
+  done, the daily confetti falls behind a centred pill (the inverted
+  `bg-fg text-bg` look the `UndoBar` uses; decided by Hill), "You did it!
+  All done today." (`ALL_DONE_LINE`), gone after 3 seconds; it never takes
   taps either. This replaces habits-plan decision 99 ("Confetti has no
   words"). One per-login switch, **Celebrations** ("Flying stars and the
   all-done confetti"), turns off the flight, the count-up, the confetti and

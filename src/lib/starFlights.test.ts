@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starPayments } from "./starFlights";
+import { starPayments, takeBackPayments } from "./starFlights";
 import type { HabitMemberState, HabitRowState } from "./habitChanges";
 import type { StarDiffRow } from "./rewards/starDiff";
 
@@ -59,4 +59,13 @@ test("a habit with no stars, or 0 stars, pays nothing", () => {
 
 test("a change to another habit pays nothing", () => {
   assert.deepEqual(starPayments([row({ id: "h" })], { type: "check", habitId: "other", userId: "a" }, "full"), {});
+});
+
+test("takeBackPayments makes every positive amount negative", () => {
+  assert.deepEqual(takeBackPayments({ a: 3, b: 1 }), { a: -3, b: -1 });
+});
+
+test("takeBackPayments drops zero and negative amounts", () => {
+  assert.deepEqual(takeBackPayments({ a: 2, b: 0, c: -4 }), { a: -2 });
+  assert.deepEqual(takeBackPayments({}), {});
 });

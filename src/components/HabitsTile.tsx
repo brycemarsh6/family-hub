@@ -13,7 +13,7 @@ import { keepShownRows } from "@/lib/habitsDashboard";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
-import { starPayments } from "@/lib/starFlights";
+import { starPayments, takeBackPayments } from "@/lib/starFlights";
 import type { LateStars } from "@/lib/rewardVocabulary";
 
 /**
@@ -26,7 +26,7 @@ import type { LateStars } from "@/lib/rewardVocabulary";
  */
 export function habitRowTaps(
   row: HabitRowView,
-  run: (change: HabitChange, action: () => Promise<{ error?: string }>) => void,
+  run: (change: HabitChange, action: () => Promise<{ error?: string }>, onSuccess?: () => void, onError?: (message: string) => void) => void,
   openLog: ((row: HabitRowView) => void) | undefined,
   stars: { fly: StarFlight; lateStars: LateStars },
 ) {
@@ -35,9 +35,11 @@ export function habitRowTaps(
     onToggle: (from?: HTMLElement) => {
       if (row.hours) return openLog?.(row);
       const change: HabitChange = { type: row.doneToday ? "uncheck" : "check", habitId: row.id };
-      stars.fly(from ?? null, starPayments([row], change, stars.lateStars));
+      const payments = starPayments([row], change, stars.lateStars);
+      stars.fly(from ?? null, payments);
       if (row.doneToday) return run(change, () => uncheckHabit(row.id, undefined, day));
-      run(change, () => checkHabit(row.id, undefined, day));
+      // A failed save cancels any ring still in the air for these people.
+      run(change, () => checkHabit(row.id, undefined, day), undefined, () => stars.fly(null, takeBackPayments(payments)));
     },
     onSkip: () =>
       run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, day)),

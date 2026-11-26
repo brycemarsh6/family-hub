@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Star } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
-import { COUNT_MS, FLIGHT_MS, RING_STARS, STAGGER_MS, flightKeyframes, landsAfterMs, ringOffsets, type Point } from "@/lib/rewards/starMotion";
+import { FLIGHT_EASING, FLIGHT_MS, RING_RADIUS_REM, RING_STARS, STAGGER_MS, flightKeyframes, landingClearsAfterMs, landsAfterMs, ringOffsets, type Point } from "@/lib/rewards/starMotion";
 
 // The star flight (mission 80): the only place stars are animated. A paying
 // check calls `fly(button, payments)` before it saves; a ring of gold stars
@@ -14,11 +14,6 @@ import { COUNT_MS, FLIGHT_MS, RING_STARS, STAGGER_MS, flightKeyframes, landsAfte
 
 /** `payments` is per person: positive pays (flies), negative takes back (cancels what is in the air). */
 export type StarFlight = (from: HTMLElement | null, payments: Record<string, number>) => void;
-
-/** Round the button, in rem so a larger Text size grows the ring too. */
-const RING_RADIUS_REM = 2.25;
-/** Keeps the count-up's landing time after the count is over, in case a late render reads it. */
-const LANDING_GRACE_MS = 200;
 
 const CelebrationsContext = createContext(true);
 const FlightContext = createContext<StarFlight>(() => {});
@@ -56,7 +51,7 @@ function FlightStarView({ star, onDone }: { star: FlightStar; onDone: (key: numb
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const animation = el.animate(flightKeyframes(star.from, star.to, star.offset), { duration: FLIGHT_MS, delay: star.index * STAGGER_MS, fill: "both", easing: "ease-in-out" });
+    const animation = el.animate(flightKeyframes(star.from, star.to, star.offset), { duration: FLIGHT_MS, delay: star.index * STAGGER_MS, fill: "both", easing: FLIGHT_EASING });
     animation.onfinish = () => onDone(star.key);
     return () => animation.cancel();
   }, [star, onDone]);
@@ -128,7 +123,7 @@ export function StarFlightLayer({ enabled, children }: { enabled: boolean; child
           if (old !== undefined) window.clearTimeout(old);
           expiry.current.set(
             userId,
-            window.setTimeout(() => clearLanding(userId), landsAfterMs(RING_STARS - 1) + COUNT_MS + LANDING_GRACE_MS),
+            window.setTimeout(() => clearLanding(userId), landingClearsAfterMs()),
           );
           setLandings((prev) => ({ ...prev, [userId]: startAt }));
         }

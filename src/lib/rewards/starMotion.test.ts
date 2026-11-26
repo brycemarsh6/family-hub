@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { COUNT_MS, FLIGHT_MS, POP_AT, RING_STARS, STAGGER_MS, countUpValue, flightKeyframes, landsAfterMs, ringOffsets } from "./starMotion";
+import { CONFETTI_Z_INDEX, COUNT_MS, FLIGHT_MS, POP_AT, RING_STARS, STAGGER_MS, countUpValue, flightKeyframes, landingClearsAfterMs, landsAfterMs, ringOffsets } from "./starMotion";
 
 const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`);
 
@@ -87,4 +87,12 @@ test("countUpValue with from greater than to walks down and never below to", () 
 
 test("countUpValue with no duration jumps straight to the target", () => {
   assert.equal(countUpValue(1, 9, 5, 0), 9);
+});
+
+test("landingClearsAfterMs is later than the last star landing plus the count", () => {
+  assert.ok(landingClearsAfterMs() > landsAfterMs(RING_STARS - 1) + COUNT_MS);
+});
+
+test("CONFETTI_Z_INDEX sits above the sheets (61) and below the flight layer and words (70)", () => {
+  assert.ok(CONFETTI_Z_INDEX > 61 && CONFETTI_Z_INDEX < 70);
 });

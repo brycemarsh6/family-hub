@@ -12,3 +12,10 @@ import { starDiff, type StarDiffRow } from "./rewards/starDiff";
 export function starPayments<T extends HabitRowState & StarDiffRow>(rows: readonly T[], change: HabitChange, lateStars: LateStars): Record<string, number> {
   return starDiff(rows, applyHabitChange([...rows], change), lateStars);
 }
+
+/** Every positive amount made negative, the rest dropped: what a failed check hands back to the flight to cancel its rings. */
+export function takeBackPayments(payments: Record<string, number>): Record<string, number> {
+  const back: Record<string, number> = {};
+  for (const [userId, amount] of Object.entries(payments)) if (amount > 0) back[userId] = -amount;
+  return back;
+}

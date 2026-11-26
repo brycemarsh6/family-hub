@@ -2,7 +2,7 @@
 
 **Project:** family-hub (Marshee)
 **Status:** AT-THE-GATES
-**Started:** 2026-11-24 · **Updated:** 2026-11-24
+**Started:** 2026-11-24 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r2-earn-animation-991ed6`, cut from main after
 PR brycemarsh6/family-hub#124 (R1) merged. R3 (mission 81) runs at the same
 time in its own session.
@@ -249,10 +249,63 @@ Fury's, after C2.
   not fly. Fury's one-line fix: `habitRowTaps`' star argument is now
   required and `PlannedTodayCard` passes `{ fly, lateStars }`.
 
+### C3 — Gate fixes: motion numbers home, confetti behind the words, cancel on a failed save, inverted pill
+
+**Status:** DONE (2026-11-25). Stark: tsc, eslint and build clean; Denver 2197 pass; UTC 2187 pass + 10 old skips; 4 tests added; no typed motion number left.
+
+1. **Objective:** Clear the pass-1 blockers (Vision + Captain: flight
+   numbers typed in `StarFlightLayer.tsx`; Strange: confetti paints over
+   the all-done words) and apply Hill's two behaviour calls (cancel the ring
+   on a failed save; the inverted pill).
+2. **Boundaries.** May touch: `src/lib/rewards/starMotion.ts`,
+   `src/lib/rewards/starMotion.test.ts`, `src/lib/starFlights.ts`,
+   `src/lib/starFlights.test.ts`, `src/components/StarFlightLayer.tsx`,
+   `src/components/HabitConfetti.tsx`, `src/components/HabitsTile.tsx`,
+   `src/components/HabitFamilyView.tsx`; `src/components/HabitTodayList.tsx`
+   and `src/components/PlannedTodayCard.tsx` only if a type change forces
+   it. Must not touch: DESIGN.md, STRUCTURE.md, `docs/`, `.avengers/`,
+   CLAUDE.md, `prisma/`, `package.json`, `src/lib/useOptimisticRun.ts`,
+   any other file.
+3. **Work:**
+   - `starMotion.ts` gains, each with a one-line doc comment:
+     `RING_RADIUS_REM = 2.25`, `FLIGHT_EASING = "ease-in-out"`,
+     `LANDING_GRACE_MS = 200`, `landingClearsAfterMs()` (returns
+     `landsAfterMs(RING_STARS - 1) + COUNT_MS + LANDING_GRACE_MS`),
+     `ALL_DONE_WORDS_MS = 3000`, `CONFETTI_Z_INDEX = 65` (above sheets at
+     z-60/61, below the pill and the flight layer at z-70). Tests: 
+     `landingClearsAfterMs()` is later than
+     `landsAfterMs(RING_STARS - 1) + COUNT_MS`; `CONFETTI_Z_INDEX` is
+     above 61 and below 70.
+   - `StarFlightLayer.tsx` imports those and types no motion number itself
+     (only the rem-to-px step stays).
+   - `HabitConfetti.tsx`: `WORDS_MS` replaced by `ALL_DONE_WORDS_MS`; the
+     `confetti(...)` call gains `zIndex: CONFETTI_Z_INDEX`; the pill's
+     classes become `rounded-full bg-fg px-6 py-3 text-center text-xl
+     font-bold text-bg` (no border, no shadow; decided by Hill). Nothing
+     else about the pill changes.
+   - Failed save (decided by Hill): `starFlights.ts` gains
+     `takeBackPayments(payments)` (every positive amount made negative,
+     others dropped), tested. In `habitRowTaps` (HabitsTile.tsx) and
+     `HabitFamilyView`'s `toggle`, a **check** passes `run` an `onError`
+     (the 4th argument `useOptimisticRun` already has) that calls
+     `fly(null, takeBackPayments(payments))`, cancelling any ring still in
+     the air for those people. An uncheck is unchanged. Widen
+     `habitRowTaps`'s `run` parameter type to accept the two optional
+     callbacks. Keep the existing success behaviour byte for byte.
+4. **Verification:** the full gauntlet (tsc, eslint, `npm test` count up
+   from 2193, the UTC command, `npm run build`); `grep -n "2.25\|200\|ease-in-out\|3000\|zIndex" src/components/StarFlightLayer.tsx src/components/HabitConfetti.tsx`
+   shows no typed motion number.
+5. **Evidence and done:** diff stat inside the boundaries, gauntlet output
+   tails, the grep output, test names added. Do not commit (Fury commits).
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 (fb464dc) | Vision | BLOCKED | Flight numbers typed in `StarFlightLayer.tsx` (`RING_RADIUS_REM`, `LANDING_GRACE_MS`, the expiry sum, the easing) belong in `starMotion.ts` | Gauntlet re-run green (Denver 2193; UTC 2183 pass + 10 old skips; build OK). A failed save still flies stars (bank number stays right). Only one ring pops when no bank is on screen. `HoursLogButton` onClick type is loose. |
+| 1 (fb464dc) | Captain | BLOCKED | Same as Vision: motion constants out of `starMotion.ts` | Move `WORDS_MS` too (optional). rewards.md wording: name both Reduce Motion readers, "the only client reader", add file paths. Settings switch row duplicated in two components. rewards.md grew 113 to 139 lines. |
+| 1 (fb464dc) | Strange | (no verdict) | | Stalled opening the preview at 23:28 on 2026-11-24 and never reported; stopped 2026-11-25 and re-dispatched (pass 1 again). |
+| 1 (fb464dc, rerun) | Strange | BLOCKED | Confetti canvas is z-index 100 (library default), above the all-done pill's z-[70], so it paints over the words; DESIGN.md says it falls behind. Fix: `zIndex: 65` in the `confetti(...)` call. | Flight lands on the right bank on every layout (iPad wide: 8 stars to each bank for a Together check); count-up lands with the stars; un-check drops at once; layer never blocks taps; switch rows match; switch off and Reduce Motion behave as written; pill contrast 8:1 light, 14:1 dark. Ruled both Vision NOTEs as NOTEs. Ring wording gap in DESIGN.md is a docs fix. Pill barely stands apart in dark (polish idea). Dev data put back; noted the R3 session also writing the same dev database. |
 
 ## Handoff log
 
@@ -275,6 +328,33 @@ Fury's, after C2.
 - 2026-11-24 — C2 done; Fury wired `PlannedTodayCard` and made the star
   argument required. Committed; Vision, Captain and Strange dispatched in
   parallel (all read-only).
+
+- 2026-11-25 — Vision and Captain pass 1 recorded (both BLOCKED on the
+  same motion-constants finding). Strange had stalled overnight with no
+  report; stopped and re-dispatched at fb464dc. **Bryce is back and took
+  over from Hill: Hill is dismissed.** Content and design calls go to
+  Bryce again. No calls were made by Hill this mission.
+- 2026-11-25 (later) — **Bryce put Hill back in charge**, in this chat:
+  "I am having Hill now take over", on **Opus 5.5 with high effort**
+  (dispatch Hill with `model: "opus"`, `effort: "high"`). This is Bryce's
+  direct instruction, so it holds even outside bypass mode. Content and
+  design calls go to Hill and are recorded as "decided by Hill"; logins,
+  real-device tests, money and the danger register still wait for Bryce.
+- 2026-11-25 — Strange pass 1 BLOCKED (confetti over the words). Three
+  design calls sent to Hill: cancel the ring on a failed save, the DESIGN.md
+  ring wording, the pill's look in dark mode.
+- 2026-11-25 — **Decided by Hill** (Bryce to review; Opus 5.5, high
+  effort): (1) a failed save cancels any ring still in the air (Option B);
+  (2) DESIGN.md wording: "Each person paid whose star bank is on screen
+  gets their own ring, flying to their bank. Anyone paid whose bank is not
+  on screen (a dashboard tile) is shown by one shared ring that pops in
+  place where the tap was and fades."; (3) the all-done pill takes the
+  UndoBar's inverted `bg-fg text-bg` look, no border, no shadow (medium
+  confidence: Bryce should check it on his phone in dark mode first).
+  C2's pill tokens are superseded by this. Bryce back online; C3 written
+  and dispatched.
+- Fixes held until Strange reports, so all blockers go to Stark in one
+  contract (C3) and the gates re-run once.
 
 ## Delivery
 
