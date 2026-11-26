@@ -1,6 +1,6 @@
 # Mission 94: family copies PR 7, welcome steps, install help, checklist
 
-**Status:** INTERROGATE, waiting on Bryce's answers to the mock questions (D1).
+**Status:** EXECUTE (D1 answered; contracts C1 then C2).
 **Branch:** `claude/family-copies-pr7-welcome`, cut from `origin/main` at d85d5b0 (PR 6 merged).
 **Plan:** `.avengers/plans/family-copies-v1.md`, section "PR 7".
 **Mock:** `.avengers/mocks/family-copies-pr7-welcome-mock.html` (questions Q1 to Q6, each with a recommendation).
@@ -52,4 +52,67 @@ line from AGENTS.md, `npm run build`.
 
 ## Decisions
 
-(D1 pending.)
+- **D1 (Bryce, 2026-11-26, via the planning chat):** "Yes to the six questions". All six
+  mock recommendations stand: Welcome order (family, then install); step 1 skippable; iPhone and
+  iPad install help, no Android yet; the card is admin only, pinned above the widgets, outside
+  Customize; five items (Add your family, Pick your stores, Add pantry items, Set up a wall
+  tablet (Optional), Link Google Calendar (Optional, hidden unless Google is configured)) that
+  tick themselves; "You're all set" + Done once the three required items are done; "Hide this"
+  always; both hide it family wide for good; never on the owner copy; "Install on your phone"
+  row in Settings for every login, opening `/settings/install`.
+- **Visibility rule (Fury, structure):** card shows when `setupFinished()` AND
+  `checklistDismissedAt` is null AND NOT `isOwnerCopy()` AND the viewer's role is `admin`.
+  Setup can't run on the owner copy, so setup-finished alone already keeps it off Bryce's copy;
+  the owner check is the second lock against a stray row.
+
+## Contracts
+
+### C1. Logic, data, landing, manifest (no visible screens)
+
+- **Objective:** everything the screens need, tested, with no UI yet.
+- **May touch:** new `src/lib/setupChecklist.ts` + `src/lib/setupChecklist.test.ts` (pure:
+  `setupChecklistItems(facts)` returning the five rows in mock order, each
+  `{ id, label, href, optional, done }`, Google row left out when `googleConfigured` is false;
+  `checklistAllRequiredDone(items)`; `showSetupChecklist({ isOwner, setupFinished, dismissed, role })`);
+  `src/lib/householdSettingsRead.ts` (add `checklistDismissed()`); `src/lib/householdSettingsWrites.ts`
+  (add `dismissSetupChecklist(actorUserId)`, upsert-safe); a new loader `loadSetupChecklist()` in a
+  new `src/lib/setupChecklistRead.ts` that gathers the facts (other active non-device users,
+  stores non-blank, any `PantryItem`, an active `device` user, any `LinkedAccount`,
+  `isGoogleConfigured()`), all reads in one `Promise.all`; new `src/app/actions/setupChecklist.ts`
+  with `dismissSetupChecklistAction()` (`requireRole("admin")` first, then revalidate `/`);
+  `src/app/actions/auth.ts` (`login` honours an optional `after` field ONLY when it equals
+  exactly `/welcome`; anything else is ignored, never an open redirect);
+  `src/app/setup/SetupWizard.tsx` (Continue adds `after=/welcome`); words: new
+  `src/lib/welcomeVocabulary.ts` holding every string from the mock for welcome, install help,
+  the checklist and the Settings row (copy exactly, no em dashes); `src/app/manifest.ts` plus new
+  `public/icons/icon-192.png` and `public/icons/icon-512.png` made with `sips -z` from
+  `src/app/icon.png` (a resize of the generated master, never a redraw), listed with
+  `purpose: "any"`, keeping the 1024 entry.
+- **Must not touch:** `/settings/calendars`, `prisma/schema.prisma`, any migration, dashboard
+  components, `package.json` (the new test sits in `src/lib/`, already globbed).
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test`, the direct TZ=UTC line.
+  Tests cover: rows and order; Google row hidden when not configured; each tick; all-required-done
+  ignores the optional rows; `showSetupChecklist` false for owner, not finished, dismissed,
+  parent, kid, device, true only for admin on a set-up, undismissed, non-owner copy; the `after`
+  allowlist (put the check in a tiny pure helper in `src/lib/startPage.ts`, e.g.
+  `postLoginPath(after, startPage)`, and test `/welcome`, `//evil.com`, `https://x`, `/welcome?x`).
+- **Evidence:** command tails, test counts before and after, `sips -g pixelWidth` of both icons.
+- **Done:** all green, no `db.householdSettings` call outside the two household files.
+
+### C2. Screens (after C1)
+
+- **Objective:** the mock's screens wired to C1.
+- **May touch:** new `src/app/(app)/welcome/page.tsx` (server: `requireRole("admin")`, loads
+  people) + `src/components/WelcomeSteps.tsx` (client: two steps, dots, reuses
+  `CreatePersonSheet` unchanged, list adds people as `onCreated` fires, "Next", back link to step 1,
+  "Go to my dashboard" to `/`); new `src/components/InstallHelp.tsx` (iPhone/iPad switch defaulting
+  from the device via `useSyncExternalStore`, three steps, Lucide `Share` and `SquarePlus` icons);
+  new `src/app/(app)/settings/install/page.tsx` (BackLink to Settings + InstallHelp);
+  `src/app/(app)/settings/page.tsx` (one row, order-2 group, Lucide `Smartphone`);
+  new `src/components/SetupChecklistCard.tsx` and its wiring in `src/app/(app)/(home)/page.tsx`
+  (rendered above the widget grid only when `showSetupChecklist` is true; optimistic hide on
+  "Hide this" and "Done"). Welcome must hide the drawer button like setup does if the layout
+  allows it cheaply; if it needs a layout change, report instead of improvising.
+- **Must not touch:** `/settings/calendars`, dashboard registry/layout files, `CreatePersonSheet`.
+- **Verification:** gauntlet + `npm run build`; screenshots on a 390px viewport of each mock frame.
+- **Done:** matches the mock, rem sizes, 48px targets, DESIGN.md rules.

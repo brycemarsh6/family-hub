@@ -142,3 +142,13 @@ export async function saveRecoveryCodeHash(hash: string, actorUserId: string): P
     update: { recoveryCodeHash: hash, updatedById: actorUserId },
   });
 }
+
+/** Hides the "Finish setting up" card for the whole family (the row is made if missing). */
+export async function dismissSetupChecklist(actorUserId: string): Promise<void> {
+  const now = new Date();
+  await db.householdSettings.upsert({
+    where: { id: "household" },
+    create: { id: "household", checklistDismissedAt: now, updatedById: actorUserId },
+    update: { checklistDismissedAt: now, updatedById: actorUserId },
+  });
+}

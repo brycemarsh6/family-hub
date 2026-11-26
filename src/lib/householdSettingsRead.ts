@@ -50,3 +50,21 @@ export async function recoveryCodeHash(): Promise<string | null> {
 export async function hasRecoveryCode(): Promise<boolean> {
   return (await recoveryCodeHash()) !== null;
 }
+
+/** True once the family has hidden the "Finish setting up" card. Errors propagate. */
+export async function checklistDismissed(): Promise<boolean> {
+  const row = await db.householdSettings.findUnique({
+    where: { id: "household" },
+    select: { checklistDismissedAt: true },
+  });
+  return row?.checklistDismissedAt != null;
+}
+
+/** True once the Stores screen has saved a list (even the built-in six). Errors propagate. */
+export async function storesSaved(): Promise<boolean> {
+  const row = await db.householdSettings.findUnique({
+    where: { id: "household" },
+    select: { stores: true },
+  });
+  return (row?.stores?.trim() ?? "") !== "";
+}

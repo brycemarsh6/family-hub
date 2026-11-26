@@ -20,7 +20,7 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { matchesAnyHash } from "@/lib/adminPasswordMatch";
 import { isLoginRateLimited, recordLoginAttempt } from "@/lib/loginRateLimit";
-import { toStartPage } from "@/lib/startPage";
+import { postLoginPath } from "@/lib/startPage";
 import { clientIp } from "@/lib/clientIp";
 import { resetWithRecoveryCodeFlow, type RecoveryResult } from "@/lib/recoveryFlow";
 
@@ -98,7 +98,7 @@ export async function login(
 
   // redirect() works by throwing a signal Next.js catches, so it must sit
   // outside any try/catch — there isn't one here, which is why.
-  redirect(toStartPage(user!.preferences?.startPage));
+  redirect(postLoginPath(formData.get("after"), user!.preferences?.startPage));
 }
 
 export async function logout(): Promise<void> {
