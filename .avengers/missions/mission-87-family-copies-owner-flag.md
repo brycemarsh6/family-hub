@@ -1,7 +1,7 @@
 # Mission 87: family copies PR 3, owner flag and neutral wording
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr3-owner-flag` (cut fresh from `main`)
 **Plan:** `.avengers/plans/family-copies-v1.md`, PR 3
@@ -126,6 +126,36 @@ From AGENTS.md, absolute for every agent:
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | PASS | none | 4 NOTES (below) |
+| 1 | Strange | PASS | none | 4 NOTES (below) |
+
+Both gates ran on 8fb1256.
+
+- **Vision** re-ran the full gauntlet himself: tsc, eslint and build exit 0;
+  `npm test` 2286/2286; the direct TZ=UTC command gave 2286 with 10 skipped.
+  The 10 skips are DST-conditional tests that already exist on 81dbcc6.
+  Hunt: voice and Alexa gate before any request data; the briefing still
+  checks CRON_SECRET first. `sendWinnieEvent` has only the two gated
+  callers. `src/lib/voice/*` is used only by the two gated routes. The
+  client bundle builds fine with `server-only`. Wording matches exactly.
+  NOTES:
+  - The parser accepts only a trimmed `1`. Bryce confirmed on 2026-11-26
+    that the value is exactly 1.
+  - A GET to voice or Alexa in a relative's copy gets Next's 405, not 404.
+    This leaks nothing.
+  - DESIGN.md is 770 lines (markdown).
+  - The mission file is in the diff.
+- **Strange** tested on port 3100 (another worktree held 3000), first with
+  the flag off, then with it on. Screens checked: iPhone 393 and 375, iPad
+  820x1180 and 1180x820. With the flag off, Settings has no hole and both
+  iPad columns end level. With the flag on, the Winnie card is back exactly
+  as on main. `/privacy` and the manifest read correctly. Nothing was
+  written to the database and no login was attempted. NOTES:
+  - On phone, "sign-up" wraps at its hyphen. This is normal.
+  - The lockout text fits DESIGN.md's error rule, and "admin" is the
+    app's existing role label.
+  - The manifest text is accurate.
+  - DESIGN.md and the privacy page agree.
 
 ## Handoff log
 
@@ -133,6 +163,7 @@ From AGENTS.md, absolute for every agent:
   C1 written. Wording drafts going to Bryce.
 - 2026-11-26: C1 DONE (dde3ee2). Bryce signed off all wording (humanizer pass first). C2 dispatched.
 - 2026-11-26: C2 DONE. Bryce says MARSHEE_OWNER_COPY=1 is added; Fury confirmed through the Vercel connection that the key exists on Production only (value is Sensitive, so unreadable; Bryce asked to make sure it is exactly 1). Bryce did not redeploy, which is fine: the merge deploy reads it. Gates next.
+- 2026-11-26: Vision PASS, Strange PASS (pass 1 each). Bryce confirmed the Vercel value is exactly 1. Merged origin/main (PR 1, #135) cleanly. CLAUDE.md status line updated (no net growth). Next: push, PR, Gauntlet, merge, production check.
 
 ## Delivery
 
