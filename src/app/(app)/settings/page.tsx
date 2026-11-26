@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Store, Tablet, Users } from "lucide-react";
+import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Smartphone, Store, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { AiUsageCard } from "@/components/AiUsageCard";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
@@ -27,6 +27,7 @@ import { hasRecoveryCode, householdStores } from "@/lib/householdSettingsRead";
 import { isOwnerCopy } from "@/lib/copyConfig";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
 import { loadAiUsageCard } from "@/lib/aiUsageRead";
+import { INSTALL_ROW_WORDS } from "@/lib/welcomeVocabulary";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export const dynamic = "force-dynamic";
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
  * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Stores, Feedback, Recovery code, Sign out. Right:
  * Habits & Chores, Vacation then Rewards, AI features (parents and admins), Winnie. A phone keeps one column in this order:
- * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos, Wall tablet and Stores (they
+ * 1 account card, 2 Menu style, Text size, Open Marshee on, Install on your phone, 3 Manage family, Synced calendars, then Slideshow photos, Wall tablet and Stores (they
  * share order-3, so source order decides), 4 Feedback then Recovery code (they share order-4, so source order decides), 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
  * 7 AI features (parents and admins) then Winnie (they share order-7, so source order decides), 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
@@ -89,6 +90,16 @@ export default async function SettingsPage() {
               <NavModeSetting navMode={user.navMode} />
               <TextSizeSetting textSize={user.textSize} />
               {!user.isDevice && <StartPageSetting startPage={user.startPage} forTablet={false} />}
+              <Link
+                href="/settings/install"
+                className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+              >
+                <span className="flex items-center gap-3">
+                  <Smartphone aria-hidden="true" size={22} className="shrink-0 text-muted" />
+                  {INSTALL_ROW_WORDS.label}
+                </span>
+                <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+              </Link>
             </div>
 
             {user.role === "admin" && (

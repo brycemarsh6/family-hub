@@ -11,6 +11,7 @@ import { PlannedTodayCard } from "@/components/PlannedTodayCard";
 import TodayMealsTile from "@/components/TodayMealsTile";
 import CalendarWidgetTile from "@/components/CalendarWidgetTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
+import { SetupChecklistCard } from "@/components/SetupChecklistCard";
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout, type DashboardWidget } from "@/lib/dashboardLayout";
@@ -28,6 +29,7 @@ import { householdToday } from "@/lib/assistant/today";
 import { goalsTileFor, loadGoalsTile } from "@/lib/goalsRead";
 import { habitsTileFor, loadDashboardHabits } from "@/lib/habitsRead";
 import { loadLateStars } from "@/lib/rewardSettingsRead";
+import { loadSetupChecklist } from "@/lib/setupChecklistRead";
 
 // "force-dynamic" tells Next.js: never serve a cached copy of this page,
 // always rebuild it from the database. Without it, Next would happily show
@@ -79,7 +81,7 @@ export default async function DashboardPage() {
   // picker has its list even before a Goals widget is on the layout. Habits & Chores read the same rows Today does and have no widget on
   // the tablet; the cards above the tiles (nudges and the rest) need them
   // whenever the viewer is not a device, with or without a Habits widget.
-  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData, calendarData, lateStars] = await Promise.all([
+  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData, calendarData, lateStars, checklist] = await Promise.all([
     kinds.has("todayMeals") ? loadMealPlans(serverNow) : null,
     kinds.has("inventory") ? loadInventorySummary(serverNow) : null,
     kinds.has("grocery") ? loadGrocerySummary() : null,
@@ -89,6 +91,8 @@ export default async function DashboardPage() {
     // Every Calendar widget shares this one padded read; the browser decides today (see loadCalendarWidget).
     user && kinds.has("calendar") ? loadCalendarWidget({ userId: user.userId, role: user.role }, goalsToday) : null,
     loadLateStars(),
+    // Null unless an admin on a set-up copy still has the card (the loader checks everything else).
+    user && !user.isDevice ? loadSetupChecklist(user.role) : null,
   ]);
 
   // One tile per widget, keyed by its uid. A widget whose data is missing
@@ -240,12 +244,20 @@ export default async function DashboardPage() {
     ) : null;
 
   return (
-    <DashboardWidgetList
-      layout={renderable}
-      tiles={tiles}
-      notes={notes}
-      pickable={{ habits: habitsData?.pickable ?? [], goals: goalsData?.pickable ?? [] }}
-      canCustomize={!isDevice}
-    />
+    <>
+      {/* Pinned above the widgets, outside Customize: it is temporary, and saved layouts never gain new kinds. */}
+      {checklist && (
+        <div data-page-width="wide" className="pt-4">
+          <SetupChecklistCard items={checklist.items} allRequiredDone={checklist.allRequiredDone} />
+        </div>
+      )}
+      <DashboardWidgetList
+        layout={renderable}
+        tiles={tiles}
+        notes={notes}
+        pickable={{ habits: habitsData?.pickable ?? [], goals: goalsData?.pickable ?? [] }}
+        canCustomize={!isDevice}
+      />
+    </>
   );
 }

@@ -15,7 +15,7 @@ a one-line pointer.
 
 | Path | What lives here | What never lives here |
 |---|---|---|
-| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout | Pages needing a genuinely chrome-free root layout; those get their own top-level folder beside `(app)`, as `src/app/share/`, `src/app/privacy/` and `src/app/setup/` do |
+| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout. `/welcome` keeps the chrome but shows no menu (`hidesMenu` in `src/lib/appChrome.ts`) | Pages needing a genuinely chrome-free root layout; those get their own top-level folder beside `(app)`, as `src/app/share/`, `src/app/privacy/` and `src/app/setup/` do |
 | `src/app/privacy/` | The one public static policy page (own root layout, no chrome, indexable) | Anything session-dependent |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/setup/` | A relative's first-run setup page (own root layout like `/privacy`, no chrome, `noindex`; `notFound()` unless `isSetupOpen()`; no `loading.tsx`, so the 404 is a real HTTP 404 and not a 200 with a not-found screen) | A `loading.tsx`; any session read |
@@ -27,6 +27,7 @@ a one-line pointer.
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
 | `prisma/` | Schema, **additive-only** migrations, the Vercel build hook (`migrate-on-production.mjs` — applies migrations to production at release time, and nowhere else, after first refusing a bad `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` on every build), the CI-only empty-database checks (`fresh-db-smoke.ts`, and `setup-attack-smoke.ts`, which also refuses a non-empty `User` table and deletes only `LoginAttempt` rows; both refuse any host but localhost), scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
 | `brand/` | Master brand vectors (`marshee-mark.svg`, `marshee-wordmark.svg`, `marshee-app-icon.svg`) — the source every other brand asset is generated from. Committed so the artwork and the generated files can't silently drift; **never imported by app code** (the components in `src/components/` carry their own copy of the path data, generated from these) | Generated output — the icon PNG/ICO files live in `src/app/` as Next's file conventions require; anything the app imports at build or runtime |
+| `public/` | Static files served as is. `public/icons/` holds the manifest's sized PNGs, resized (never redrawn) from `src/app/icon.png` (mission-94) | Anything imported by code; new brand artwork (that is `brand/`) |
 | `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
 ## Boundary rules
@@ -322,24 +323,8 @@ amendment id.
   `storeList.ts`, below),
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
-- **Household settings and the store list (family copies PR 4; PRs 6 and 7
-  add fields).** `HouseholdSettings` is one row (`id` "household"; a missing
-  row reads as defaults; `updatedById` is a plain id, like
-  `ScreensaverSettings`). `src/lib/householdSettingsRead.ts` (`server-only`,
-  no auth, callers check) is the only reader (it also holds `setupFinished`, `recoveryCodeHash`, `hasRecoveryCode`); a second `db.householdSettings`
-  read in `src/` is a BLOCKER, so later PRs add their readers there (the CI check `prisma/setup-attack-smoke.ts` reads the row directly on purpose, to verify the writes independently). Its writes live in
-  `src/lib/householdSettingsWrites.ts` (`server-only`, no auth, no
-  `revalidatePath`). `createFamilyAndFirstAdmin` there also creates the first `User` and the `MEAL_SLOTS` tags, by design: setup is one serializable transaction gated by the user count. It is the only write outside `tagWrites.ts` that makes a `Tag`. The store list rules are pure in `src/lib/storeList.ts`
-  and nowhere else: cleaning, `MAX_STORES` / `MAX_STORE_NAME`, "Other"
-  always last, the shopping filter words ("All", "Unassigned"),
-  `storeFilterOptions`, and the add, remove, rename and reorder helpers.
-  `STORES` is only the built-in default (read by `storeList.ts`,
-  `storeBreakdown`'s default and the Assistant schema until Winnie learns the
-  saved list). Every screen, write and check takes the list from
-  `householdStores()` and validates with `toStore(value, stores)`; offering
-  or validating against `STORES` anywhere else is a BLOCKER. A store rename
-  moves grocery items in the same transaction as the list save.
-- `src/lib/setupVocabulary.ts` (no imports) holds every word of first-run setup, the recovery code screens and the Settings recovery card. Server refusal messages stay with their rule (`setupGate.ts`, `recoveryFlow.ts`). (Mission-91.)
+- **Household settings, the store list, setup and the setup checklist (family copies PRs 4, 6, 7).**
+  The rules live in [docs/structure/family-copies.md](docs/structure/family-copies.md). Headline: `householdSettingsRead.ts` is the only reader of `db.householdSettings` and `householdSettingsWrites.ts` the only writer (a second caller in `src/` is a BLOCKER); every store list check uses `householdStores()` and `toStore`, never `STORES`.
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
   Since mission-38 `NAV_FOOTER_ITEMS` is Settings alone: Profile has no row,
   `activeNavHref` lights Settings for `/profile`, and Settings' top card
@@ -508,7 +493,8 @@ amendment id.
   it. A third inline copy of that filter for "the family" is a BLOCKER. The
   file exists since mission-31 (`HOUSEHOLD_PERSON_WHERE`,
   `loadHouseholdPeople`); pages reach it through a reader such as
-  `habitsRead.ts`'s `loadHabitRoster`, or `loadHouseholdPeople` itself, never
+  `habitsRead.ts`'s `loadHabitRoster`, or `loadHouseholdPeople` itself (or its
+  `countHouseholdPeople` / `loadHouseholdPersonInfos`, mission-94), never
   by composing their own `db.user` query from its constants. An action may
   read ids with `HOUSEHOLD_PERSON_WHERE` to validate a request (the
   `validatedPeople` split). **The household order** (mission-41, Bryce's
@@ -988,7 +974,7 @@ amendment id.
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
   `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
-  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new). (Added
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new); 2026-11-26 (mission-94) `family-copies.md` 50 (new), `dashboard.md` 91 (was 89). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

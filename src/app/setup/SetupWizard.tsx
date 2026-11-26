@@ -98,6 +98,7 @@ export function SetupWizard() {
               const form = new FormData();
               form.set("userId", created.userId);
               form.set("password", password);
+              form.set("after", "/welcome");
               // On success `login` redirects, so nothing after it runs.
               const result = await login({}, form);
               if (result.error) setError(result.error);

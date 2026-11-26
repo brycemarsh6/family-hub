@@ -21,6 +21,12 @@ export function toStartPage(raw: unknown): string {
   return START_PAGE_OPTIONS.find((option) => option.href === raw)?.href ?? DEFAULT_START_PAGE;
 }
 
+/** Where `login` sends someone: `/welcome` only when `after` is exactly that
+ * (the setup page's Continue), otherwise their start page. Never an open redirect. */
+export function postLoginPath(after: unknown, startPage: unknown): string {
+  return after === "/welcome" ? "/welcome" : toStartPage(startPage);
+}
+
 /** True when `raw` is exactly one of START_PAGE_OPTIONS' hrefs (the save actions' check). */
 export function isStartPage(raw: unknown): raw is string {
   return START_PAGE_OPTIONS.some((option) => option.href === raw);

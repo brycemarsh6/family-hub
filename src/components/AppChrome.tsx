@@ -14,6 +14,7 @@ import {
   NAV_RAIL_WIDTH,
   pinnedNavWidth,
   WORDMARK_HEADER_ACTIONS_ID,
+  hidesMenu,
   showsWordmarkHeader,
 } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
@@ -64,7 +65,9 @@ export function AppChrome({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const openFeedback = () => setFeedbackOpen(true);
   const wordmark = showsWordmarkHeader(pathname);
-  const pinnedMode = user && navMode !== "hamburger" ? navMode : null;
+  // /welcome shows no menu at all, so the menu parts see no user there.
+  const menuUser = hidesMenu(pathname) ? null : user;
+  const pinnedMode = menuUser && navMode !== "hamburger" ? navMode : null;
 
   const page = (
     <>
@@ -77,7 +80,7 @@ export function AppChrome({
         */
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3 md:[body:has([data-page-width=wide])_&]:max-w-none">
-            {user && <HamburgerButton onSendFeedback={openFeedback} pinned={pinnedMode !== null} />}
+            {menuUser && <HamburgerButton onSendFeedback={openFeedback} pinned={pinnedMode !== null} />}
             {/* The wordmark alone, in brand Sage — no icon tile beside it.
                 The mark and the word say the same thing, so showing both in
                 a 48px-tall bar just crowds it; the tile still carries the
@@ -92,7 +95,7 @@ export function AppChrome({
           </div>
         </header>
       ) : (
-        user && <HamburgerButton onSendFeedback={openFeedback} floating pinned={pinnedMode !== null} />
+        menuUser && <HamburgerButton onSendFeedback={openFeedback} floating pinned={pinnedMode !== null} />
       )}
 
       {/* The bottom padding keeps the last row of a page clear of the home
