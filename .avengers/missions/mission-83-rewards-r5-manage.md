@@ -1,7 +1,7 @@
 # Mission: Rewards R5, Manage rewards, bonus stars and star history
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-25 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r5-manage-history-b55a63`, cut from main at
 b4e32c8 (R1 PR #124, R2 PR #125, R3 PR #126 merged). R4 (mission 82) runs at
@@ -478,6 +478,11 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 
 - **Status:** gates PASS (Vision pass 3; Captain pass 2; Strange pass 3 on
   checks 1, 2 and 4, check 3 waived by Bryce on Vision's proof).
+- **Merged:** PR #128, merge commit 4dbd5d0, 2026-11-26. Gauntlet green
+  (2m52s). Production deploy dpl_D4kiqmtv8tx7FQcK8qkgnHHqk9Wh READY on
+  marshee.themarshandco.com; its build log shows "Applying migration
+  `20261126100000_star_adjustments`" on the production database host and
+  `/rewards/manage` in the route list. `git log origin/main..HEAD` was empty.
 - **Commits:** C1 de63305, C2 f102738, F0 d06fcb3, F1 d2ac530, F2 fa8833c,
   F3 7676992, plus Fury's record and doc commits.
 - **Gauntlet at HEAD:** tsc, eslint (whole repo) clean; Denver 2248/2248;
