@@ -64,8 +64,11 @@ const ALL = "All";
 export function PantryList({
   items,
   canManage,
+  stores,
 }: {
   items: PantryItemView[];
+  /** The household's saved store list, in order. */
+  stores: string[];
   /** True for admin/parent sessions — deletePantryItem refuses a kid's
    * session server-side, so the delete controls below are omitted rather
    * than shown-and-disabled for one. Computed once on the server (the
@@ -356,6 +359,7 @@ export function PantryList({
       {pickingStoreItem && (
         <StorePickerSheet
           key={pickingStoreItem.id}
+          stores={stores}
           title={`Add ${pickingStoreItem.name} — which store?`}
           onChoose={(store) => {
             run({ type: "addToList", id: pickingStoreItem.id }, () =>

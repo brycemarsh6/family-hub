@@ -11,7 +11,14 @@ import type { Store } from "@/lib/constants";
  * asking once per item would turn a one-tap button into a dozen prompts in a
  * row, which defeats the point of it being one tap.
  */
-export function AddLowItemsButton({ count }: { count: number }) {
+export function AddLowItemsButton({
+  count,
+  stores,
+}: {
+  count: number;
+  /** The household's saved store list, in order. */
+  stores: string[];
+}) {
   const [pickingStore, setPickingStore] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -36,6 +43,7 @@ export function AddLowItemsButton({ count }: { count: number }) {
       {pickingStore && (
         <StorePickerSheet
           title={`Add ${count} ${count === 1 ? "item" : "items"} — which store?`}
+          stores={stores}
           onChoose={submit}
           onSkip={() => submit(null)}
         />

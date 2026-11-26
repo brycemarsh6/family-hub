@@ -17,6 +17,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { GroceryItem, Prisma } from "@/generated/prisma/client";
 import { isLow, toCategory, toLocation, toStore } from "@/lib/constants";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { tokens } from "@/lib/match";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -61,8 +62,9 @@ export async function addGroceryItem(
       ? fields.quantity
       : 1;
   // toStore() returns null rather than a default — leaving the store blank is
-  // a normal, valid choice, not a mistake.
-  const store = toStore(fields.store);
+  // a normal, valid choice, not a mistake. Valid means on this household's
+  // saved store list.
+  const store = toStore(fields.store, await householdStores());
 
   if (options.mergeIntoExisting) {
     const key = nameKey(name);
@@ -222,12 +224,15 @@ export async function patchGroceryItemWithCopies(
   edits: GroceryEdits,
   checked: boolean | undefined,
 ): Promise<GroceryCopies | null> {
+  // Read before the transaction opens so no second connection is held while
+  // the row is locked.
+  const stores = await householdStores();
   return db.$transaction(async (tx) => {
     await lockGroceryRows(tx, [id]);
     const current = await tx.groceryItem.findUnique({ where: { id } });
     if (!current) return null;
     let after = current;
-    if (Object.keys(edits).length > 0) after = await editIn(tx, id, edits, current);
+    if (Object.keys(edits).length > 0) after = await editIn(tx, id, edits, current, stores);
     if (checked !== undefined) {
       await setCheckedIn(tx, [id], checked);
       after = (await tx.groceryItem.findUnique({ where: { id } })) ?? after;
@@ -241,9 +246,18 @@ async function editIn(
   id: string,
   edits: GroceryEdits,
   current: GroceryItem,
+  stores: readonly string[],
 ): Promise<GroceryItem> {
   const category =
     edits.category === undefined ? undefined : toCategory(edits.category);
+  // A store the household has since removed from its list stays on an item
+  // that already has it: saving an untouched edit sheet must not blank it.
+  const store =
+    edits.store === undefined
+      ? undefined
+      : current.store !== null && edits.store === current.store
+        ? current.store
+        : toStore(edits.store, stores);
 
   return tx.groceryItem.update({
     where: { id },
@@ -254,7 +268,7 @@ async function editIn(
       unit:
         edits.unit === undefined ? undefined : edits.unit?.trim() || null,
       category,
-      store: edits.store === undefined ? undefined : toStore(edits.store),
+      store,
       note: edits.note === undefined ? undefined : edits.note?.trim() || null,
       location:
         edits.location === undefined
@@ -313,7 +327,7 @@ export async function addPantryItemToList(
       unit: pantryItem.unit,
       category: pantryItem.category,
       pantryItemId: pantryItem.id,
-      store: toStore(store),
+      store: toStore(store, await householdStores()),
       addedById: actorUserId,
     },
   });
@@ -351,7 +365,7 @@ export async function addLowItemsToList(
   const toAdd = lowItems.filter((item) => !alreadyListedIds.has(item.id));
   if (toAdd.length === 0) return [];
 
-  const validStore = toStore(store);
+  const validStore = toStore(store, await householdStores());
 
   return db.groceryItem.createManyAndReturn({
     data: toAdd.map((item) => ({

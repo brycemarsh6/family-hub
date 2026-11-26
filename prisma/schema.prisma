@@ -1544,3 +1544,23 @@ model StarAdjustment {
 
   @@index([userId, createdAt])
 }
+
+/// The household's own settings (family copies, PR 4): one row (`id` is
+/// always "household"). A missing row reads as the defaults; the first save
+/// creates it. `stores` is the store list, one name per line (PR 4); null
+/// means the built-in list. `familyName` and `setupFinishedAt` are for the
+/// setup flow (PR 6), `recoveryCodeHash` and `checklistDismissedAt` for
+/// PR 7. `updatedById` is a plain id, no relation to `User` (same as
+/// `ScreensaverSettings`).
+model HouseholdSettings {
+  id String @id @default("household")
+
+  familyName           String?
+  stores               String?
+  setupFinishedAt      DateTime?
+  recoveryCodeHash     String?
+  checklistDismissedAt DateTime?
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
