@@ -336,7 +336,7 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 
 ### C3 - The Rewards page: PIN step, kid and tablet redeem, wishes
 
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Kids and the tablet redeem through the PIN step, the
   tablet changes rewards behind the PIN, and wishes are added, shown and
   costed, as in mock screens A to D and H to K.
@@ -388,7 +388,16 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   every dev row made (titles start "zz r4") and their cleanup.
 - **Done criteria:** Fury sees every mock screen reproduced and the gates
   pass.
-- **Report:** (pending)
+- **Report:** DONE (2026-11-25), code and Gauntlet only (no browser). Page
+  passes `rewardRights`; board 153, card 105, RedeemSheet 187, RewardSheet
+  299 (largest; under the 350 soft cap), new WishSheet 189; PinPad's
+  Cancel is now `REWARD_CANCEL_LABEL`; `REWARD_ASK_A_PARENT` removed;
+  words added `REWARD_CLOSE_LABEL` "Close" and `WISH_EDIT_HEADING` "Edit
+  wish". Tests 2246 both zones, tsc, eslint, build clean; no dev rows.
+  Stark's open points: the locked pad's button reads "Cancel" (mock:
+  "Close"); RewardSheet's PIN step prompt is "Enter the PIN." (no mock
+  words); a kid's empty column still says "Ask a parent to add one."
+  though a kid can now add a wish.
 
 ## Gate ledger
 

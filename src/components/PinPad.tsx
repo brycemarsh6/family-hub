@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Delete } from "lucide-react";
 import { PIN_LENGTH, pinMinutesFromMs } from "@/lib/rewards/pinPolicy";
-import { PIN_LOCKED_TITLE, pinLockedText } from "@/lib/rewardVocabulary";
+import { PIN_LOCKED_TITLE, REWARD_CANCEL_LABEL, pinLockedText } from "@/lib/rewardVocabulary";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const KEY = "flex h-[3.75rem] w-[4.5rem] items-center justify-center rounded-2xl text-2xl font-semibold transition-colors disabled:opacity-35";
@@ -128,7 +128,7 @@ export function PinPad({
           disabled={busy}
           className="mt-2 flex min-h-12 items-center justify-center rounded-xl px-4 text-base font-medium text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
         >
-          Cancel
+          {REWARD_CANCEL_LABEL}
         </button>
       )}
     </div>

@@ -80,8 +80,8 @@ export const REWARD_NO_PICTURE_LABEL = "No picture";
 export const REWARD_REPEATS_TAG = "Repeats";
 export const REWARD_EARNED_LABEL = "Earned";
 export const REWARD_HIDE_EARNED_LABEL = "Hide earned";
-export const REWARD_ASK_A_PARENT = "Ask a parent";
 export const REWARD_CANCEL_LABEL = "Cancel";
+export const REWARD_CLOSE_LABEL = "Close";
 export const REWARD_DONE_LABEL = "Done";
 export const REWARD_UNDO_LABEL = "Undo redeem";
 export const REWARD_CELEBRATION_HEADING = "Great work!";
@@ -160,6 +160,7 @@ export const WISH_SET_COST_LABEL = "Set cost";
 export const WISH_SHEET_HINT = "A parent will set how many stars it costs.";
 export const WISH_SUBMIT_LABEL = "Add wish";
 export const WISH_SET_COST_HEADING = "Set a cost";
+export const WISH_EDIT_HEADING = "Edit wish";
 
 /** "Ellie needs 15 more stars." */
 export function notEnoughStarsText(name: string, short: number): string {
