@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { parseTranscript } from "@/lib/voice/parse";
 import { applyActions } from "@/lib/voice/apply";
+import { isOwnerCopy } from "@/lib/copyConfig";
 
 // The one door into the app that isn't a browser.
 //
@@ -44,6 +45,9 @@ function speak(text: string, status = 200) {
 }
 
 export async function POST(request: NextRequest) {
+  // Not the owner's copy: this door doesn't exist. Before the token, before the body.
+  if (!isOwnerCopy()) return new Response(null, { status: 404 });
+
   // Auth first — before reading the body, before spending a cent on parsing.
   let authorised: boolean;
   try {
