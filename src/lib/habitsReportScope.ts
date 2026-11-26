@@ -13,7 +13,7 @@ import { compareDays } from "./habits/schedule";
 import type { HabitActor, ScheduleSpec } from "./habits/types";
 import { lifeAreaInfo, toLifeArea } from "./goalVocabulary";
 import { visibleInViewerOrder, type TodayHabitInput } from "./habitsToday";
-import { firstNameOf, type ChartChip, type ChartPerson } from "./choreChart";
+import { personChipsFor, type ChartChip, type ChartPerson } from "./choreChart";
 import { REPORT_LABELS, TIMES_OF_DAY, TIME_OF_DAY_LABELS, toHabitKind, toTimeOfDay, type HabitKind } from "./habitVocabulary";
 
 // The Report's URL params and scope (decisions 164 to 169), with no database:
@@ -121,8 +121,7 @@ function scopedItems(viewer: HabitActor, personId: string, habits: readonly Toda
 function personChips(viewer: HabitActor, people: readonly ChartPerson[], personId: string): ChartChip[] | null {
   const shown = people.filter((p) => canSeeHabitReport(viewer, p.id));
   if (shown.length < 2) return null;
-  const ordered = [...shown.filter((p) => p.id === viewer.userId), ...shown.filter((p) => p.id !== viewer.userId)];
-  return ordered.map((p) => ({ id: p.id, name: firstNameOf(p.displayName), avatarColor: p.avatarColor, selected: p.id === personId }));
+  return personChipsFor(viewer, shown, personId);
 }
 
 export type ReportFilterOption = { key: string; label: string };

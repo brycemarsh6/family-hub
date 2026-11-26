@@ -18,14 +18,14 @@ import { keepOwnPicks } from "./dashboardPicks";
 import { choresTileRows, habitsTileRows, pickableHabits, plannedTodayRows, type TileRows } from "./habitsDashboard";
 import { hoursSpecOf, type PlanHours } from "./habitsHours";
 import type { TodayPrompt } from "./habitsPrompts";
-import { buildTodayPage, managerItem, todayLogsFrom, type HabitManagerItem, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
+import { buildManageLists, buildTodayPage, managerItem, todayLogsFrom, type HabitManagerItem, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
 import { toHabitTrack, type HabitTrack } from "./habitHoursVocabulary";
 
 // The reader for habit rows, so pages never query the habit tables directly.
-// It holds the Plans & Goals, Today, roster and tap loaders; a new reader goes
-// in a sibling file when this passes 350 lines. No auth: the caller (a page or action) has already
+// It holds the Plans & Goals, Today, Manage, roster and tap loaders; a new reader goes
+// in a sibling file when its code passes 350 lines, and docs/structure/habits.md names the new reader. No auth: the caller (a page or action) has already
 // checked the session and decides what the viewer may see via `access.ts`.
 
 /** Everything the Plans & Goals views need to know about one habit. */
@@ -201,6 +201,25 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   }
   const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
   return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache, plannedByHabit, timeByHabit);
+}
+
+/**
+ * Manage's two lists for `subjectId` (the viewer or, for a parent, someone
+ * else): one query for the habits the subject takes part in, no checks, nudges
+ * or vacations. The viewer's `canSeeHabit` decides which show
+ * (`buildManageLists`). No auth: the page has already checked `canOpenManageOf`.
+ */
+export async function loadManageLists(viewer: HabitActor, subjectId: string): Promise<Pick<TodayPage, "manage" | "archived">> {
+  const habits = await db.habit.findMany({
+    where: { participants: { some: { userId: subjectId } } },
+    include: {
+      participants: {
+        orderBy: { joinedAt: "asc" },
+        select: { userId: true, sortOrder: true, joinedAt: true, user: { select: { displayName: true, avatarColor: true, deactivatedAt: true } } },
+      },
+    },
+  });
+  return buildManageLists(viewer, subjectId, habits);
 }
 
 /** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */

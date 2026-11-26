@@ -7,6 +7,7 @@ import { ChoreChartSheet } from "./ChoreChartSheet";
 import { HabitIcon } from "./HabitIcon";
 import { addChartChore, clearChoreChange, moveChoreThisWeek, skipChoreThisWeek } from "@/app/actions/choreChart";
 import type { ChartChore, ChartWeekChore, ChartWeekDay, ChoreChartData } from "@/lib/choreChart";
+import { choreChartHref, editHabitHref, personParam } from "@/lib/habitsManage";
 import { CHORE_CHART_LABELS, CHORE_TAG_LABELS, HABIT_TITLE_MAX, type Weekday } from "@/lib/habitVocabulary";
 import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
@@ -99,7 +100,7 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
  * guess with the truth. This file turns each typed change into one of its four
  * actions, and keeps the dimmed "new-" rows (a chore not yet saved) to itself.
  */
-export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "default" | "week" }) {
+export function ChoreChart({ chart, view, viewerId }: { chart: ChoreChartData; view: "default" | "week"; viewerId: string }) {
   const [live, applyOptimistic] = useOptimistic<ChoreChartData, ChartChange>(chart, applyChartChange);
   const [adding, setAdding] = useState<Weekday | null>(null);
   const [name, setName] = useState("");
@@ -118,7 +119,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
     );
   }
 
-  const href = (person: string, next: "default" | "week") => `/habits/chart?person=${person}&view=${next}`;
+  const href = (person: string, next: "default" | "week") => choreChartHref(personParam(person, viewerId), next);
   const tabs = [
     { key: "default" as const, label: CHORE_CHART_LABELS.defaultWeek },
     { key: "week" as const, label: `${CHORE_CHART_LABELS.thisWeek}, ${formatRange(live.thisWeek.start, live.thisWeek.end)}` },
@@ -134,7 +135,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
 
   return (
     <div>
-      <nav aria-label="Whose chart" className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1">
+      <nav aria-label="Whose chart" className="mb-3 flex flex-wrap gap-2">
         {live.chips.map((chip) => (
           <Link
             key={chip.id}
@@ -184,7 +185,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                       <span className="min-w-0 flex-1 truncate font-medium">{chore.title}</span>
                     </div>
                   ) : (
-                    <Link key={chore.id} href={`/habits/${chore.id}/edit`} className={ROW}>
+                    <Link key={chore.id} href={editHabitHref(chore.id, personParam(chart.personId, viewerId))} className={ROW}>
                       <span className="flex shrink-0 text-accent">
                         <HabitIcon name={chore.icon} kind="chore" size={18} />
                       </span>
@@ -251,6 +252,9 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
         <ChoreChartSheet
           chore={open.chore}
           column={open.column}
+          personId={chart.personId}
+          viewerId={viewerId}
+          saved={!open.chore.id.startsWith("new-")}
           onMove={(to) => {
             send({ type: "move", habitId: open.chore.id, from: open.chore.fromWeekday, to: to as Weekday });
             setOpen(null);

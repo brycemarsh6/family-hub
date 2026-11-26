@@ -1,8 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { HabitStats } from "@/components/HabitStats";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
+import { MANAGE_LABELS } from "@/lib/habitVocabulary";
+import { editHabitHref, personParam } from "@/lib/habitsManage";
 import { loadHabitStats } from "@/lib/habitsStatsRead";
 
 // Reads the session, so it can never be cached.
@@ -20,6 +24,15 @@ export default async function HabitStatsPage({ params }: { params: Promise<{ id:
     // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-53).
     <div data-page-width="wide" className="py-2">
       <BackLink href="/habits" label="Habits & Chores" />
+      {data.canEdit && (
+        <Link
+          href={editHabitHref(id, personParam(data.subjectId, user.userId))}
+          className="mb-3 ml-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent"
+        >
+          <Pencil aria-hidden="true" size={16} />
+          {MANAGE_LABELS.editHabit}
+        </Link>
+      )}
       <HabitStats data={data} />
     </div>
   );

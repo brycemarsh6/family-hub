@@ -215,13 +215,34 @@ export function sharedNeedsMorePeople(shared: boolean, peopleCount: number): boo
   return shared && peopleCount < 2;
 }
 
-/** The habits the viewer takes part in and may see (`canSeeHabit`), in the viewer's own order, oldest first on a tie. */
-export function visibleInViewerOrder(viewer: HabitActor, habits: readonly TodayHabitInput[]): TodayHabitInput[] {
-  const sortOrderOf = (habit: TodayHabitInput) => habit.participants.find((p) => p.userId === viewer.userId)?.sortOrder ?? 0;
+/** The habits `subjectId` takes part in that the viewer may see (`canSeeHabit`), in the subject's own order, oldest first on a tie. */
+export function visibleInOrderOf(viewer: HabitActor, subjectId: string, habits: readonly TodayHabitInput[]): TodayHabitInput[] {
+  const sortOrderOf = (habit: TodayHabitInput) => habit.participants.find((p) => p.userId === subjectId)?.sortOrder ?? 0;
   return habits
-    .filter((habit) => habit.participants.some((p) => p.userId === viewer.userId))
+    .filter((habit) => habit.participants.some((p) => p.userId === subjectId))
     .filter((habit) => canSeeHabit(viewer, { isPrivate: habit.isPrivate, participantIds: habit.participants.map((p) => p.userId) }))
     .sort((a, b) => sortOrderOf(a) - sortOrderOf(b) || a.createdAt.getTime() - b.createdAt.getTime());
+}
+
+/** The habits the viewer takes part in and may see (`canSeeHabit`), in the viewer's own order, oldest first on a tie. */
+export function visibleInViewerOrder(viewer: HabitActor, habits: readonly TodayHabitInput[]): TodayHabitInput[] {
+  return visibleInOrderOf(viewer, viewer.userId, habits);
+}
+
+/** Manage's two lists for `subjectId`: live habits in the subject's order, then archived ones, newest archived first. Private habits the viewer cannot see stay out. */
+export function buildManageLists(
+  viewer: HabitActor,
+  subjectId: string,
+  habits: readonly TodayHabitInput[],
+): { manage: HabitManagerItem[]; archived: HabitManagerItem[] } {
+  const visible = visibleInOrderOf(viewer, subjectId, habits);
+  return {
+    manage: visible.filter((habit) => !habit.archivedAt).map(managerItem),
+    archived: visible
+      .filter((habit) => habit.archivedAt)
+      .sort((a, b) => b.archivedAt!.getTime() - a.archivedAt!.getTime())
+      .map(managerItem),
+  };
 }
 
 /** Today's rows for the live habits, in the order given. A "none" row stays out unless carried, done or skipped. */
@@ -361,10 +382,6 @@ export function buildTodayPage(
     nudges: [...nudges],
     confetti: allRequiredDoneToday(rows),
     ...choreHeader(viewer.userId, visible, logsByHabit, today, vacationsByUser.get(viewer.userId) ?? [], choreCache),
-    manage: live.map(managerItem),
-    archived: visible
-      .filter((habit) => habit.archivedAt)
-      .sort((a, b) => b.archivedAt!.getTime() - a.archivedAt!.getTime())
-      .map(managerItem),
+    ...buildManageLists(viewer, viewer.userId, habits),
   };
 }

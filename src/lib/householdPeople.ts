@@ -42,3 +42,9 @@ export async function loadHouseholdAdults(client: Prisma.TransactionClient = db)
   });
   return rows.map((row) => ({ ...row, role: toRole(row.role) }));
 }
+
+/** The role of one household person, or null when the id is not one (unknown, deactivated or a device login). */
+export async function loadHouseholdPersonRole(personId: string, client: Prisma.TransactionClient = db): Promise<Role | null> {
+  const row = await client.user.findFirst({ where: { AND: [HOUSEHOLD_PERSON_WHERE, { id: personId }] }, select: { role: true } });
+  return row ? toRole(row.role) : null;
+}

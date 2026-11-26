@@ -6,7 +6,7 @@ import {
   startOfWeek,
   type CalendarDate,
 } from "./householdDate";
-import { canChangeChore, canEditChart, canSeeHabit } from "./habits/access";
+import { canChangeChore, canEditChart, canEditHabit, canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carrySince, habitStartDay } from "./habits/carryOver";
 import { choreStreakAfter, finishedAllChoresLastWeek, type ChoreInput } from "./habits/choreStreak";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
@@ -18,10 +18,11 @@ import { CHORE_CHART_LABELS, choreTagLabel, habitWhoLabel, toHabitKind, type Wee
 import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 
 // The chore pages' pure builders, with no database: `habitsRead.ts` and
-// `habitsStatsRead.ts` fetch the rows and call these. Three jobs: the chore
+// `habitsStatsRead.ts` fetch the rows and call these. Four jobs: the chore
 // header on Today and the family view (the streak, the Sunday shout-out, the
 // vacation line: decisions 115, 120, 122), the chart page (116, 117, 119) and
-// the Settings vacation list (123). Callers pass `today`; days leave this file
+// the Settings vacation list (123), and the shared person chips (`personChipsFor`,
+// `firstNameOf`) the chart, the Report and Manage all use. Callers pass `today`; days leave this file
 // as "YYYY-MM-DD" strings.
 
 /** A habit as the chore builders read it; `TodayHabitInput` fits. */
@@ -113,6 +114,12 @@ export const firstNameOf = (displayName: string) => displayName.trim().split(/\s
 
 export type ChartChip = { id: string; name: string; avatarColor: string; selected: boolean };
 
+/** The one chip rule for the chart, the Report and Manage: the viewer first, then the given order, first names, `selectedId` marked. */
+export function personChipsFor(viewer: HabitActor, people: readonly ChartPerson[], selectedId: string): ChartChip[] {
+  return [...people.filter((p) => p.id === viewer.userId), ...people.filter((p) => p.id !== viewer.userId)]
+    .map((p) => ({ id: p.id, name: firstNameOf(p.displayName), avatarColor: p.avatarColor, selected: p.id === selectedId }));
+}
+
 /** One chore on a day of the Default week. `who` is the who label when the chore is shared, else null. */
 export type ChartChore = { id: string; title: string; icon: string | null; who: string | null };
 
@@ -136,6 +143,8 @@ export type ChartWeekChore = ChartChore & {
   canChange: boolean;
   /** The viewer may not change this chore (a kid on a shared chore, decision 125): the sheet says "Ask a parent" and offers nothing. */
   askParent: boolean;
+  /** The sheet offers "Edit chore": the viewer may edit the chore (`canEditHabit`) and is not told "Ask a parent". */
+  canEdit: boolean;
   /** Its normal day is already past: "Back to the default" is hidden, as it would make a past day required again (decision 126). */
   originalDayPast: boolean;
   /** "Move to" chips: today and later days this week except its own day. */
@@ -174,9 +183,7 @@ export function buildChoreChart(
 ): ChoreChartData | null {
   const person = people.find((entry) => entry.id === personId);
   if (!person || !canEditChart(viewer, personId)) return null;
-  const chips = [...people.filter((p) => p.id === viewer.userId), ...people.filter((p) => p.id !== viewer.userId)]
-    .filter((p) => canEditChart(viewer, p.id))
-    .map((p) => ({ id: p.id, name: firstNameOf(p.displayName), avatarColor: p.avatarColor, selected: p.id === personId }));
+  const chips = personChipsFor(viewer, people.filter((p) => canEditChart(viewer, p.id)), personId);
   const chores = habits.flatMap((habit) => {
     const spec = specFromRow(habit);
     const access = { isPrivate: habit.isPrivate, participantIds: habit.participants.map((p) => p.userId) };
@@ -184,7 +191,7 @@ export function buildChoreChart(
     if (!access.participantIds.includes(personId) || !canSeeHabit(viewer, access)) return [];
     const who = habit.participants.length > 1 ? habitWhoLabel({ people: habit.participants.length, everyone: habit.everyone, sharing: habit.sharing }) : null;
     const overrides = (habit.weekOverrides ?? []).flatMap((row) => overrideFromRow(row) ?? []);
-    return [{ habit, spec, overrides, askParent: !canChangeChore(viewer, access, personId), base: { id: habit.id, title: habit.title, icon: habit.icon, who } }];
+    return [{ habit, spec, overrides, askParent: !canChangeChore(viewer, access, personId), canEditHabit: canEditHabit(viewer, access), base: { id: habit.id, title: habit.title, icon: habit.icon, who } }];
   });
   const weekStart = startOfWeek(today);
   const weekdays = Array.from({ length: 7 }, (_, i) => i as Weekday);
@@ -218,6 +225,7 @@ export function buildChoreChart(
           clearing: false,
         }),
         askParent: c.askParent,
+        canEdit: c.canEditHabit && !c.askParent,
         originalDayPast,
         moveTargets: weekdays.filter((w) => w !== fromWeekday && compareDays(addCalendarDays(weekStart, w), today) >= 0),
       }];
