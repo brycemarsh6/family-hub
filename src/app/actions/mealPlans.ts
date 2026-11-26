@@ -116,7 +116,8 @@ export type SuggestMealsResult = {
 export async function suggestMealsForSlot(
   slot: string,
 ): Promise<SuggestMealsResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   const mealSlot = toMealSlot(slot);
   if (!mealSlot) return { error: "That's not a real meal slot." };
@@ -193,7 +194,7 @@ export async function suggestMealsForSlot(
     }
     return { suggestions };
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     // Never let a Claude outage block the manual paths — the sheet keeps
     // presets, the recipe picker, and free text usable either way.
     console.error("suggestMealsForSlot failed:", error);

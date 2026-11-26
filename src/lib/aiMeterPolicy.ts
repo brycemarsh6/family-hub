@@ -54,7 +54,7 @@ const MOST_EXPENSIVE_MODEL_PRICE: ModelPrice = { input: 10_000, output: 50_000, 
 /** An unknown model is priced as the most expensive model there is, so the meter never under-counts. */
 const UNKNOWN_MODEL_PRICE = MOST_EXPENSIVE_MODEL_PRICE;
 
-export function priceForModel(model: string): ModelPrice {
+function priceForModel(model: string): ModelPrice {
   const row = PRICE_BY_MODEL_PREFIX.find(([prefix]) => model.startsWith(prefix));
   return row ? row[1] : UNKNOWN_MODEL_PRICE;
 }
@@ -122,6 +122,9 @@ export function parseUpgradeUrl(value: string | undefined | null): string | null
 }
 
 export type AiAccess = "allow" | "locked" | "used-up";
+
+/** Why a call is refused: every `AiAccess` except "allow". */
+export type AiBlockReason = Exclude<AiAccess, "allow">;
 
 /** May this copy make an AI call now? The owner's copy always may; a relative's needs an allowance with room left. */
 export function aiAccess(input: {

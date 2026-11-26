@@ -1,6 +1,6 @@
 import "server-only";
-import { getVerifiedUser } from "@/lib/dal";
 import { aiUpgradeUrl, type AiAllowanceError } from "@/lib/aiMeter";
+import type { AiBlockReason } from "@/lib/aiMeterPolicy";
 import { AI_BLOCKED_TITLE, resetsLabel } from "@/lib/aiMeterVocabulary";
 
 // What a Server Action hands the screen when `meteredCreate` refuses an AI
@@ -8,7 +8,7 @@ import { AI_BLOCKED_TITLE, resetsLabel } from "@/lib/aiMeterVocabulary";
 // gets the Upgrade link; everyone else gets the ask-an-admin line.
 
 export type AiBlocked = {
-  reason: "locked" | "used-up";
+  reason: AiBlockReason;
   /** "December 1" */
   resetsLabel: string;
   upgradeUrl: string | null;
@@ -26,12 +26,9 @@ export function buildAiBlocked(error: AiAllowanceError, role: string): AiBlocked
 }
 
 /** The whole result an action returns for a blocked call. */
-export async function aiBlockedResult(
+export function aiBlockedResult(
   error: AiAllowanceError,
-): Promise<{ error: string; aiBlocked: AiBlocked }> {
-  const user = await getVerifiedUser();
-  return {
-    error: AI_BLOCKED_TITLE,
-    aiBlocked: buildAiBlocked(error, user?.role ?? "kid"),
-  };
+  role: string,
+): { error: string; aiBlocked: AiBlocked } {
+  return { error: AI_BLOCKED_TITLE, aiBlocked: buildAiBlocked(error, role) };
 }

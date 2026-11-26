@@ -44,11 +44,7 @@ export function aiOwnerText(usedMicroUsd: number, requests: number): string {
 /** The blocked message that replaces an AI result. */
 export const AI_BLOCKED_TITLE = "This month's AI allowance is used up.";
 
-export function aiBlockedResetsText(resetsOn: CalendarDate): string {
-  return aiBlockedResetsLine(resetsLabel(resetsOn));
-}
-
-/** The same line from an already-made label ("December 1"), for the screens. */
+/** The line under the blocked title, from an already-made label ("December 1"). */
 export function aiBlockedResetsLine(label: string): string {
   return `It resets ${label}. Everything else in Marshee still works.`;
 }

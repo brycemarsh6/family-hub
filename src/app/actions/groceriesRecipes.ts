@@ -7,7 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { getVerifiedUser } from "@/lib/dal";
 import { toCategory } from "@/lib/constants";
 import {
   classifyRecipe,
@@ -58,13 +58,14 @@ export type ClassifyIngredientsResult = {
 export async function classifyRecipeIngredients(
   recipeId: string,
 ): Promise<ClassifyIngredientsResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   let result;
   try {
     result = await classifyRecipe(recipeId);
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     if (!(error instanceof IngredientAiError)) throw error;
     // Never let a Claude outage look like a data problem, the recipe is
     // fine, the parse isn't. Same shape as suggestMealsForSlot's guard.

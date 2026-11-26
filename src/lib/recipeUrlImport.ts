@@ -62,8 +62,8 @@ function isPinterest(host: string): boolean {
 
 /**
  * Entry point: figure out what kind of link this is and route accordingly.
- * Never throws — a fetch failure, timeout, or anything else unexpected
- * lands as a normal error result, same as every other outcome here.
+ * Throws only AiAllowanceError (the AI allowance is spent); everything
+ * else unexpected lands as a normal error result, like every other outcome.
  */
 export async function importRecipeFromUrl(
   rawUrl: string,

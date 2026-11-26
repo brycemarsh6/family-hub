@@ -10,6 +10,7 @@ import {
   costMicroUsd,
   parseAllowanceCents,
   parseUpgradeUrl,
+  type AiBlockReason,
   type AiFeature,
 } from "@/lib/aiMeterPolicy";
 
@@ -22,17 +23,13 @@ import {
 // Two calls at the same moment can both pass the check and overshoot by one
 // call. Accepted: the family's Anthropic key spend cap is the hard stop.
 
-/** The copy may not make this AI call. Callers turn it into the friendly message. */
+/** The copy may not make this AI call. Callers turn it into the friendly message; the message here is for logs only. */
 export class AiAllowanceError extends Error {
   constructor(
-    readonly reason: "locked" | "used-up",
+    readonly reason: AiBlockReason,
     readonly resetsOn: CalendarDate,
   ) {
-    super(
-      reason === "locked"
-        ? "AI features are not on for this copy."
-        : "This month's AI allowance is used up.",
-    );
+    super(`ai allowance: ${reason}`);
     this.name = "AiAllowanceError";
   }
 }

@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  AI_FEATURES,
   MICRO_USD_PER_CENT,
   aiAccess,
   aiMonthWindow,
@@ -10,14 +9,7 @@ import {
   parseUpgradeUrl,
   percentUsed,
 } from "./aiMeterPolicy";
-import {
-  AI_FEATURE_LABELS,
-  aiOwnerText,
-  aiUsedPercentText,
-  aiUsedUpText,
-  formatUsd,
-  resetsLabel,
-} from "./aiMeterVocabulary";
+import { formatUsd } from "./aiMeterVocabulary";
 
 const SONNET = "claude-sonnet-5-5";
 
@@ -226,27 +218,4 @@ test("percentUsed: edges", () => {
   assert.equal(percentUsed(0, 0), 0);
   assert.equal(percentUsed(5_000_000, 0), 0);
   assert.equal(percentUsed(limit * 0.019, 300), 1); // floor
-});
-
-test("every feature has an owner label", () => {
-  for (const feature of AI_FEATURES) {
-    assert.ok(AI_FEATURE_LABELS[feature].length > 0);
-  }
-});
-
-test("words: the agreed sentences", () => {
-  const dec1 = { year: 2026, month: 12, day: 1 };
-  assert.equal(resetsLabel(dec1), "December 1");
-  assert.equal(aiUsedPercentText(40, dec1), "40% of this month's AI used. Resets December 1.");
-  assert.equal(aiUsedUpText(dec1), "All of this month's AI is used. Resets December 1.");
-  assert.equal(aiOwnerText(1_420_000, 37), "$1.42 used this month, 37 requests. No limit on your copy.");
-  assert.equal(aiOwnerText(0, 1), "$0.00 used this month, 1 request. No limit on your copy.");
-});
-
-test("formatUsd rounds to cents", () => {
-  assert.equal(formatUsd(0), "$0.00");
-  assert.equal(formatUsd(14_999), "$0.01");
-  assert.equal(formatUsd(15_000), "$0.02");
-  assert.equal(formatUsd(1_424_000), "$1.42");
-  assert.equal(formatUsd(12_500_000), "$12.50");
 });

@@ -1,10 +1,9 @@
-import { ExternalLink } from "lucide-react";
+import { AiUpgradeLink } from "@/components/AiUpgradeLink";
 import type { AiBlocked } from "@/lib/aiBlocked";
 import {
   AI_ASK_ADMIN_TEXT,
   AI_BLOCKED_TITLE,
   AI_LOCKED_TEXT,
-  AI_UPGRADE_BUTTON,
   aiBlockedResetsLine,
 } from "@/lib/aiMeterVocabulary";
 
@@ -26,17 +25,7 @@ export function AiAllowanceNotice({ aiBlocked }: { aiBlocked: AiBlocked }) {
         </>
       )}
       {aiBlocked.isAdmin ? (
-        aiBlocked.upgradeUrl && (
-          <a
-            href={aiBlocked.upgradeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
-          >
-            {AI_UPGRADE_BUTTON}
-            <ExternalLink aria-hidden="true" size={18} />
-          </a>
-        )
+        aiBlocked.upgradeUrl && <AiUpgradeLink href={aiBlocked.upgradeUrl} className="mt-3" />
       ) : (
         <p className="mt-2 text-sm font-medium">{AI_ASK_ADMIN_TEXT}</p>
       )}

@@ -62,7 +62,8 @@ export default async function SettingsPage() {
   const canSetRewards = canSetStars(user.role);
   const lateStars = canSetRewards ? await loadLateStars() : "full";
   const pinStatus = canSetRewards ? await loadPinStatus() : { pinSet: false, pinRequired: true };
-  const aiCard = canSyncCalendars ? await loadAiUsageCard(user.role === "admin") : null;
+  const isManagerLogin = canSyncCalendars;
+  const aiCard = isManagerLogin ? await loadAiUsageCard(user.role === "admin") : null;
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (

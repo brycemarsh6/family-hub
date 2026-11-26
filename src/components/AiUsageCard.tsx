@@ -1,10 +1,9 @@
-import { ExternalLink } from "lucide-react";
+import { AiUpgradeLink } from "@/components/AiUpgradeLink";
 import { ProgressBar } from "@/components/ProgressBar";
 import type { AiUsageCardData } from "@/lib/aiUsageRead";
 import {
   AI_CARD_TITLE,
   AI_LOCKED_TEXT,
-  AI_UPGRADE_BUTTON,
   aiUsedPercentText,
   aiUsedUpText,
 } from "@/lib/aiMeterVocabulary";
@@ -50,15 +49,7 @@ export function AiUsageCard({ data }: { data: AiUsageCardData }) {
         )}
 
         {data.kind === "relative" && data.upgradeUrl && (
-          <a
-            href={data.upgradeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
-          >
-            {AI_UPGRADE_BUTTON}
-            <ExternalLink aria-hidden="true" size={18} />
-          </a>
+          <AiUpgradeLink href={data.upgradeUrl} className="mt-4" />
         )}
       </div>
     </section>

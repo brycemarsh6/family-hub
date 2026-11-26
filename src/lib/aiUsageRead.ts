@@ -1,6 +1,6 @@
 import "server-only";
 import { isOwnerCopy } from "@/lib/copyConfig";
-import { aiAccess, percentUsed, type AiFeature } from "@/lib/aiMeterPolicy";
+import { aiAccess, percentUsed, type AiBlockReason, type AiFeature } from "@/lib/aiMeterPolicy";
 import {
   AI_FEATURE_LABELS,
   aiOwnerText,
@@ -17,7 +17,7 @@ export type AiUsageCardData =
   | { kind: "owner"; summary: string; byFeatureLine: string }
   | {
       kind: "relative";
-      state: "allow" | "used-up" | "locked";
+      state: "allow" | AiBlockReason;
       percent: number;
       resetsOn: CalendarDate;
       /** Admins only, and only when the copy has an Upgrade link. */

@@ -136,7 +136,8 @@ export type ExtractResult = {
 export async function extractRecipeFromPastedText(
   text: string,
 ): Promise<ExtractResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   const trimmed = text.trim();
   if (!trimmed) return { error: "Paste some recipe text first." };
@@ -150,7 +151,7 @@ export async function extractRecipeFromPastedText(
   try {
     extracted = await extractRecipeFromText(trimmed);
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     throw error;
   }
   if (!hasRecipeContent(extracted)) {
@@ -179,7 +180,8 @@ const MAX_PHOTO_BASE64_LENGTH = 3_000_000; // ~2.2MB of actual image data
 export async function extractRecipeFromRecipePhotos(
   photos: PhotoInput[],
 ): Promise<ExtractResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   if (photos.length === 0) return { error: "Add at least one photo first." };
   if (photos.length > 3) {
@@ -193,7 +195,7 @@ export async function extractRecipeFromRecipePhotos(
   try {
     extracted = await extractRecipeFromPhotos(photos);
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     throw error;
   }
   if (!hasRecipeContent(extracted)) {
@@ -217,7 +219,8 @@ export type UrlImportResult = ExtractResult & { sourceUrl?: string };
 export async function importRecipeFromLink(
   url: string,
 ): Promise<UrlImportResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   const trimmed = url.trim();
   if (!trimmed) return { error: "Paste a link first." };
@@ -225,7 +228,7 @@ export async function importRecipeFromLink(
   try {
     return await importRecipeFromUrl(trimmed);
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     throw error;
   }
 }
@@ -370,7 +373,8 @@ export async function computeNutrition(
   recipeId: string,
   servings: number,
 ): Promise<NutritionResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   if (!Number.isInteger(servings) || servings < 1 || servings > 50) {
     return { error: "Servings should be a number from 1 to 50." };
@@ -386,7 +390,7 @@ export async function computeNutrition(
   try {
     estimate = await estimateNutrition(recipe.title, recipe.ingredients, servings);
   } catch (error) {
-    if (error instanceof AiAllowanceError) return aiBlockedResult(error);
+    if (error instanceof AiAllowanceError) return aiBlockedResult(error, user.role);
     // Same "an AI outage isn't a data problem" pattern as
     // classifyRecipeIngredients / suggestMealsForSlot — the recipe itself
     // is fine, only the estimate call failed.
