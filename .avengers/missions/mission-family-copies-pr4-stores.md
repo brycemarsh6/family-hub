@@ -1,0 +1,230 @@
+# Mission: Family copies PR 4, household settings and stores
+
+**Project:** family-hub (Marshee)
+**Status:** BUILDING (contract S1 dispatched; S2 waits for Bryce's yes on the screen mock)
+**Started:** 2026-11-26 · **Updated:** 2026-11-26
+**Branch:** `claude/family-copies-pr4-stores` (cut from `main` at 183f02e)
+**Plan:** `.avengers/plans/family-copies-v1.md`, "PR 4" and "Running order"
+
+## Brief
+
+- **Goal:** each family copy picks its own store list. Today `STORES` in
+  `src/lib/constants.ts` is fixed in code (Walmart, Costco, Amazon, Target,
+  Maceys, Other). Add a one-row `HouseholdSettings` table (also the home of
+  fields PRs 6 and 7 need), read the saved store list everywhere stores are
+  offered or validated, and give parents and admins a Settings screen to edit it.
+- **Done means:** Gauntlet green; `npm test` and the direct `TZ=UTC` command
+  from AGENTS.md pass; Vision, Captain and Strange PASS; with no
+  `HouseholdSettings` row, Bryce's shopping list, inventory cart sheet, expiring
+  cart sheet, add bar and edit sheet show exactly today's six stores in today's
+  order; a saved list replaces them; filter chips show the saved list plus any
+  store still used on an item; `git log origin/main..HEAD` empty after merge.
+- **Out of scope:** using family name, setup time, recovery hash, checklist
+  dismissed time (PRs 6 and 7 only read/write them); the Assistant API's store
+  enum (`src/lib/assistant/schemasShopping.ts` keeps `z.enum(STORES)`, Winnie is
+  Bryce's only and his list is unchanged until he edits it, recorded as a
+  follow-up); dashboard store breakdown order beyond accepting the list.
+
+## Danger register
+
+- `DATABASE_URL` must be the dev branch host `ep-hidden-pine-a6ajzk11-pooler`
+  (checked 2026-11-26 by Fury: it is). Anything else: stop.
+- Never `npm run db:seed` or `npm run db:reset`. No clean/reset script for `User`.
+- Migration is additive only (one `CREATE TABLE`); SQL reviewed before applying.
+  Applying it to the dev branch with `npx prisma migrate deploy` is allowed.
+- Never `git add -A` / `git add .`; stage by path; `git show --stat HEAD` after.
+- No pushes, merges or deploys by any agent but Fury.
+- Secrets never in chat, code or git.
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npx eslint .`
+- `npm test`
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts src/lib/rewards/*.test.ts`
+- `npm run build`
+- GitHub check "Gauntlet" green on the PR
+
+## Assembled
+
+- Stark + Vision (always).
+- Strange: a new Settings screen and store chips change what people see.
+- Captain: new files (a read module, a pure list module, a page, an action).
+- Banner: not needed, Fury read the store code inline (about 10 files).
+
+## Facts gathered (Fury, 2026-11-26)
+
+- `toStore(value)` already exists, `src/lib/constants.ts:211`, against `STORES`.
+- Write sites: `src/lib/groceryWrites.ts` lines 65 (add), 257 (edit), 316
+  (pantry item to list), 354 (low items to list). Callers: `actions/groceries.ts`,
+  `actions/pantry.ts`, assistant shopping routes.
+- UI using `STORES`: `GroceryList.tsx:152` (chips), `GroceryItemEditSheet.tsx:175`,
+  `StorePickerSheet.tsx:78` (used by `PantryList`, `ExpiringList`,
+  `AddLowItemsButton`), `StoreSelect.tsx:25`. `dashboard.ts:96` sorts the store
+  breakdown by `STORES` order.
+- Pattern to copy: `ScreensaverSettings` (`prisma/schema.prisma:1429`) read only
+  in `src/lib/screensaverRead.ts`.
+
+## Contracts
+
+### S1 — Table, store list rules, and wiring (no new screen)
+
+- **Objective:** add `HouseholdSettings`, make every store offer and every
+   store write use the household's saved list (falling back to today's
+   `STORES`), with Bryce's copy unchanged when no row exists.
+- **Boundaries:** may touch: `prisma/schema.prisma` (append one model only),
+   new `prisma/migrations/20261126200000_household_settings/migration.sql`,
+   `src/lib/constants.ts` (`toStore` and the `Store` type only),
+  new `src/lib/storeList.ts` (pure), new `src/lib/storeList.test.ts`,
+  new `src/lib/householdSettingsRead.ts` (server-only),
+   `src/lib/groceryWrites.ts`, `src/lib/dashboard.ts` (storeBreakdown takes an
+   optional list), `src/lib/dashboardLoaders.ts`, `src/app/actions/pantry.ts`
+   (type only), `src/components/GroceryList.tsx`,
+   `src/components/GroceryItemEditSheet.tsx`, `src/components/StorePickerSheet.tsx`,
+   `src/components/StoreSelect.tsx`, `src/components/PantryList.tsx`,
+   `src/components/ExpiringList.tsx`, `src/components/AddLowItemsButton.tsx`,
+   `src/app/(app)/kitchen/shopping/page.tsx`, `src/app/(app)/kitchen/inventory/page.tsx`,
+   `src/app/(app)/kitchen/expiring/page.tsx`, and any other component file that
+   only passes the `stores` prop through (list each in the report).
+  Must not touch: `src/lib/assistant/**`, `src/app/api/**`,
+   `src/app/(app)/settings/**`, `package.json`, `CLAUDE.md`, `STRUCTURE.md`,
+   `DESIGN.md`. (The generated Prisma client is gitignored; regenerating it is fine.)
+  `prisma/schema.prisma` is over 650 lines but STRUCTURE.md exempts it (the
+  hard-cap rule); preflight's failure on it is that known exemption.
+- **Rules to implement:**
+   - Model `HouseholdSettings { id String @id @default("household");
+     familyName String?; stores String? (newline-separated names, null = use
+     the built-in list); setupFinishedAt DateTime?; recoveryCodeHash String?;
+     checklistDismissedAt DateTime?; updatedAt DateTime @updatedAt;
+     updatedById String? }` with a `///` doc comment in the ScreensaverSettings
+     style saying which PR uses which field. Migration is the matching single
+     `CREATE TABLE`, nothing else.
+   - new `src/lib/storeList.ts` (pure, no db): `MAX_STORES = 12`,
+     `MAX_STORE_NAME = 24`, `OTHER_STORE = "Other"`. `parseStoreList(text:
+     string | null | undefined): string[]`: null, empty or only-blank text
+     returns `[...STORES]`; otherwise split on newlines, trim, collapse inner
+     whitespace, cut each to 24 characters, drop blanks, drop case-insensitive
+     duplicates (first wins), drop any "other" (any case) then take the first
+     11 and append "Other" last (so at most 12 and "Other" always present,
+     always last). `serializeStoreList(names: string[]): string` (the same
+     cleaning, joined by "\n", for the later save action).
+     `storeFilterOptions(saved: readonly string[], itemStores: (string |
+     null)[]): string[]`: the saved list in order, then any non-null item store
+     not in it (first-seen order), so a removed store still shows a chip while
+     an item uses it.
+   - `toStore(value: unknown, allowed: readonly string[] = STORES): string |
+     null` in `constants.ts`: exact match against `allowed`. `Store` becomes
+     `string` (keep the export name so callers compile, comment why).
+   - new `src/lib/householdSettingsRead.ts` (`import "server-only"`): the only
+     reader of the table. `householdStores(): Promise<string[]>` returns
+     `parseStoreList(row?.stores)`. No login check (callers check), same
+     comment style as `screensaverRead.ts`.
+   - `groceryWrites.ts`: each of the four write sites validates with
+     `toStore(x, await householdStores())`. Edit keeps an item's existing store
+     when the incoming value equals the current stored value even if it is no
+     longer on the list (saving an untouched edit sheet must never blank a
+     removed store). Otherwise an unknown store becomes null as today.
+   - Pages load `householdStores()` once and pass `stores: string[]` down.
+     `GroceryList` chips: `[ALL, UNASSIGNED, ...storeFilterOptions(stores,
+     items.map(i => i.store))]`. `GroceryItemEditSheet` options: `stores`, plus
+     the item's current store first-after-blank if it is not in `stores`.
+     `StorePickerSheet` and `StoreSelect` take `stores`. `StoreSelect` keeps the
+     remembered last store only if it is in `stores`.
+   - `storeBreakdown(items, stores = STORES)`; `dashboardLoaders.ts` passes
+     `await householdStores()`. Leave the assistant summary route on the default.
+   - Tests in `storeList.test.ts`: fallback for null/""/"  \n ", order kept,
+     trimming, 24-char cut, duplicate drop (case-insensitive), "Other" forced
+     last and never doubled, cap at 12 with 15 inputs, `storeFilterOptions`
+     keeps removed-but-used stores and ignores null, `toStore` with and without
+     a list. The new test file sits in `src/lib/` so the existing glob covers it.
+- **Verification:** the full gauntlet above minus the GitHub check;
+   `npx prisma migrate deploy` against the dev branch after printing only the
+   host; `npm run build`.
+- **Evidence required:** the migration SQL in full; test counts before and
+   after for both timezone runs; tsc/eslint/build tails; `git diff --stat`; a
+   grep showing no remaining `STORES` use outside `constants.ts`,
+   `storeList.ts`, `dashboard.ts` default, assistant schema and tests.
+- **Done criteria:** Fury re-runs the grep and tests; with no row in dev,
+   `/kitchen/shopping` chips read All, No store, Walmart, Costco, Amazon,
+   Target, Maceys, Other (Strange confirms by screenshot).
+
+### S2 — Stores screen in Settings
+
+**Bryce's calls (2026-11-26, in chat, on the mock):** build as shown; a rename
+moves items already on the list to the new name; a removed store stays on
+items until they are bought (its chip shows while used, already S1's
+`storeFilterOptions`).
+
+- **Objective:** parents and admins add, rename, reorder and remove stores on
+  a new `/settings/stores` screen, saved instantly to `HouseholdSettings.stores`.
+- **Boundaries:** may touch: new `src/app/(app)/settings/stores/page.tsx`,
+  new `src/app/(app)/settings/stores/loading.tsx` (only if sibling settings
+  pages have one; `slideshow` does not, so probably skip),
+  new `src/components/StoreListEditor.tsx`, new `src/app/actions/householdStores.ts`,
+  new `src/lib/householdStoreWrites.ts` (server-only), `src/lib/storeList.ts`
+  and `src/lib/storeList.test.ts` (add pure edit helpers and their tests only),
+  `src/app/(app)/settings/page.tsx` (one new door row and its data line only,
+  plus the header comment's list of doors).
+  Must not touch: everything S1 owns except the two `storeList` files above,
+  `prisma/**`, `src/lib/assistant/**`, `src/app/api/**`, `package.json`,
+  `CLAUDE.md`, `STRUCTURE.md`, `DESIGN.md`.
+- **The screen (as mocked):**
+  - Settings door: `Store` icon (lucide `Store`, same as `STORE_ICON`), label
+    "Stores", the count of stores on the right, then the chevron, same classes
+    as the Slideshow photos row, in its own `order-3` div placed right after the
+    Wall tablet door. Shown when `canSyncCalendars` (parents and admins on a
+    real login).
+  - Page: `requireRole(...MANAGER_ROLES)`, `BackLink` to Settings, h1 "Stores",
+    one line "The stores on your shopping list, in this order. Tap a store to
+    rename it.", `data-page-width` matching the slideshow page.
+  - List: `SortableList` (grip handle) for every store but "Other"; each row
+    wrapped in `SwipeActions` with one action "Remove" (destructive style as
+    elsewhere), one tap, no confirm (house rule). Tapping the row's name opens
+    a rename sheet (house sheet pattern, title "Rename store", one text input
+    maxLength 24, helper "Up to 24 letters. Items on the list for <old> move to
+    the new name.", Save button). "Other" is a plain, non-draggable,
+    non-swipeable row last with the small text "Always last".
+  - Under the list: a text input (placeholder "Add a store", maxLength 24) and
+    an "Add" button, then "N of 12 stores". At 12 the input and button stay
+    but Add shows the inline error "You can have up to 12 stores." Duplicate
+    (case-insensitive, including "Other"): "That store is already on the
+    list." Blank: "Type a store name first." Errors clear on typing.
+  - Every change is optimistic (`useOptimistic` or local state), then the
+    action; on a failed save, put the list back and show the action's error
+    inline. 48px+ targets; rem text.
+- **Writes:** `src/lib/householdStoreWrites.ts` holds the database work, no auth:
+  `saveStoreList(names, actorUserId)` upserts row `"household"` with
+  `serializeStoreList(names)`; `renameStore(from, to, actorUserId)` in ONE
+  transaction saves the list with `from` replaced by `to` in place AND runs
+  `groceryItem.updateMany({ where: { store: from }, data: { store: to } })`.
+  Pure helpers in `storeList.ts` decide validity and return the next list or
+  an error string: `addStore(list, name)`, `removeStore(list, name)`,
+  `renameInList(list, from, to)`, `reorderStores(list, orderedNames)` ("Other"
+  can never be removed, renamed, moved or added twice; reorder must be the same
+  set or it is refused; rename to a name another store already has, any case,
+  is refused; rename to the same name with different capitals is allowed).
+  `src/app/actions/householdStores.ts` (`"use server"`): `addStoreAction`,
+  `removeStoreAction`, `renameStoreAction`, `reorderStoresAction`; each calls
+  `getVerifiedUser()`, refuses unless a non-device login with a MANAGER_ROLES
+  role, reads the current list with `householdStores()`, applies the pure
+  helper, saves, then `revalidatePath` for `/settings/stores`, `/settings`,
+  `/kitchen/shopping`, `/kitchen/inventory`, `/kitchen/expiring` and `/`.
+  Returns `{ ok: true, stores } | { ok: false, error }`, never throws.
+- **Tests:** every pure helper, including each refusal above, "Other" stays
+  last after every operation, cap 12 on add, rename case-only change allowed.
+- **Verification:** full gauntlet; `npm run build`; in the browser on the dev
+  server as a parent or admin on the dev branch: add, rename, reorder, remove
+  each persist across reload and show on `/kitchen/shopping` (Strange repeats
+  this). Restore the dev list afterwards (remove what you added).
+- **Evidence required:** test counts both timezones; tsc/eslint/build tails;
+  `git diff --stat`; what you clicked and what reloaded.
+- **Done criteria:** Strange PASS on screenshots against DESIGN.md; Vision PASS.
+
+## Gate log
+
+(none yet)
+
+## Notes and follow-ups
+
+- Assistant API store enum stays fixed (`schemasShopping.ts`); if Bryce edits
+  his own store list, Winnie should learn the new list. Follow-up.

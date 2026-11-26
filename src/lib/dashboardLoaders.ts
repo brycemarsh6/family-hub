@@ -10,6 +10,7 @@ import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import type { CalendarWidgetData } from "@/lib/calendarWidget";
 import type { HabitActor } from "@/lib/habits/types";
 import { isExpiringWithin } from "@/lib/expiring";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { storeBreakdown, urgentLowItems, type StoreCount, type UrgentLowItems } from "@/lib/dashboard";
 import type { Category, Location } from "@/lib/constants";
 import type { MealPlanView } from "@/lib/types";
@@ -86,7 +87,7 @@ export async function loadGrocerySummary(): Promise<GrocerySummary> {
     where: { checked: false },
     select: { store: true },
   });
-  return { toBuy: groceryItems.length, breakdown: storeBreakdown(groceryItems) };
+  return { toBuy: groceryItems.length, breakdown: storeBreakdown(groceryItems, await householdStores()) };
 }
 
 export type RecipesSummary = { count: number; newestTitle: string | null };

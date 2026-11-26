@@ -85,7 +85,10 @@ export type StoreCount = {
  * the headline of "what to buy where", so it's pinned to the end rather
  * than competing on count at all.
  */
-export function storeBreakdown(items: { store: string | null }[]): StoreCount[] {
+export function storeBreakdown(
+  items: { store: string | null }[],
+  stores: readonly string[] = STORES,
+): StoreCount[] {
   const counts = new Map<string, number>();
   for (const item of items) {
     const label = item.store ?? "Unassigned";
@@ -93,12 +96,12 @@ export function storeBreakdown(items: { store: string | null }[]): StoreCount[] 
   }
 
   function sortOrder(label: string): number {
-    const index = STORES.indexOf(label as (typeof STORES)[number]);
-    // A store name that isn't in STORES shouldn't be reachable (every
+    const index = stores.indexOf(label);
+    // A store name that isn't in the list shouldn't be reachable (every
     // GroceryItem.store is validated by toStore() on write), but falling
     // back to "sorts at the end" rather than crashing is the safe choice
     // if old data ever disagrees.
-    return index === -1 ? STORES.length : index;
+    return index === -1 ? stores.length : index;
   }
 
   // No `count > 0` filter: an entry only lands in the Map when something

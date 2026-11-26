@@ -10,9 +10,9 @@ import { EmptyState } from "./EmptyState";
 import {
   categoryIcon,
   categoryOrder,
-  STORES,
   STORE_ICON as StoreIcon,
 } from "@/lib/constants";
+import { storeFilterOptions } from "@/lib/storeList";
 import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
 import { useContainerWidth } from "@/lib/useContainerWidth";
 import type { GroceryItemView } from "@/lib/types";
@@ -62,7 +62,14 @@ function applyChange(
 const ALL = "All";
 const UNASSIGNED = "Unassigned";
 
-export function GroceryList({ items }: { items: GroceryItemView[] }) {
+export function GroceryList({
+  items,
+  stores,
+}: {
+  items: GroceryItemView[];
+  /** The household's saved store list, in order. */
+  stores: string[];
+}) {
   // useOptimistic gives us a copy of the list we're allowed to fib about.
   // We update it the instant a button is tapped so the screen responds
   // immediately, then the real answer arrives from the server a moment later
@@ -149,7 +156,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
       */}
       <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
-          {[ALL, UNASSIGNED, ...STORES].map((option) => {
+          {[ALL, UNASSIGNED, ...storeFilterOptions(stores, optimisticItems.map((i) => i.store))].map((option) => {
             const active = storeFilter === option;
             const count =
               option === ALL
@@ -246,6 +253,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
       {editingItem && (
         <GroceryItemEditSheet
           item={editingItem}
+          stores={stores}
           onClose={() => setEditingId(null)}
           onSave={(edits) => {
             run({ type: "edit", id: editingItem.id, edits }, () =>

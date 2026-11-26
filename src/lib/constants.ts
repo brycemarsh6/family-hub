@@ -159,7 +159,10 @@ export const STORES = [
   "Other",
 ] as const;
 
-export type Store = (typeof STORES)[number];
+// A plain string, not the six built-in names: each household can save its own
+// list (HouseholdSettings, read through householdStores()), so the type can no
+// longer name them. Callers keep importing `Store`.
+export type Store = string;
 
 /** The icon standing for the *concept* of a store — not for any one shop. */
 export const STORE_ICON = StoreIcon;
@@ -203,13 +206,17 @@ export function toLocation(value: unknown): Location {
 }
 
 /**
- * Narrow arbitrary text to a Store, or `null` if it isn't one. Unlike
+ * Narrow arbitrary text to a Store on `allowed` (the household's saved list,
+ * or the built-in STORES when none is given), or `null` if it isn't one. Unlike
  * category and location, store has no default to fall back to — "no store
  * chosen yet" is a real, valid state (e.g. items added before this feature
  * existed), not an error to paper over with a guess.
  */
-export function toStore(value: unknown): Store | null {
-  return STORES.includes(value as Store) ? (value as Store) : null;
+export function toStore(
+  value: unknown,
+  allowed: readonly string[] = STORES,
+): Store | null {
+  return typeof value === "string" && allowed.includes(value) ? value : null;
 }
 
 /** An item counts as "running low" when there's no more than the threshold left. */
