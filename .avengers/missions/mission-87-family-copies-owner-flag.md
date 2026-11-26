@@ -1,7 +1,7 @@
 # Mission 87: family copies PR 3, owner flag and neutral wording
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr3-owner-flag` (cut fresh from `main`)
 **Plan:** `.avengers/plans/family-copies-v1.md`, PR 3
@@ -101,7 +101,7 @@ From AGENTS.md, absolute for every agent:
 - **Report:** DONE, commit dde3ee2. Gauntlet green; npm test 2283 to 2286 (3 new). Fury read the diff: voice and Alexa gate first, briefing gate right after the CRON_SECRET check, Winnie action after the admin check, settings card behind `isOwnerCopy()`.
 
 ### C2 - neutral wording (signed off by Bryce 2026-11-26)
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Objective:** replace the wording that names Bryce's family with the signed-off text.
 - **Boundaries:** may touch: `src/app/actions/auth.ts` (the `RATE_LIMIT_ERROR`
   string and the comment above `ADMIN_RATE_LIMIT_ERROR` that quotes it),
@@ -120,7 +120,7 @@ From AGENTS.md, absolute for every agent:
 - **Verification:** the gauntlet; `grep -rn "ask Dad\|one family\|one household" src DESIGN.md` returns nothing.
 - **Evidence required:** diff, grep output, gauntlet tails.
 - **Done criteria:** Fury reads the diff word for word against the list above.
-- **Report:** pending.
+- **Report:** DONE. Fury read the diff word for word against the signed-off list: exact match. Grep clean, gauntlet green (2286 tests). Preflight flagged DESIGN.md over the 650-line code cap; it is a markdown doc and C2 grew it by one line (bullet went from 3 to 4 lines), recorded here as a NOTE.
 
 ## Gate ledger
 
@@ -132,6 +132,7 @@ From AGENTS.md, absolute for every agent:
 - 2026-11-26: mission opened, branch cut from `origin/main` (81dbcc6).
   C1 written. Wording drafts going to Bryce.
 - 2026-11-26: C1 DONE (dde3ee2). Bryce signed off all wording (humanizer pass first). C2 dispatched.
+- 2026-11-26: C2 DONE. Bryce says MARSHEE_OWNER_COPY=1 is added; Fury confirmed through the Vercel connection that the key exists on Production only (value is Sensitive, so unreadable; Bryce asked to make sure it is exactly 1). Bryce did not redeploy, which is fine: the merge deploy reads it. Gates next.
 
 ## Delivery
 
