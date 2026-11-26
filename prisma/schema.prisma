@@ -1544,3 +1544,26 @@ model StarAdjustment {
 
   @@index([userId, createdAt])
 }
+
+/// One Anthropic call's token use and cost (mission 89, family copies PR 5).
+/// `costMicroUsd` is millionths of a dollar (1 cent = 10,000), worked out by
+/// `costMicroUsd()` in `src/lib/aiMeterPolicy.ts`. The monthly meter adds these
+/// up from the start of the household's calendar month. No user: the allowance
+/// belongs to the whole copy.
+model AiUsage {
+  id String @id @default(cuid())
+
+  feature String
+  model   String
+
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int @default(0)
+  cacheWriteTokens Int @default(0)
+
+  costMicroUsd Int
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
