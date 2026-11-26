@@ -6,6 +6,13 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Install help (family copies PR 7, mission 94)**, about 2 minutes, on your
+  iPhone and iPad. Settings: a new "Install on your phone" row under "Open
+  Marshee on". Tap it: three steps for Safari, with an iPhone / iPad switch
+  that starts on the device you're holding. Your dashboard must NOT show a
+  "Finish setting up" card, and `/welcome` should open for you (admin) but
+  nothing there needs doing. The welcome steps and the checklist card get
+  tried end to end on the throwaway copy before the first family (PR 10).
 - **Recovery code on your copy (family copies PR 6, mission 91)**, about 3
   minutes, on your iPhone. Settings: a "Recovery code" card sits under
   Feedback, showing "No code yet". Tap "Make a code": "Save your recovery

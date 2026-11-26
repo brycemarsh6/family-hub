@@ -1,6 +1,6 @@
 # Mission 94: family copies PR 7, welcome steps, install help, checklist
 
-**Status:** GATES (C1, C2, C3 built and committed; Vision and Captain pass 1 running, Strange after).
+**Status:** DELIVERING (all gates PASS; merged main 7deba13; pushing).
 **Branch:** `claude/family-copies-pr7-welcome`, cut from `origin/main` at d85d5b0 (PR 6 merged).
 **Plan:** `.avengers/plans/family-copies-v1.md`, section "PR 7".
 **Mock:** `.avengers/mocks/family-copies-pr7-welcome-mock.html` (questions Q1 to Q6, each with a recommendation).
@@ -141,3 +141,19 @@ line from AGENTS.md, `npm run build`.
   bar instead of `ProgressBar`. Notes taken in the same batch (**C5**): the Marshee mark above
   welcome step 1 (in the approved mock), muted "Kid, profile" pill (in the mock). Left as a note:
   dark-mode segmented switch contrast (an app-wide token pairing, out of scope).
+- C5 DONE (Stark); tsc clean after removing a stale `.next/dev` from the harness.
+- **Captain pass 2: PASS** (notes: misplaced comment in linkedCalendarsRead.ts, startPageRead.ts
+  caller comment, name the new readers in the docs; all three done in 4187e1f).
+- **Vision pass 2: PASS** (notes: welcome order now the household order, same as Manage family;
+  ProgressBar would show NaN on 0/0, unreachable here; the misplaced comment, fixed).
+- **Strange pass 2: BLOCKED** (1): `text-muted` on `bg-surface-2` is 4.33:1 light on the Optional
+  and Kid, profile pills. Fixed in 4187e1f (`text-muted-strong`; Kid pill on `bg-surface`).
+- **Strange pass 3: PASS** (4.74:1 / 5.88:1 light, 6.51:1 / 7.34:1 dark). Note: a pressed row's
+  fill matches the Optional pill for a moment.
+
+## Deliberate leftovers
+
+- Dark-mode segmented switch looks pressed in (`bg-surface` on `bg-surface-2`), an app-wide pairing.
+- `HabitRow.tsx:122` has the same `text-muted` on `bg-surface-2` pairing (pre-existing).
+- `ProgressBar` has no NaN guard for 0/0 (no caller reaches it).
+- No Android install steps (D1).
