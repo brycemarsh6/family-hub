@@ -128,7 +128,7 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Objective:** add the `AiUsage` table and the pure, tested rules and words.
 - **Boundaries:**
   - May touch: `prisma/schema.prisma` (append one model only),
-  new `prisma/migrations/20261126200000_ai_usage/migration.sql`,
+  new `prisma/migrations/20261126300000_ai_usage/migration.sql`,
   new `src/lib/aiMeterPolicy.ts`, new `src/lib/aiMeterPolicy.test.ts`,
   new `src/lib/aiMeterVocabulary.ts`.
   - Must not touch: anything else, especially other models in the schema,
@@ -213,7 +213,8 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Objective:** a blocked call shows the agreed message with Upgrade, and
   Settings shows the "AI features" card.
 - **Boundaries:**
-  - May touch: `src/app/actions/recipes.ts`, `src/app/actions/mealPlans.ts`,
+  - May touch: `src/lib/aiMeter.ts` (export the allowance reader only), new `src/lib/aiUsageRead.ts` (server-only loader for the card),
+  `src/app/actions/recipes.ts`, `src/app/actions/mealPlans.ts`,
   `src/app/actions/groceriesRecipes.ts`, new `src/lib/aiBlocked.ts`
   (server-only: turns an `AiAllowanceError` plus the user's role into the
   `aiBlocked` payload), new `src/components/AiAllowanceNotice.tsx`,
@@ -242,5 +243,7 @@ Preflight 2026-11-26: C1 "schema.prisma over 650 hard cap" is a false alarm, STR
 - **Done:** all pass, screenshots match the decisions.
 
 ## Gate log
+
+- 2026-11-26 Fury: dev DB host confirmed `ep-hidden-pine` (dev branch). `migrate status` showed PR 4 had already applied `20261126200000_household_settings` there, the same stamp as ours, so ours was renamed to `20261126300000_ai_usage` (sorts after PR 4 whichever merges first). SQL reviewed (CREATE TABLE + CREATE INDEX only), `npx prisma migrate deploy` applied it to the dev branch only.
 
 ## Delivery
