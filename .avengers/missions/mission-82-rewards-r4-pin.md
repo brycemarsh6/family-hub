@@ -496,7 +496,7 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 
 ### F2 - Gate fixes, pass 2 (Strange)
 
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** The celebration never shows an old PIN error, and the
   pad's button and keys stay steady.
 - **Boundaries:** may touch: `src/components/RedeemSheet.tsx`,
@@ -512,7 +512,11 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   reserves the error line's height so the keys do not move on a wrong
   PIN.
 - **Verification:** the Gauntlet both zones; `grep -n "setRedemption" src/components/RedeemSheet.tsx` shows the clear before it.
-- **Report:** (pending)
+- **Report:** DONE (2026-11-25), commit a0fed4c. RedeemSheet clears the
+  error and lockMs before the celebration (lines 80 to 82); RewardSheet's
+  success path clears the PIN words too; PinPad shows Close only while its
+  own lock is live and reserves a 2.5rem error line (not measured, Strange
+  checks). Tests 2249 both zones, tsc, eslint, build clean.
 
 ## Gate ledger
 
