@@ -122,7 +122,7 @@ Order: C1, then C2. Fury writes the docs (rewards.md, STRUCTURE.md,
 DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 
 ### C1 - StarAdjustment table, the bank, rules, reads, writes and actions (no UI)
-- **Status:** PENDING
+- **Status:** DONE, commit de63305
 - **Objective:** add the `StarAdjustment` table and every server and pure
   piece R5's screens need, with tests, and no UI.
 - **Boundaries:** may touch: `prisma/schema.prisma` (the model and two
@@ -224,10 +224,21 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 - **Done criteria:** Fury re-reads the diff: one bank sum, no habits import
   in `src/lib/rewards/`, actions check roles themselves, no R4 file
   touched, the probe row gone.
-- **Report:** (pending)
+- **Report:** DONE at de63305 (19 files, all may-touch). Migration SQL
+  hand-written (shadow DB needed for `migrate diff`): one CREATE TABLE, one
+  index, two foreign keys (Cascade on userId, SetNull on createdById);
+  `migrate deploy` applied only it on the dev host. Tests Denver 2224 to
+  2248, UTC 2214 to 2238 pass (+24, same 10 DST skips); tsc, eslint, build,
+  both greps clean. Probe: bank 2, 7 with a +5 "zz r5 probe", history and
+  Recent showed it, a device target refused, deleted by id, bank 2, 0 rows
+  left. Notes: minus amounts use an ASCII hyphen ("-20") through
+  `signedStarsText`/`amountText`; new `formatWeekdayShortDate` in
+  householdDate.ts; `rewardVocabulary.ts` is 292 lines (near rewards.md's
+  ~300 split note); `getStarHistory` returns one error word for every
+  failure.
 
 ### C2 - The Manage page, the history sheet and the Rewards page links (UI)
-- **Status:** PENDING (after C1)
+- **Status:** DISPATCHED
 - **Objective:** build the approved screens on top of C1.
 - **Boundaries:** may touch (new): `src/app/(app)/rewards/manage/page.tsx`,
   `src/components/RewardsManage.tsx` (layout and sheet state),
@@ -280,10 +291,10 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   kid and the Tablet do not and get sent back from `/rewards/manage`;
   give and take move the bank and show in Recent and history; Undo on both
   kinds; Set cost opens the sheet; history from both phone and wide.
-- **Evidence required:** Gauntlet tails, screenshots at 390 and 1180
-  (light), the redirect for a kid login if one is available (else the
-  page's guard code and the action guards), and a list of any "zz r5" dev
-  rows made, for cleanup.
+- **Evidence required:** Gauntlet tails, the page's guard code and the
+  action guards, a dev-server check that `/rewards/manage` renders for a
+  signed-out request only as the sign-in redirect, and a list of any "zz r5"
+  dev rows made, for cleanup. Screenshots are Strange's job.
 - **Done criteria:** Strange's screenshots match the approved mock; no
   R4 file in `git diff --stat main`.
 - **Report:** (pending)
