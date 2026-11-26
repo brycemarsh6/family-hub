@@ -27,7 +27,10 @@ function isSafeIpv4Parts([a, b, c]: number[]): boolean {
   if (a === 172 && b >= 16 && b <= 31) return false; // private
   if (a === 192 && b === 0 && c === 0) return false; // 192.0.0.0/24
   if (a === 192 && b === 168) return false; // private
+  if (a === 192 && b === 0 && c === 2) return false; // documentation
   if (a === 198 && (b === 18 || b === 19)) return false; // benchmarking
+  if (a === 198 && b === 51 && c === 100) return false; // documentation
+  if (a === 203 && b === 0 && c === 113) return false; // documentation
   if (a >= 224) return false; // multicast, reserved, broadcast
   return true;
 }
@@ -77,6 +80,10 @@ function isSafeIpv6(g: number[]): boolean {
   const firstFiveZero = g.slice(0, 5).every((x) => x === 0);
   // :: , ::1 and the old IPv4-compatible ::a.b.c.d form (all ::/96)
   if (firstFiveZero && g[5] === 0) return false;
+  // SIIT ::ffff:0:a.b.c.d (::ffff:0:0:0/96): refused outright
+  if (g.slice(0, 4).every((x) => x === 0) && g[4] === 0xffff && g[5] === 0) {
+    return false;
+  }
   // IPv4-mapped ::ffff:a.b.c.d, judged by the inner IPv4
   if (firstFiveZero && g[5] === 0xffff) {
     return isSafeIpv4Parts(innerIpv4(g[6], g[7]));
@@ -89,6 +96,8 @@ function isSafeIpv6(g: number[]): boolean {
     return isSafeIpv4Parts(innerIpv4(g[6], g[7]));
   }
   if (g[0] === 0x64 && g[1] === 0xff9b) return false; // local-use NAT64
+  if (g[0] === 0x2001 && g[1] === 0) return false; // Teredo 2001::/32
+  if (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) return false; // 100::/64 discard
   // 6to4 2002::/16 embeds an IPv4 in groups 1 and 2
   if (g[0] === 0x2002) return isSafeIpv4Parts(innerIpv4(g[1], g[2]));
   if ((g[0] & 0xfe00) === 0xfc00) return false; // fc00::/7 unique local
