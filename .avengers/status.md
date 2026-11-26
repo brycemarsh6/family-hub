@@ -11,6 +11,20 @@ it is done. The pre-cleanup text is in
   tap one of his chores: the edit page opens (it used to say 404). Who
   reads "Just Ledger". Set Stars, Save, then check Whole family: the chore
   shows its gold stars and is still Ledger's, not yours.
+- **Winnie reads Rewards (mission 84, W1)**, about 3 minutes, in Winnie's
+  chat. First ask her to refresh what she knows about the Marshee API (she
+  reads `GET /openapi.json`). Then ask: "How many stars does everyone have?"
+  (matches the banks on the Rewards page), "What is (a kid) saving for?"
+  (each reward with "45 of 50" style progress, ready, or a wish), "What did
+  (a kid) earn this week?" (their star history; a private habit of someone
+  else reads "A private habit"), "Any wishes waiting for a cost?" and "Who
+  redeemed something lately?". She cannot redeem and never sees the PIN:
+  ask her to redeem something and she should say it happens in the app.
+- **Check your `.env` (found by Vision, mission 84):** the main checkout's
+  `.env` has a commented-out `DATABASE_URL` line whose host is not the dev
+  branch. If it is the production connection string, delete that line
+  (AGENTS.md: no dev environment should hold it). The active line is the
+  dev branch, so nothing used it.
 - **Parent PIN, kid and tablet redeem, wishes (mission 82, R4)**, about
   6 minutes, on the iPad (as the Tablet) and your iPhone, light and dark.
   As a parent: Settings, Rewards, Parent PIN, set a 4-digit PIN. Sign the

@@ -189,10 +189,13 @@ export async function suggestMeals(
   const client = new Anthropic();
 
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
+    model: "claude-sonnet-5-5",
+    max_tokens: 4096,
     system: SYSTEM,
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    output_config: {
+      effort: "medium",
+      format: { type: "json_schema", schema: SCHEMA },
+    },
     messages: [{ role: "user", content: buildPrompt(input) }],
   });
 

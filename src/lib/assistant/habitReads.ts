@@ -53,6 +53,7 @@ const HABIT_SELECT = {
   sharing: true,
   isPrivate: true,
   everyone: true,
+  stars: true,
   archivedAt: true,
   participants: {
     orderBy: [{ joinedAt: "asc" }, { userId: "asc" }],

@@ -676,7 +676,7 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
-- **Rewards (missions 79, 81, 82 and 83, `.avengers/plans/rewards-v1.md`).** Star
+- **Rewards (missions 79, 81, 82 and 83, `.avengers/plans/rewards-v1.md`; Winnie's reads, mission 84, `.avengers/plans/winnie-rewards-v1.md`).** Star
   and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
   rules in `src/lib/rewards/`, named row readers per table
   (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`,

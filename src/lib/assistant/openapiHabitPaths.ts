@@ -14,7 +14,7 @@ import type { Operation } from "./openapiTypes";
 // adding its row here; openapi.test.ts fails until you do.
 
 const HABIT =
-  "{ id, title, kind, mode, icon, lifeArea, timeOfDay, schedule, weekdays, times, anchorWeek, carryOver, sharing, isPrivate, everyone, archived, " +
+  "{ id, title, kind, mode, icon, lifeArea, timeOfDay, schedule, weekdays, times, anchorWeek, carryOver, sharing, isPrivate, everyone, archived, stars (what one check pays, or null), " +
   "track, weeklyMinutes, paceDays, participants: [{ personId, streak, bestStreak }] }";
 
 const WHO =
@@ -45,7 +45,7 @@ export const habitOperations: Operation[] = [
       WHO,
     query: habitPersonQuery,
     response:
-      "{ date, people: [{ personId, rows: [{ habitId, title, kind, dueState (required | open | none), state (done | late | skipped | left), carriedFrom | null, onVacation, skippedThisWeek, " +
+      "{ date, people: [{ personId, rows: [{ habitId, title, kind, dueState (required | open | none), state (done | late | skipped | left), carriedFrom | null, stars | null (the habit's per-check value, not what a late check pays; see GET /rewards lateStars), onVacation, skippedThisWeek, " +
       "hours: { doneMinutes, targetMinutes, leftMinutes, met } | null }], choreStreak }] }. 404 for an unknown personId.",
   },
   {

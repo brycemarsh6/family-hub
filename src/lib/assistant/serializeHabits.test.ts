@@ -42,6 +42,7 @@ const row: HabitRow = {
   sharing: "each",
   isPrivate: false,
   everyone: false,
+  stars: 5,
   archivedAt: null,
   track: "checks",
   weeklyMinutes: null,
@@ -56,9 +57,11 @@ test("toHabit: exact key set, deactivated people left out, createdById never sho
   const out = toHabit(row, ctx);
   assert.deepEqual(Object.keys(out).sort(), [
     "anchorWeek", "archived", "carryOver", "everyone", "icon", "id", "isPrivate", "kind", "lifeArea", "mode",
-    "paceDays", "participants", "schedule", "sharing", "timeOfDay", "times", "title", "track", "weekdays", "weeklyMinutes",
+    "paceDays", "participants", "schedule", "sharing", "stars", "timeOfDay", "times", "title", "track", "weekdays", "weeklyMinutes",
   ]);
   assert.deepEqual(out.participants, [{ personId: "a", streak: 3, bestStreak: 5 }]);
+  assert.equal(out.stars, 5);
+  assert.equal(toHabit({ ...row, stars: null }, ctx).stars, null);
   assert.ok(!JSON.stringify(out).includes("secret"));
 });
 
@@ -126,8 +129,10 @@ test("toTodayRow: left, done, skipped, the carried day, and the hours bar", () =
   const bar = toTodayRow(today({ hours: { done: 90, target: 600, met: false } })).hours;
   assert.deepEqual(bar, { doneMinutes: 90, targetMinutes: 600, leftMinutes: 510, met: false });
   assert.deepEqual(Object.keys(toTodayRow(today({}))).sort(), [
-    "carriedFrom", "dueState", "habitId", "hours", "kind", "onVacation", "skippedThisWeek", "state", "title",
+    "carriedFrom", "dueState", "habitId", "hours", "kind", "onVacation", "skippedThisWeek", "stars", "state", "title",
   ]);
+  assert.equal(toTodayRow(today({})).stars, null);
+  assert.equal(toTodayRow(today({ stars: 3 })).stars, 3);
 });
 
 test("toChart: ids, titles and what this week did; no names, chips or editing flags", () => {
