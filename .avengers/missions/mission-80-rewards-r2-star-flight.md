@@ -1,7 +1,7 @@
 # Mission: Rewards R2, the star flight, its switch and the all-done words
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-24 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r2-earn-animation-991ed6`, cut from main after
 PR brycemarsh6/family-hub#124 (R1) merged. R3 (mission 81) runs at the same
@@ -393,3 +393,7 @@ Fury's, after C2.
   follow-ups".
 - The migration (`20261124100000_celebrations_switch`, one additive
   Boolean column) runs on production through the Vercel build when merged.
+- Merged as PR #125 (merge commit f4453fb) on 2026-11-26; production
+  deploy dpl_3HFpWthHECdnpJAoVGbsY5ffoRyb READY on
+  marshee.themarshandco.com; migration `20261124100000_celebrations_switch`
+  applied in the build. (Recorded by the mission 81 session at R2's request.)

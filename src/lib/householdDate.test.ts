@@ -8,6 +8,7 @@ import {
   dayOfWeek,
   formatCalendarDate,
   formatHouseholdClock,
+  formatLongCalendarDate,
   formatShortCalendarDate,
   formatWeekTitle,
   hourInZone,
@@ -229,4 +230,12 @@ test("shiftWallClockInZone keeps the clock reading across both 2026 clock change
   assert.equal(shiftWallClockInZone(new Date("2026-07-01T13:00:00Z"), -30, DENVER).toISOString(), "2026-07-01T12:30:00.000Z");
   // Same answer for any process TZ: only the zone argument matters.
   assert.equal(shiftWallClockInZone(new Date("2026-07-01T13:00:00Z"), 30, "UTC").toISOString(), "2026-07-01T13:30:00.000Z");
+});
+
+test("formatLongCalendarDate: weekday, full month and day, no year, in the asked zone", () => {
+  assert.equal(formatLongCalendarDate({ year: 2026, month: 11, day: 24 }), "Tuesday, November 24");
+  assert.equal(formatLongCalendarDate({ year: 2026, month: 1, day: 1 }), "Thursday, January 1");
+  const instant = new Date("2026-11-25T03:30:00Z");
+  assert.equal(formatLongCalendarDate(calendarDateInZone(instant, DENVER)), "Tuesday, November 24");
+  assert.equal(formatLongCalendarDate(calendarDateInZone(instant, "UTC")), "Wednesday, November 25");
 });

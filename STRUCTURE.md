@@ -68,7 +68,10 @@ a one-line pointer.
   name, the action imports it under an alias that names the lower layer:
   `write…` or `…Row(s)` (`setPantryQuantity as writePantryQuantity`,
   `reorderHabits as reorderHabitRows`, `markNudgeSeen as markNudgeSeenRow`
-  are the instances).
+  are the instances). Named aliases only: a namespace import
+  (`import * as writes`) is not one of the forms, because
+  `writes.deleteReward(` still collides with the action in a search
+  (mission-81).
 - **Browser return routes (mission-55).** A provider that sends a person's
   browser back to Marshee (an OAuth redirect) arrives as a plain GET, so it
   needs a Route Handler at `src/app/api/<provider>/callback/route.ts`.
@@ -223,7 +226,10 @@ a one-line pointer.
   and `cache()` guarantees at most one user lookup per render pass, shared
   by the layout and the page. Nothing else re-reads the `User` row in a
   request, so this is not the re-fetch anti-pattern the performance notes
-  warn about.
+  warn about. A read whose input is another read's output (a page loading
+  the household people, then their banks and rewards) is a dependency, not
+  a waterfall: it runs first, and everything that does not depend on it
+  still goes in the one `Promise.all` (mission-81).
 - **Matcher strictness is per-consumer, deliberately.** `matchItem` (voice —
   lenient, spoken feedback loop), `searchItems` (search box), `findOverride`
   (shelf life — strict, no feedback loop), `duplicates.ts` (queue — strictest,
@@ -618,6 +624,13 @@ amendment id.
   (mission-71; docs/structure/calendar.md, "A repeating series belongs to
   Google"). `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
+  `formatLongCalendarDate(date)` is the only zone-explicit "Tuesday,
+  November 24" (weekday, long month, day, from a `CalendarDate`), built
+  from `mealPlanDates.ts`'s `FULL_DAY_NAMES` and `FULL_MONTH_NAMES`
+  (mission-81; the redeem celebration and the screensaver's date line,
+  whose `formatScreensaverDate` calls it). `MiniMonth`'s day label is its
+  browser-local twin (a `Date`): two homes because their date types
+  differ, the `formatWeekRange` precedent.
   `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
   Meal Plan, Schedule, This week, the meal plan sheets) prints the same
   dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5"; mission-52, decision
@@ -659,12 +672,14 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
-- **Rewards (mission-79, `.avengers/plans/rewards-v1.md`).** Star words in
-  `src/lib/rewardVocabulary.ts` (no imports), pure rules in
-  `src/lib/rewards/`, one reader per table (`rewardSettingsRead.ts`,
-  `starBankRead.ts`), one bank sum. (Rules: docs/structure/rewards.md,
-  "Stars and the star bank". Added 2026-11-24 on Captain's ruling; Bryce
-  approved.)
+- **Rewards (missions 79 and 81, `.avengers/plans/rewards-v1.md`).** Star
+  and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
+  rules in `src/lib/rewards/`, one row reader per table
+  (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`), one write
+  module (`rewardWrites.ts`), one bank sum and one serializable redeem.
+  (Rules: docs/structure/rewards.md, "Stars and the star bank". Added
+  2026-11-24 on Captain's ruling; Bryce approved. R3 homes added
+  2026-11-25, mission-81.)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
@@ -828,7 +843,9 @@ amendment id.
   `MonthChips`'s own "year only outside this year" chip label is the same
   rule in short form; its migration passes a length to the shared helper
   rather than keeping a second copy.
-- Shared UI jobs — see DESIGN.md's component vocabulary
+- Shared UI jobs — see DESIGN.md's component vocabulary. A component that
+  hand-draws the job of one listed there as "the only" (`ToggleSwitch`,
+  `ProgressBar`, the steppers) is a second definition (mission-81).
 
 - **Trip conditions are keyed to DEFINITIONS, never to importer counts.**
   A rule of the form "a third *consumer* forces the extraction" is
@@ -918,7 +935,8 @@ amendment id.
   `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `habits.md` 302, `layout.md` 315,
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
-  `rewards.md` 113 (new), `habits.md` 309. (Added
+  `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
+  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

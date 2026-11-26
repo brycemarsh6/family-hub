@@ -184,9 +184,14 @@ tell when a rule's reason has expired.
   icon system and tolerated.)
   A third exception (mission 79, Bryce 2026-11-24): the **star** is one
   filled Lucide `Star` (`fill="currentColor"`) in `--star`, used only for
-  stars: the row chip (`StarChip`), the star bank (`StarBank`) and the
-  star flight's ring (`StarFlightLayer`, mission 80). No other icon is
-  filled.
+  stars: the row chip (`StarChip`), the star bank (`StarBank`), the
+  star flight's ring (`StarFlightLayer`, mission 80) and the small star
+  beside the word Earned on an earned reward card (mission 81). No other
+  icon is filled.
+  A fourth exception (mission 81, Bryce 2026-11-24): **colour emoji**, chosen
+  from `REWARD_EMOJI_GROUPS` or the device's emoji keyboard ("Any emoji"),
+  shown only on reward cards, the redeem sheet and the reward picture picker.
+  They are a reward's picture, not icons; nowhere else.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -328,6 +333,15 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   `--surface-2`; dark `#f4d26b` (brand Butter) is 10.53:1 on `--surface`,
   11.72:1 on `--bg`, 9.33:1 on `--surface-2` (measured). Never use it for
   text, and never for anything but stars.
+- **`--star-soft` is an earned reward's background** (mission-81/C3): a pale
+  Butter (light `#fbf0d0`, dark `#382e12`) inside a 2px `--star` ring and used
+  for nothing else. The card's text is `--fg`: 6.93:1 light, 11.83:1 dark
+  (measured). The `--star` ring is 3.55:1 on it in light, 9.11:1 in dark.
+  Never put `--muted` text on it (4.5:1 is not guaranteed there).
+- **The redeem star rain is allowed motion** (mission-81): about two seconds
+  of gold stars falling behind the redeem sheet's celebration, drawn by
+  `StarRain` beside the daily confetti, never taking taps. Reduce Motion
+  turns it off; the words and the Done and Undo redeem buttons still show.
 - **Stars show in three places** (Bryce, 2026-11-24, from the "star bank on
   Mine" mock). A row with stars carries a small chip beside the streak,
   "star 10" (no chip without stars; hours rows never). A carried-over row's
@@ -363,7 +377,9 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   the words; the wall tablet's own switch is on Wall tablet settings.
   **Reduce Motion always wins:** no flight, no count-up and no confetti,
   but the words still show, because they do not move. These two, with the
-  confetti, are the app's only celebration motion.
+  confetti and the redeem star rain (mission 81, which follows Reduce
+  Motion but not yet the Celebrations switch), are the app's only
+  celebration motion.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

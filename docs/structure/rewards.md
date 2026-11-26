@@ -11,7 +11,7 @@ mission-79 ruling; Bryce approved.
 ### Stars and the star bank
 
 **Words.** `src/lib/rewardVocabulary.ts` holds every rewards word and
-list: `STAR_STEPS` (the only star values; a star value list or a 50 cap
+list except the picture list (`rewards/rewardEmoji.ts`, below): `STAR_STEPS` (the only star values; a star value list or a 50 cap
 typed anywhere else is a BLOCKER), `toStarValue` (the only repair: off
 the list, 0 included, is null), `LATE_STARS` with `LATE_STARS_LABELS` and
 `toLateStars`, `starCountText` / `starStepText`, and the field, section,
@@ -56,8 +56,8 @@ code lines; past that a concern gets its own
   typed in a component is a BLOCKER; the two celebration layers keep the
   `z-[70]` class (the sheets' `z-[60]` precedent), and
   `CONFETTI_Z_INDEX`'s test pins it between 61 and 70.
-- R3 to R5 add `rewardRules.ts`, `rewardEmoji.ts`, `pinPolicy.ts` and
-  `starHistory.ts` here, each pure with its own test.
+- `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below); R4 and R5
+  add `pinPolicy.ts` and `starHistory.ts` here, each pure with its own test.
 
 **Dependency direction.** `src/lib/rewards/` imports only
 `rewardVocabulary.ts`, `constants.ts`, its own files and types. It never
@@ -93,13 +93,51 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   sum and the one sanctioned `HabitLog` reader outside `habitsRead.ts` /
   `habitsStatsRead.ts`: it reads only `stars`, grouped by `userId`, and
   builds no habit row. The bank counts stars from private habits; only
-  the number leaves the server (the chore-streak precedent). R3 and R5
-  add redemptions and adjustments inside `loadStarBanks`; a second bank
+  the number leaves the server (the chore-streak precedent). R3 added
+  redemptions inside `loadStarBanks`; R5 adds adjustments there; a second bank
   sum in a page, action, component or Winnie route is a BLOCKER.
-- R3's reward catalogue: reads in `src/lib/rewardsRead.ts`, writes in
-  `src/lib/rewardWrites.ts` (a domain write module: `server-only`, no
-  auth, no `revalidatePath`), actions in `src/app/actions/rewards.ts`.
-  The settings read stays in `rewardSettingsRead.ts`.
+- **R3's reward catalogue (mission 81).** `Reward` and `RewardRedemption`
+  each have one reader of rows and one writer: `loadRewards` in
+  `src/lib/rewardsRead.ts` is the only reader that builds a `RewardView`;
+  the only other reads are `loadStarBanks`'s cost sum and the reads inside
+  `rewardWrites.ts`'s own writes; a third is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
+  module: `server-only`, no auth, no `revalidatePath`), actions in
+  `src/app/actions/rewards.ts` (`saveReward`, `deleteReward`,
+  `redeemReward`, `undoRedeem`; each checks `canManageRewards` or
+  `canRedeemRewards` itself). A redemption row snapshots the title, emoji
+  and cost and is never rewritten; Undo redeem deletes it. **The redeem is
+  one serializable transaction** (`redeemReward` in `rewardWrites.ts`): it
+  re-reads the reward and the bank through `loadStarBanks([ownerId], tx)`,
+  asks `redeemRefusal`, then creates the row, retrying a write conflict (via
+  `isWriteConflictError`) up to three tries in all, so two quick taps cannot
+  spend the same stars. `loadStarBanks` now subtracts each person's redeemed
+  costs (it can go below 0); it is still the only bank sum. The settings
+  read stays in `rewardSettingsRead.ts`.
+- `src/lib/rewards/rewardEmoji.ts` is the only list of reward pictures
+  (`REWARD_EMOJI_GROUPS`) and the only emoji check (`toRewardEmoji`: one
+  grapheme that is an emoji). `rewardRules.ts` is the only home of the cost
+  stepper walk (`nextCostStep`), earned (`isEarned`), a card's state
+  (`rewardStatus`), Hide earned (`visibleRewards`), the board's order
+(`orderRewards`: earned last, added order kept inside each group;
+`visibleRewards` uses it, Hill's H2), the redeem refusal, the
+  sheet's input check and the redeem sheet's lines (the date arrives
+  formatted, by `formatLongCalendarDate` in `householdDate.ts`). `access.ts` has two named
+  checks, `canManageRewards` (add, edit, delete) and `canRedeemRewards`
+  (redeem, undo), so a later PR can widen redeem alone.
+- `src/lib/hideEarned.ts` is the only home of the Hide earned switch on a
+  device (the `lastStore.ts` pattern, key `marshee.rewards.hideEarned`).
+
+**Rewards page components (R3).** `/rewards` is a wide page
+(`data-page-width="wide"`). `RewardsBoard.tsx` owns the sheet state and
+the layout: one `@container`, chips and one person below 48rem, a column
+per person from it up (a container variant, never a screen breakpoint). It
+keeps a copy of the open redeem sheet's reward, owner name and bank, so the
+refresh after a redeem never closes the celebration. `RewardCard.tsx`
+draws one reward, `RewardPersonChips.tsx` the phone's people row.
+`RewardSheet` (with `RewardEmojiPicker` inside it) and `RedeemSheet` are the sheets (rendered
+outside the container); `StarRain.tsx` is the second importer of
+`canvas-confetti` (habits.md names both). Colour emoji and `--star-soft` are
+allowed only here (DESIGN.md).
 
 **Undo columns.** `LATE_COLUMNS` in `src/lib/assistant/undoModels.ts` is
 the only list of columns added after audit copies existed: a copy
@@ -108,9 +146,13 @@ without one still plans as undoable and reads it as null.
 undo model goes in this list in the same commit.
 
 **Components.** `StarChip.tsx` (a row's value) and `StarBank.tsx` (a
-person's total) are the only drawings of a star amount, and the filled
-`text-star` star appears nowhere else (DESIGN.md's one exception to
-outline icons). Whether a chip shows is `StarChip`'s own rule (it draws
+person's total) are the only drawings of a star amount. The filled
+`text-star` star appears only in those two, in `StarFlightLayer.tsx`'s
+ring (mission 80) and in `RewardCard.tsx`'s Earned mark (mission 81);
+DESIGN.md's star exception names all four, and a fifth place is a BLOCKER.
+The Rewards page draws one visible `StarBank` per person (the chip below
+48rem, the column header from it up), so `data-star-bank` stays unique on
+screen. Whether a chip shows is `StarChip`'s own rule (it draws
 nothing below 1); rows pass `rowStars(...)` and never test the number
 themselves.
 `HabitStarsField.tsx` is the only stars stepper (a `LadderStepper`);

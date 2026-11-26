@@ -25,6 +25,18 @@ test("isWriteConflictError: other P2039s, other codes and non-Prisma errors are 
   assert.equal(isWriteConflictError(null), false);
 });
 
+test("isWriteConflictError: a bare DriverAdapterError with cause.originalCode (raised at COMMIT)", () => {
+  const bare = (originalCode: string) => {
+    const e = new Error("x", { cause: { originalCode } });
+    e.name = "DriverAdapterError";
+    return e;
+  };
+  assert.equal(isWriteConflictError(bare("40001")), true);
+  assert.equal(isWriteConflictError(bare("40P01")), true);
+  assert.equal(isWriteConflictError(bare("23505")), false);
+  assert.equal(isWriteConflictError(new Error("x", { cause: { originalCode: "40001" } })), false);
+});
+
 test("isTransactionStartTimeout is exactly P2028", () => {
   assert.equal(isTransactionStartTimeout(known("P2028")), true);
   assert.equal(isTransactionStartTimeout(known("P2034")), false);

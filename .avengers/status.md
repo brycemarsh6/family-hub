@@ -6,6 +6,17 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Rewards page (mission 81, R3)**, about 5 minutes, on your iPhone and
+  the iPad, light and dark. Open Rewards in the side menu. As a parent,
+  tap Add reward under your name: pick a picture (or Any emoji for your
+  keyboard), a name, a cost from the steps, One time or Repeatable, Save.
+  Give a chore enough stars and check it, then tap Redeem on the reward:
+  the sheet says what it spends, Redeem, then "Great work!" with gold stars
+  falling; try Undo redeem once. A repeatable reward's bar starts over; a
+  one-time one turns Earned and moves to the end. Turn on Hide earned. On
+  the iPad every person gets a column (it swipes sideways if they do not
+  all fit); on the phone tap a person's chip. A kid or the Tablet sees
+  "Ask a parent" instead of Redeem until R4.
 - **Flying stars (mission 80, R2)**, about 4 minutes, on your iPhone and
   the iPad, light and dark. Give a chore 5 stars, then check it on Mine: a
   ring of 8 gold stars pops out round the check, flies into your star bank
@@ -375,6 +386,14 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Rewards page follow-ups (mission 81 Delivery): a refused redeem can
+  show a stale bank (the board keeps its own copy); Done and Undo redeem
+  look disabled for about a second after a redeem; the star rain is per
+  frame (120Hz gets double) and ignores the Celebrations switch (Reduce
+  Motion only); the Repeats tag moves after a redeem; Hide earned slides on
+  reload; the app never sets `color-scheme: dark`; `briefingDateLabel`
+  could join `householdDate.ts`; STRUCTURE.md's calendar doc sizes are
+  stale since mission 70; RewardSheet's "Save", "Add", "Delete" are inline.
 - Star flight follow-ups (mission 80 gate NOTEs): two overlapping checks
   for one person where one fails cancel both rings (the number stays
   right); the all-done pill now looks like the Undo bar if both show at

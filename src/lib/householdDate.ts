@@ -10,7 +10,7 @@
 // Building either with a process-local `new Date(y, m, d)` on a UTC server
 // would be off by the zone offset — e.g. a second MealPlan for the same week.
 
-import { MONTH_NAMES } from "./mealPlanDates";
+import { FULL_DAY_NAMES, FULL_MONTH_NAMES, MONTH_NAMES } from "./mealPlanDates";
 
 export type CalendarDate = { year: number; month: number; day: number };
 
@@ -135,6 +135,11 @@ export function formatCalendarDate(date: CalendarDate): string {
 /** "Nov 3": the short month name and the day, no year. */
 export function formatShortCalendarDate(date: CalendarDate): string {
   return `${MONTH_NAMES[date.month - 1]} ${date.day}`;
+}
+
+/** "Tuesday, November 24": the weekday, the full month name and the day, no year. */
+export function formatLongCalendarDate(date: CalendarDate): string {
+  return `${FULL_DAY_NAMES[dayOfWeek(date)]}, ${FULL_MONTH_NAMES[date.month - 1]} ${date.day}`;
 }
 
 /** The Habits Report's week title, with no dash: "Nov 1 to 7", "Oct 26 to Nov 1".

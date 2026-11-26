@@ -1,4 +1,4 @@
-// Pins the "Open Marshee on" vocabulary: nine pages, Dashboard first, Lists and
+// Pins the "Open Marshee on" vocabulary: ten pages, Dashboard first, Lists and
 // Settings absent, and a toStartPage that never throws and never lets an
 // unknown or off-site value through.
 
@@ -13,8 +13,8 @@ import {
   toStartPage,
 } from "./startPage";
 
-test("START_PAGE_OPTIONS: nine pages, Dashboard first, no Lists, no Settings", () => {
-  assert.equal(START_PAGE_OPTIONS.length, 9);
+test("START_PAGE_OPTIONS: ten pages, Dashboard first, no Lists, no Settings", () => {
+  assert.equal(START_PAGE_OPTIONS.length, 10);
   assert.equal(START_PAGE_OPTIONS[0].href, "/");
   assert.equal(START_PAGE_OPTIONS[0].label, "Dashboard");
   const hrefs = START_PAGE_OPTIONS.map((option) => option.href);

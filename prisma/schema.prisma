@@ -592,6 +592,14 @@ model User {
   nudgesSent         Nudge[]            @relation("nudgesSent")
   nudgesReceived     Nudge[]            @relation("nudgesReceived")
 
+  /// Rewards (mission 81): rewards this person is saving for (Cascade) or
+  /// made (SetNull), their redemptions (Cascade), and the ones they tapped
+  /// Redeem on for someone else (SetNull).
+  rewardsOwned          Reward[]           @relation("rewardsOwned")
+  rewardsCreated        Reward[]           @relation("rewardsCreated")
+  rewardRedemptions     RewardRedemption[] @relation("rewardRedemptions")
+  rewardRedemptionsMade RewardRedemption[] @relation("rewardRedemptionsMade")
+
   /// Winnie's morning briefing (mission 48): the days this person's briefing
   /// was claimed. Cascade: a deleted person's guard rows mean nothing.
   winnieBriefingsSent WinnieBriefingSent[]
@@ -1442,4 +1450,61 @@ model RewardSettings {
 
   updatedAt   DateTime @updatedAt
   updatedById String?
+}
+
+/// A reward someone is saving stars for (mission 81, Rewards R3). `ownerId`
+/// is whose reward it is (Cascade: it goes with the person). `emoji` is the
+/// one picture, stored as the emoji itself; null is "No picture". `cost` is
+/// stars, from COST_STEPS in rewardVocabulary.ts; null is a wish waiting for
+/// a parent's cost (R4). `repeatable` false is one time (Earned once
+/// redeemed), true restarts the bar. `createdById` is who added it, SetNull.
+model Reward {
+  id String @id @default(cuid())
+
+  ownerId String
+  owner   User   @relation("rewardsOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  title      String
+  emoji      String?
+  cost       Int?
+  repeatable Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  createdById String?
+  createdBy   User?   @relation("rewardsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions RewardRedemption[]
+
+  @@index([ownerId, sortOrder])
+}
+
+/// One time a reward was redeemed (mission 81). `userId` is whose stars were
+/// spent (Cascade). `rewardId` is SetNull so a deleted reward keeps its
+/// history. `title`, `emoji` and `cost` are snapshots taken at redeem time
+/// and never rewritten, so editing a reward never changes what was spent.
+/// `redeemedById` is the parent who tapped Redeem, SetNull. Undo redeem
+/// deletes the row, which puts the stars back in the bank.
+model RewardRedemption {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("rewardRedemptions", fields: [userId], references: [id], onDelete: Cascade)
+
+  rewardId String?
+  reward   Reward? @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+
+  title String
+  emoji String?
+  cost  Int
+
+  redeemedById String?
+  redeemedBy   User?   @relation("rewardRedemptionsMade", fields: [redeemedById], references: [id], onDelete: SetNull)
+
+  redeemedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([rewardId])
 }

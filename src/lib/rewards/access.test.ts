@@ -1,8 +1,8 @@
-// Pins access.ts: only admins and parents set stars.
+// Pins access.ts: who sets stars, and who manages and redeems rewards.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canSetStars } from "./access";
+import { canManageRewards, canRedeemRewards, canSetStars } from "./access";
 
 test("admin and parent may set stars", () => {
   assert.equal(canSetStars("admin"), true);
@@ -11,4 +11,12 @@ test("admin and parent may set stars", () => {
 
 test("a kid, a device and anything unknown may not", () => {
   for (const role of ["kid", "device", "", "ADMIN", "guest"]) assert.equal(canSetStars(role), false);
+});
+
+test("only admins and parents may manage or redeem rewards", () => {
+  for (const check of [canManageRewards, canRedeemRewards]) {
+    assert.equal(check("admin"), true);
+    assert.equal(check("parent"), true);
+    for (const role of ["kid", "device", "", "ADMIN", "guest"]) assert.equal(check(role), false);
+  }
 });

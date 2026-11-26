@@ -59,7 +59,7 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 - **Hill only runs when Bryce is away in bypass permissions mode** (Bryce,
   2026-11-08; he first set Hill up on 2026-11-05). In that mode, content and
   design calls that would wait for Bryce go to Hill (`.claude/agents/hill.md`:
-  Fable, extra-high effort, read-only), and Fury records each one as "decided
+  Opus 5.5, high effort, read-only; Bryce, 2026-11-25), and Fury records each one as "decided
   by Hill" for Bryce to review. **In any other mode do not call Hill at all:
   ask Bryce.** Hill never decides logins, real-device tests, money or the
   danger register.
@@ -93,7 +93,7 @@ files named beside it.
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **One side drawer** for the whole app, opened by a hamburger button at the
   top left (the wordmark header shows only on the dashboard and login). It
-  lists Dashboard, Calendar, Habits & Chores, Plans & Goals, Lists, a Kitchen
+  lists Dashboard, Calendar, Habits & Chores, Rewards, Plans & Goals, Lists, a Kitchen
   group (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Settings and
   Send feedback. Profile, the name card and Sign out live in Settings. On
   wide screens a per-login "Menu style" setting can pin it open as an icon
@@ -136,8 +136,8 @@ files named beside it.
   carry-over, who can see or log) are pure code in `src/lib/habits/`, words
   in `src/lib/habitVocabulary.ts`. Settings has a Show streaks switch and, for
   admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
-- **Rewards** (R1, R2 of 5): checks pay stars into each person's star bank, which fly there (a Celebrations
-  switch turns that off). Rules `docs/structure/rewards.md`, plan `.avengers/plans/rewards-v1.md`.
+- **Rewards** (R1 to R3 of 5): checks pay stars into each person's star bank, which fly there (a Celebrations
+  switch turns that off). `/rewards`: parents add rewards and redeem them (Undo redeem). Rules `docs/structure/rewards.md`, plan `.avengers/plans/rewards-v1.md`.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, a
   month dropdown (an iPad side panel, 72), sliding swipe (69), pinch zoom
   (65), drag (70) and its This one or All of them (71), task Undo (74),
@@ -242,7 +242,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Rewards R3** (the Rewards page, mission 81) is in its own session: `.avengers/plans/rewards-v1.md`.
+- **Rewards R4** (parent PIN, kid and tablet redeem, wishes) is next: `.avengers/plans/rewards-v1.md`.
 - **Winnie next:** calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
