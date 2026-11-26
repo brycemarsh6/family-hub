@@ -171,3 +171,25 @@ afterwards (count back to 0).
 Not proven end to end: a signed-in relative tapping Send in the browser and
 the report arriving (needs a real copy with two Vercel projects). That is the
 plan's dress rehearsal step before the first family.
+
+## Gates
+
+- Vision pass 1: **PASS** (re-ran gauntlet, re-probed: lowercase bearer 401,
+  2-byte UTF-8 chunked 620 KB 413, Content-Length lie rejected by Node, NUL
+  in names 500 with no row). Notes: invisible characters in names, preview
+  deployments should be Production only, rate limit counts only rows still
+  in the table.
+- Strange pass 1: **PASS** with screenshots at 375, 820x1180, 1180x820,
+  light and dark. Notes: icon wraps between lines at 375, switch live while
+  sending, inbox subtitle wording, FAMILY_NAME should be written in full.
+- Captain pass 1: **BLOCKED**: the route wrote `Feedback` itself and
+  `feedbackInbox.ts` read it (one reader, one writer rule). Drafted the
+  STRUCTURE.md amendments and `docs/structure/feedback.md`.
+- Fix F1 (Stark): `feedbackWrites.ts` is now the only insert,
+  `countForwardedFeedbackSince` lives in `feedbackRead.ts`, `KEY_MIN_LENGTH`
+  and `FORWARDED_AUTHOR_ID` defined once, control and format characters
+  stripped from names, NUL stripped from message and user agent, switch
+  disabled while sending, icon kept on the first line. Gauntlet: tsc 0,
+  eslint 0, `npm test` 2333 pass, TZ=UTC 2323 pass 10 skipped.
+- Fury wrote Captain's STRUCTURE.md amendments and the new companion file,
+  and the setup notes in `.avengers/status.md`.

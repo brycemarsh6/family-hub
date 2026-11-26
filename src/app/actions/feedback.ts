@@ -5,10 +5,8 @@
 // inline (STRUCTURE.md, guard forms). The rules are in src/lib/feedback.ts.
 
 import { after } from "next/server";
-import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import {
-  SCREENSHOT_TYPE,
   TOUCH_STAMP,
   USER_AGENT_MAX,
   decodeScreenshot,
@@ -17,6 +15,7 @@ import {
   normalizeViewport,
 } from "@/lib/feedback";
 import { familyName } from "@/lib/feedbackForward";
+import { createFeedbackRow } from "@/lib/feedbackWrites";
 import { feedbackForwardsToOwner, forwardFeedbackToOwner } from "@/lib/feedbackInbox";
 
 export type SendFeedbackResult = { ok: true } | { ok: false; error: string };
@@ -52,17 +51,14 @@ export async function sendFeedback(input: {
   const viewport = normalizeViewport(input.viewport);
 
   try {
-    await db.feedback.create({
-      data: {
-        authorId: user.userId,
-        authorName: user.displayName,
-        message: message.message,
-        pagePath,
-        userAgent,
-        viewport: viewport || null,
-        screenshot: kept,
-        screenshotType: kept ? SCREENSHOT_TYPE : null,
-      },
+    await createFeedbackRow({
+      authorId: user.userId,
+      authorName: user.displayName,
+      message: message.message,
+      pagePath,
+      userAgent,
+      viewport: viewport || null,
+      screenshot: kept,
     });
   } catch {
     return { ok: false, error: "That didn't send. Check your connection and tap Send again." };

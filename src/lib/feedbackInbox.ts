@@ -1,16 +1,20 @@
 import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { db } from "@/lib/db";
 import { isOwnerCopy } from "@/lib/copyConfig";
-import { forwardConfig, inboxRateLimited, type ForwardedFeedback } from "@/lib/feedbackForward";
+import { countForwardedFeedbackSince } from "@/lib/feedbackRead";
+import {
+  KEY_MIN_LENGTH,
+  forwardConfig,
+  inboxRateLimited,
+  type  ForwardedFeedback,
+} from "@/lib/feedbackForward";
 
 // The server side of forwarding feedback to Bryce's copy (mission 90): the
 // sender used by relatives' copies and the checks used by the receiving route.
 // Settings are read at call time, never cached at module load.
 
 const HOUR_MS = 60 * 60 * 1000;
-const KEY_MIN_LENGTH = 32;
 
 /** True in a relative's copy that has both forwarding settings. */
 export function feedbackForwardsToOwner(): boolean {
@@ -48,12 +52,8 @@ export function inboxKeyMatches(header: string | null): boolean {
   return timingSafeEqual(a, b);
 }
 
-/** Counts forwarded reports from the last hour (all, and this family's). */
+/** True when this family, or all families together, sent too many in the last hour. */
 export async function isInboxRateLimited(family: string): Promise<boolean> {
   const since = new Date(Date.now() - HOUR_MS);
-  const [total, fromFamily] = await Promise.all([
-    db.feedback.count({ where: { sourceFamily: { not: null }, createdAt: { gte: since } } }),
-    db.feedback.count({ where: { sourceFamily: family, createdAt: { gte: since } } }),
-  ]);
-  return inboxRateLimited({ family: fromFamily, total });
+  return inboxRateLimited(await countForwardedFeedbackSince(family, since));
 }

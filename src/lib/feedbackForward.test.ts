@@ -119,3 +119,23 @@ test("inboxRateLimited trips at either limit", () => {
   assert.equal(inboxRateLimited({ family: 1, total: FORWARD_TOTAL_PER_HOUR - 1 }), false);
   assert.equal(inboxRateLimited({ family: 1, total: FORWARD_TOTAL_PER_HOUR }), true);
 });
+
+test("names lose invisible control and format characters", () => {
+  const messy = "Sm\u0000ith‮ fam​ily";
+  const parsed = parseForwardedFeedback({ ...GOOD, family: messy, authorName: "A\u0000nn‮" });
+  assert.equal(parsed.ok && parsed.value.family, "Smith family");
+  assert.equal(parsed.ok && parsed.value.authorName, "Ann");
+  assert.equal(familyName(messy), "Smith family");
+});
+
+test("a name that is only invisible characters is rejected", () => {
+  assert.equal(parseForwardedFeedback({ ...GOOD, family: "​‮\u0000" }).ok, false);
+  assert.equal(parseForwardedFeedback({ ...GOOD, authorName: " ​ " }).ok, false);
+  assert.equal(familyName("​\u0000"), "Unnamed family");
+});
+
+test("NUL is stripped from message and userAgent, newlines stay", () => {
+  const parsed = parseForwardedFeedback({ ...GOOD, message: "line one\u0000\nline two", userAgent: "U\u0000A" });
+  assert.equal(parsed.ok && parsed.value.message, "line one\nline two");
+  assert.equal(parsed.ok && parsed.value.userAgent, "UA");
+});

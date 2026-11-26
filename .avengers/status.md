@@ -444,6 +444,17 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- **Feedback forwarding setup notes (mission 90, family copies PR 9)**, for
+  the runbook (PR 10). In each relative's Vercel project, Production only:
+  `FAMILY_NAME` written in full ("Smith family", not "Smith"; the inbox
+  prints it as is), `FEEDBACK_FORWARD_URL` (your copy's address plus
+  `/api/feedback-inbox`) and `FEEDBACK_FORWARD_KEY`. In your own project,
+  Production only: `FEEDBACK_INBOX_KEY`, the same secret. If forwarding
+  fails (your copy down, or the 10 per family / 30 total per hour cap), the
+  family still sees "Sent" and keeps their own copy; you just don't get it.
+  Wording to decide some day: the inbox subtitle "What the family sent from
+  Send feedback." now also covers relatives' reports. When PR 4 merges, the
+  family name can come from `HouseholdSettings` instead of `FAMILY_NAME`.
 - Parent PIN follow-ups (mission 82 gate NOTEs): the PIN check's catch
   logs nothing; the lock panel is taller, so the keys drop 8px when a lock
   starts; RewardSheet's plain refusal branch does not clear the PIN error;

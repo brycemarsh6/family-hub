@@ -193,13 +193,15 @@ function FeedbackDialog({
           // One control for screen readers: the switch. The text is a plain
           // element whose tap flips the same state, so the whole card works.
           <div
-            onClick={() => setShareWithBryce((on) => !on)}
+            onClick={() => {
+              if (!pending) setShareWithBryce((on) => !on);
+            }}
             className="mt-3 flex min-h-12 cursor-pointer items-start gap-3 rounded-xl bg-surface-2 px-4 py-3"
           >
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 text-base font-medium text-fg">
-                <Share2 size={18} aria-hidden="true" />
-                Share screenshot with Bryce
+              <span className="flex items-start gap-1.5 text-base font-medium text-fg">
+                <Share2 size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <span>Share screenshot with Bryce</span>
               </span>
               <span className="block text-sm text-muted">
                 Bryce will see whatever is on this screen right now.
@@ -210,6 +212,7 @@ function FeedbackDialog({
                 checked={shareWithBryce}
                 onChange={setShareWithBryce}
                 label="Share screenshot with Bryce"
+                disabled={pending}
               />
             </span>
           </div>

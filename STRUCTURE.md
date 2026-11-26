@@ -20,7 +20,7 @@ a one-line pointer.
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` (mission-38) and `/api/slideshow/[id]/image` (mission-57) are the two instances. Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, never writes, and is never added to proxy.ts's public lists. It sends `Cache-Control: private, no-store` by default. It may send `private, max-age=31536000, immutable` only when the bytes behind a URL can never change: the id in the path is made by the server, and the stored file is written once with overwrite refused (the slideshow image). That choice accepts that a copy stays in one device's own cache after sign-out or delete, so it is for household photos, never for anything a person reports or edits. Also **browser return routes**, where a third party sends a person's browser back and a Server Action cannot receive the GET: `/api/google/callback` is the one instance (mission-55; rules under "Browser return routes" below). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action; **type re-exports** (mission-53, A-L3-10: a component takes a type from its lib home, never through a `"use server"` file, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };`. A new one is a BLOCKER; existing debt to fix on the next touch: `groceriesRecipes.ts:35`, `groceriesPutAway.ts:28-33`) |
-| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/privacy`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/cron/calendar-pull`, `/api/google/callback` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
+| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/privacy`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/cron/calendar-pull`, `/api/google/callback`, `/api/feedback-inbox` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
@@ -43,7 +43,13 @@ a one-line pointer.
   `/api/assistant/v1/` (whose gate is the shared `assistantRoute` wrapper)
   and `/api/cron/briefing` (mission-48: Vercel's cron, gated by a
   constant-time `Authorization: Bearer ${CRON_SECRET}` check that runs first
-  and answers 401 when the secret is missing) are the instances. A new cron
+  and answers 401 when the secret is missing) are the instances. `/api/feedback-inbox`
+  (mission-90) is a further instance: its first line answers 404 unless
+  `isOwnerCopy()` and `FEEDBACK_INBOX_KEY` are both set, then
+  `inboxKeyMatches` (constant time, in `src/lib/feedbackInbox.ts`) answers
+  401 before the body is read. The body is read with a byte cap
+  (`FORWARD_BODY_MAX_BYTES`) and parsed only by `parseForwardedFeedback`.
+  It is POST only and an exact `PUBLIC_ROUTES` entry. A new cron
   job is its own route under `src/app/api/cron/<job>/`, carries the same
   first-line `CRON_SECRET` check, and gets its own exact entry in
   `PUBLIC_ROUTES`; `/api/cron/` is never a public prefix (A-48-1).
@@ -583,28 +589,11 @@ amendment id.
   last day reads "today"). The two sites that make it today are
   `src/components/HabitTodayList.tsx` (the vacation card) and
   `src/lib/briefing.ts` (the Chores line). Not a BLOCKER until it exists.
-- **Send feedback (mission-38).** `src/lib/feedback.ts` has no imports, on
-  purpose, and holds the rules: `MESSAGE_MAX`, `SCREENSHOT_MAX_BYTES`,
-  `USER_AGENT_MAX`, `SCREENSHOT_TYPE`, `TOUCH_STAMP` (the one encoding of "a
-  Mac that had touch", appended to the user agent), `normalizeMessage` (the
-  only empty or too-long wording, used by both the sheet and the action),
-  `normalizePagePath`, `normalizeViewport`, `describeDevice` and
-  `decodeScreenshot` (uses `Buffer`, so server code only).
-  `src/lib/feedbackRead.ts` (`server-only`, no auth; callers check the admin
-  role) is the only reader of the `Feedback` table, and its list never
-  carries screenshot bytes; a second reader is a BLOCKER. `sendFeedback`
-  (`actions/feedback.ts`, guard form a, devices too) and `markFeedbackDone` /
-  `deleteFeedback` (`actions/feedbackAdmin.ts`, form b, behind the
-  `requireRole("admin")` page `/settings/feedback`) are the only writers; if
-  a second caller appears (a Winnie route), the writes move into
-  `src/lib/feedbackWrites.ts` first. The bytes go out through
-  `src/app/api/feedback/[id]/screenshot/route.ts` alone. **`Feedback` has no
-  Prisma relation to `User` on purpose** (mission-38's collision rule
-  forbade a `User` back-field): `authorId` is a plain id and `authorName` a
-  snapshot; adding the relation later is a separate additive migration that
-  first confirms no `authorId` lacks a `User` row.
-  `src/lib/captureScreenshot.ts` carries `import "client-only"`, is the only
-  in-browser page capture and the only importer of `html-to-image`.
+- **Send feedback (mission-38, forwarding mission-90).** `feedback.ts` holds
+  the rules, `feedbackRead.ts` is the only reader, `feedbackWrites.ts` the
+  only insert, and forwarding between copies is `feedbackForward.ts` (pure)
+  plus `feedbackInbox.ts` (server-only). (Rules: docs/structure/feedback.md,
+  "Send feedback".)
 - **Feedback time labels: `src/lib/feedbackTime.ts`** is the only home of
   `feedbackTimeAgo(createdAt, now)` and `feedbackTimeLabel(createdAt)`
   ("Tue, Nov 3, 11:30 PM"). It imports only `constants.ts`,
@@ -961,7 +950,7 @@ amendment id.
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
   `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
-  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new). (Added
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 55 (new). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

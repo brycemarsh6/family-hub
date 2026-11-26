@@ -17,7 +17,14 @@ export const AUTHOR_NAME_MAX = 60;
 export const FORWARD_PER_FAMILY_PER_HOUR = 10;
 export const FORWARD_TOTAL_PER_HOUR = 30;
 
-const KEY_MIN_LENGTH = 32;
+/** The shortest key either side accepts. */
+export const KEY_MIN_LENGTH = 32;
+/** The authorId on rows that arrived from a relative's copy. */
+export const FORWARDED_AUTHOR_ID = "forwarded";
+
+// Control and format characters (NUL, right-to-left override, zero-width
+// space and the like) are invisible, so they have no place in a name or text.
+const INVISIBLE = /[\p{Cc}\p{Cf}]/gu;
 
 export type ForwardedFeedback = {
   family: string;
@@ -49,14 +56,17 @@ export function forwardConfig(
 
 /** The family's name as Bryce sees it: tidy spacing, capped, or a plain fallback. */
 export function familyName(raw: string | undefined): string {
-  const name = (raw ?? "").replace(/\s+/g, " ").trim().slice(0, FAMILY_NAME_MAX).trim();
-  return name || "Unnamed family";
+  return cleanName(raw, FAMILY_NAME_MAX) ?? "Unnamed family";
 }
 
 function cleanName(raw: unknown, max: number): string | null {
   if (typeof raw !== "string") return null;
-  const name = raw.replace(/\s+/g, " ").trim().slice(0, max).trim();
+  const name = raw.replace(INVISIBLE, "").replace(/\s+/g, " ").trim().slice(0, max).trim();
   return name || null;
+}
+
+function stripNul(text: string): string {
+  return text.replace(/\u0000/g, "");
 }
 
 /** Checks the JSON a relative's copy sent. Anything off is a plain not-ok. */
@@ -68,12 +78,13 @@ export function parseForwardedFeedback(
   const family = cleanName(body.family, FAMILY_NAME_MAX);
   const authorName = cleanName(body.authorName, AUTHOR_NAME_MAX);
   if (!family || !authorName) return { ok: false };
-  const message = normalizeMessage(body.message);
+  // Postgres refuses NUL in text, so it goes before anything is saved.
+  const message = normalizeMessage(typeof body.message === "string" ? stripNul(body.message) : body.message);
   if (!message.ok) return { ok: false };
   if (body.screenshot !== undefined && body.screenshot !== null && typeof body.screenshot !== "string") {
     return { ok: false };
   }
-  const userAgent = typeof body.userAgent === "string" ? body.userAgent.slice(0, USER_AGENT_MAX) : "";
+  const userAgent = typeof body.userAgent === "string" ? stripNul(body.userAgent).slice(0, USER_AGENT_MAX) : "";
   return {
     ok: true,
     value: {

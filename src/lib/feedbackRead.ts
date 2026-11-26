@@ -60,3 +60,15 @@ export async function loadFeedbackScreenshot(
   if (!row?.screenshot) return null;
   return { bytes: row.screenshot, type: row.screenshotType ?? SCREENSHOT_TYPE };
 }
+
+/** Forwarded reports since a time: all of them, and the ones from one family. */
+export async function countForwardedFeedbackSince(
+  family: string,
+  since: Date,
+): Promise<{ family: number; total: number }> {
+  const [total, fromFamily] = await Promise.all([
+    db.feedback.count({ where: { sourceFamily: { not: null }, createdAt: { gte: since } } }),
+    db.feedback.count({ where: { sourceFamily: family, createdAt: { gte: since } } }),
+  ]);
+  return { family: fromFamily, total };
+}

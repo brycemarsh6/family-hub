@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { db } from "@/lib/db";
 import { isOwnerCopy } from "@/lib/copyConfig";
-import { SCREENSHOT_TYPE, decodeScreenshot } from "@/lib/feedback";
-import { FORWARD_BODY_MAX_BYTES, parseForwardedFeedback } from "@/lib/feedbackForward";
+import { decodeScreenshot } from "@/lib/feedback";
+import { FORWARDED_AUTHOR_ID, FORWARD_BODY_MAX_BYTES, parseForwardedFeedback } from "@/lib/feedbackForward";
 import { inboxKeyMatches, isInboxRateLimited } from "@/lib/feedbackInbox";
+import { createFeedbackRow } from "@/lib/feedbackWrites";
 
 // Where relatives' copies send their feedback (mission 90). Only Bryce's copy
 // answers, and only when FEEDBACK_INBOX_KEY is set. The order matters: each
@@ -56,18 +56,15 @@ export async function POST(request: NextRequest) {
   try {
     if (await isInboxRateLimited(value.family)) return empty(429);
     const screenshot = decodeScreenshot(value.screenshot);
-    await db.feedback.create({
-      data: {
-        authorId: "forwarded",
-        authorName: value.authorName,
-        sourceFamily: value.family,
-        message: value.message,
-        pagePath: value.pagePath,
-        userAgent: value.userAgent,
-        viewport: value.viewport || null,
-        screenshot,
-        screenshotType: screenshot ? SCREENSHOT_TYPE : null,
-      },
+    await createFeedbackRow({
+      authorId: FORWARDED_AUTHOR_ID,
+      authorName: value.authorName,
+      sourceFamily: value.family,
+      message: value.message,
+      pagePath: value.pagePath,
+      userAgent: value.userAgent,
+      viewport: value.viewport || null,
+      screenshot,
     });
   } catch {
     return empty(500);
