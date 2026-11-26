@@ -494,6 +494,26 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   parent will set its cost."; wish edit heading "Edit wish". He will sign
   the browser in as the Tablet for Strange's pass 2.
 
+### F2 - Gate fixes, pass 2 (Strange)
+
+- **Status:** PENDING
+- **Objective:** The celebration never shows an old PIN error, and the
+  pad's button and keys stay steady.
+- **Boundaries:** may touch: `src/components/RedeemSheet.tsx`,
+  `src/components/RewardSheet.tsx`, `src/components/PinPad.tsx`. · must
+  not touch: everything else.
+- **Blocker:** (Strange) a wrong PIN then the right one: the celebration
+  shows "That PIN isn't right." under Done and Undo redeem (shots 07,
+  24). In `RedeemSheet.handleRedeem`'s success branch clear the error and
+  `lockMs` before setting the redemption.
+- **Notes folded in:** PinPad decides its own button word: `REWARD_CLOSE_LABEL`
+  while its lock is live, otherwise the `cancelLabel` it is given
+  (default Cancel); the sheets stop passing "Close" for the lock. PinPad
+  reserves the error line's height so the keys do not move on a wrong
+  PIN.
+- **Verification:** the Gauntlet both zones; `grep -n "setRedemption" src/components/RedeemSheet.tsx` shows the clear before it.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -501,6 +521,9 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 | 1 | Vision (HEAD 9032939; Denver 2246/0 skip, UTC 2236 + 10 DST skips) | BLOCKED | (1) a burst of simultaneous PIN tries is all checked (19 wrong + right at once: right passed, count 19); (2) a stale gate's `pin: "needed"` never shows the pad (Save does nothing, Redeem shows words with no pad) | C2 committed Fury's docs (outside C2's list; inert); PinPad timer runs on after a lock; WishSheet delete after a cost is set says "Enter the PIN." with no pad; stale noPin until reload; forged owner costs one try. Sound: forged ids, odd PINs, every kid refusal, missing row, redeem transaction, no leaks |
 | 1 | Captain (HEAD 9032939) | BLOCKED | PIN length typed in two words ("Pick 4 digits", "must be 4 digits") | rewards.md: `loadPinStatus` also reads `pinHash`; undo and settings actions ask access.ts, not rewardGates; "two named checks" stale; inline Close/Save/Delete and aria words; inline "That didn't save"; addWish decided in the board; `cost === null` about 8 times; `RewardActor.role` is string; settings page fallback copies the default. Amendment: words that state a rule's number are functions |
 | 1 | Strange (HEAD 9032939, running app as a parent, 390 and 1180, light and dark, Largest text) | BLOCKED | (1) switch off still says kids need the PIN (mock G has other words); (2) code-read: after a lock ends, "Too many wrong tries." stays under live keys | busy pad hides the 4th dot; wish card 2px dashed like the Add tile (mock 1px; DESIGN.md names `--line-strong` only for the vision card); locked pad says Cancel (mock Close); words for Bryce; Largest text landscape pad scrolls; parent redeem not seen live (banks too low). Tablet pass still needed for mock A to D, H, I, K |
+| 2 | Vision (HEAD 0718cc3; Denver 2249/0 skip, UTC 2239 + 10 DST skips) | PASS | Both fixed: bursts of 20 and 40 leave the count at exactly 5 and refuse the right PIN after the 5th; a held row lock answers refused (fail closed); stale `needed` shows the pad | the PIN check's catch logs nothing; Prisma's timeout waits for a held lock (17s seen); a burst ties up the pool about 2s; Close after a lock ends; stale noPin until reload. Vision's first probe crashed and left a test hash on dev about a minute; restored and verified |
+| 2 | Captain (HEAD 0718cc3) | PASS | Pass-1 blocker fixed (length passed as a number; a test pins the words) | STRUCTURE.md size line says 238, rewards.md is 250 (fix at delivery); settings page fallback copies the default (follow-up); rewards.md line 23 joined; the words-with-numbers rule could go app-wide (Bryce) |
+| 2 | Strange (HEAD 0718cc3, signed in as the Tablet by Bryce; 1180, 820 portrait, 390; light and dark; Largest) | BLOCKED | A wrong PIN then the right one: the celebration still shows "That PIN isn't right." (shots 07, 24) | Pass-1 blockers fixed (lock words clear when a lock ends, seen live). Mock D's "Parent PIN" heading missing on the Add-reward version; Close stays after a lock ends; dark scrollbars white (pre-R4, no `color-scheme`); keys move down on a wrong PIN; Hide earned switch 44px (pre-R4) |
 
 ## Handoff log
 
