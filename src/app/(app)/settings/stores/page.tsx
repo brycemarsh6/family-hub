@@ -1,6 +1,7 @@
 import { BackLink } from "@/components/BackLink";
 import { StoreListEditor } from "@/components/StoreListEditor";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { requireRole } from "@/lib/dal";
 import { householdStores } from "@/lib/householdSettingsRead";
 
@@ -19,14 +20,16 @@ export default async function StoresPage() {
 
   return (
     <div className="py-2" data-page-width="wide">
-      <BackLink href="/settings" label="Settings" />
+      <div className={NARROW_PAGE_CLASSES}>
+        <BackLink href="/settings" label="Settings" />
 
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Stores</h1>
-      <p className="mt-1 text-sm text-muted">
-        The stores on your shopping list, in this order. Tap a store to rename it.
-      </p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Stores</h1>
+        <p className="mt-1 text-sm text-muted">
+          The stores on your shopping list, in this order. Tap a store to rename it.
+        </p>
 
-      <StoreListEditor initialStores={stores} />
+        <StoreListEditor initialStores={stores} />
+      </div>
     </div>
   );
 }

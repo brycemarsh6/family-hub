@@ -237,6 +237,9 @@ items until they are bought (its chip shows while used, already S1's
 | Pass | Gate | Verdict | Findings |
 |---|---|---|---|
 | S1 / 1 | Vision (HEAD of S1, clean scratch checkout plus shared tree) | PASS | No blockers. Bryce's copy unchanged with no row. NOTES: `editIn` reads the list inside the locked transaction (two pool connections per edit); shopping page leaves a promise unhandled if the list query fails first; `serializeStoreList(["Other"])` is "" which reads back as the six defaults (S2 risk); store names "All"/"Unassigned" clash with chip labels (S2 risk); a removed store's chip vanishing while it is the active filter; `.slice` can split an emoji; `.env` line 13 holds a commented-out `DATABASE_URL` for another host (`ep-hidden-surf-`), for Bryce |
+| S1+S2 / 1 | Captain (commits S1, S2) | PASS | No blockers. NOTES: rename `householdStoreWrites.ts` to `householdSettingsWrites.ts` before PR 6 and share one upsert helper; `cleanNames` should call `cleanName`; `StoreListResult` duplicates `StoreEdit`; use `SAVE_FAILED` in the editor; first `...Action` names (naming line); `dashboard.ts` types "Unassigned" three times; Stores page has no width cap (Strange's call); trend line for `groceryWrites.ts` 377; STRUCTURE.md text for HouseholdSettings and the store list (Fury adds) |
+| S2+F1 / 1 | Vision (HEAD febec90) | BLOCKED | BLOCKER: `StoreListEditor` rolls back to per-edit snapshots, so queued edits that fail can show an unsaved store or resurrect a removed one. NOTES: actions read-modify-write with no row lock (two parents at once, rare); `getVerifiedUser()` outside the try; rename, reorder, Other, cap, F1 fixes, Bryce's copy all checked fine |
+| S2+F1 / 1 | Strange (port 3001, 390/820/1180, light and dark) | BLOCKED | Check 1 PASS (Bryce's copy unchanged); all flows work. BLOCKERS: page rows stretch full width on iPad (needs `NARROW_PAGE_CLASSES`); one-off `RenameStoreSheet` duplicates `TitleSheet` (no close button, no autofocus); red optimistic Remove breaks "destructive waits" (Bryce chooses neutral-instant or red-waits). NOTES: Other row label not aligned with names; SwipeActions danger text 2.4:1 in dark (pre-existing, app-wide); Settings skeleton shows for /settings/stores (as slideshow); chip row not scrolled back to All after fallback. Dev data restored; a HouseholdSettings row with the six defaults now exists on dev |
 
 F1 (below) fixes the S2-reachable notes before S2 is gated.
 
@@ -271,6 +274,48 @@ F1 (below) fixes the S2-reachable notes before S2 is gated.
 - **Evidence required:** test counts both timezones, tails of tsc/eslint/build,
   `git diff --stat`.
 - **Done criteria:** Vision re-gate on S2 plus F1 passes.
+
+### F2 — Fixes from Vision, Strange and Captain (pass 1 on S2)
+
+- **Objective:** clear the gate blockers and the cheap structure notes in one batch.
+- **Boundaries:** may touch: `src/components/StoreListEditor.tsx`,
+  `src/components/TitleSheet.tsx` (new optional props only),
+  `src/app/(app)/settings/stores/page.tsx`, new `src/app/(app)/settings/stores/loading.tsx`,
+  `src/app/actions/householdStores.ts`, `src/lib/householdStoreWrites.ts`
+  (renamed by `git mv` to new `src/lib/householdSettingsWrites.ts`),
+  `src/lib/storeList.ts`, `src/lib/storeList.test.ts`, `src/lib/dashboard.ts`
+  ("Unassigned" from `storeList.ts` only), `src/components/GroceryList.tsx`
+  (chip row scroll only). Must not touch anything else; leave the Remove swipe
+  action's tone and icon as they are (Bryce is choosing; contract F3).
+- **Fixes:**
+  1. Vision blocker: drop per-edit snapshots. Keep a `confirmed` ref (starts at
+     `initialStores`) and a pending count. Each ok result sets `confirmed`; a
+     failure shows its error only; when pending reaches 0, `setStores(confirmed.current)`.
+     Keep the add box refill on failure. The network-failure message is
+     `SAVE_FAILED` from `src/lib/useOptimisticRun.ts`.
+  2. Strange blocker: wrap the Stores page content in `NARROW_PAGE_CLASSES`
+     (like `settings/wall-tablet/page.tsx`), and add a `loading.tsx` skeleton
+     of the same narrow shape (title line plus about six 56px rows).
+  3. Strange blocker: delete `RenameStoreSheet`; give `TitleSheet` optional
+     `label` (default its current label), `hint` (one muted line under the
+     input) and `maxLength`; render it through `createPortal` with heading
+     "Rename store", label "Store name", hint "Up to 24 letters. Items on the
+     list for <old> move to the new name.", maxLength 24, initial value the old
+     name, submit "Save". Existing `TitleSheet` callers must look identical.
+  4. Strange note: line the "Other" label up with the store names (same left
+     inset as grip plus gap).
+  5. Strange note: when the store filter falls back to All, scroll the chip
+     row back to its start (only on that fallback, not on every render).
+  6. Vision note: `getVerifiedUser()` inside the try, so the actions never throw.
+  7. Captain: `git mv` the writes file to `householdSettingsWrites.ts` (one
+     private upsert helper used by both functions); `cleanNames` calls
+     `cleanName`; the action's result type is `StoreEdit` from `storeList.ts`;
+     `dashboard.ts` uses `UNASSIGNED_FILTER` instead of typing "Unassigned".
+- **Verification:** full gauntlet; `npm run build`; existing `TitleSheet`
+  callers unchanged (list them).
+- **Evidence required:** test counts both timezones, tsc/eslint/build tails,
+  `git diff --stat`, `git status` showing the rename.
+- **Done criteria:** Vision and Strange pass 2.
 
 ## Notes and follow-ups
 

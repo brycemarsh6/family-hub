@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Trash2 } from "lucide-react";
 import { SortableList } from "@/components/SortableList";
 import { SwipeActions } from "@/components/SwipeActions";
+import { TitleSheet } from "@/components/TitleSheet";
 import {
   addStoreAction,
   removeStoreAction,
   renameStoreAction,
   reorderStoresAction,
-  type StoreListResult,
 } from "@/app/actions/householdStores";
+import { SAVE_FAILED } from "@/lib/useOptimisticRun";
 import {
   MAX_STORES,
   MAX_STORE_NAME,
@@ -26,8 +27,8 @@ import {
 /**
  * The Stores page body: the household's stores in order (drag the grip to
  * reorder, swipe to remove, tap a name to rename), "Other" always last, and
- * an Add row. Every change shows at once, then saves; a failed save puts the
- * list back and says why. The rules live in src/lib/storeList.ts and are
+ * an Add row. Every change shows at once, then saves; a failed save says why,
+ * and once every save has settled the list shows what the server confirmed. The rules live in src/lib/storeList.ts and are
  * checked again on the server.
  */
 export function StoreListEditor({ initialStores }: { initialStores: string[] }) {
@@ -36,31 +37,41 @@ export function StoreListEditor({ initialStores }: { initialStores: string[] }) 
   const [newName, setNewName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameError, setRenameError] = useState<string | null>(null);
   // Edits are sent one after another so a quick second change can't land first.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  // The list as the server last confirmed it, and how many saves are in flight.
+  // A failed save only shows its error; the list is put back to `confirmed`
+  // once nothing is pending, so queued edits can never leave a stale picture.
+  const confirmed = useRef(initialStores);
+  const pending = useRef(0);
 
   const movable = stores.filter((name) => name !== OTHER_STORE);
 
-  /** Show `edit` now, send `send`, and on a refusal or failure put the list back. */
-  function apply(edit: StoreEdit, send: () => Promise<StoreListResult>, onFailure?: (message: string) => void) {
+  /** Show `edit` now and send `send`; a refusal or failed save shows its reason. */
+  function apply(edit: StoreEdit, send: () => Promise<StoreEdit>, onFailure?: (message: string) => void) {
     if (!edit.ok) {
       setError(edit.error);
       return;
     }
-    const before = stores;
     setStores(edit.stores);
     setError(null);
+    pending.current += 1;
     queue.current = queue.current.then(async () => {
-      let result: StoreListResult;
+      let result: StoreEdit;
       try {
         result = await send();
       } catch {
-        result = { ok: false, error: "That didn't save. Please try again." };
+        result = { ok: false, error: SAVE_FAILED };
       }
-      if (result.ok) return;
-      setStores(before);
-      setError(result.error);
-      onFailure?.(result.error);
+      if (result.ok) {
+        confirmed.current = result.stores;
+      } else {
+        setError(result.error);
+        onFailure?.(result.error);
+      }
+      pending.current -= 1;
+      if (pending.current === 0) setStores(confirmed.current);
     });
   }
 
@@ -113,8 +124,10 @@ export function StoreListEditor({ initialStores }: { initialStores: string[] }) 
         )}
       />
 
-      <div className="mt-2 flex min-h-14 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4">
-        <span className="text-base font-medium">{OTHER_STORE}</span>
+      <div className="mt-2 flex min-h-14 items-center justify-between gap-1 rounded-xl border border-line bg-surface pl-1 pr-3">
+        {/* Same width as the grip, so "Other" lines up with the names above. */}
+        <span aria-hidden="true" className="w-11 shrink-0" />
+        <span className="min-w-0 flex-1 px-2 text-base font-medium">{OTHER_STORE}</span>
         <span className="text-sm text-muted">Always last</span>
       </div>
 
@@ -159,111 +172,34 @@ export function StoreListEditor({ initialStores }: { initialStores: string[] }) 
         </p>
       )}
 
-      {renaming !== null && (
-        <RenameStoreSheet
-          from={renaming}
-          onClose={() => setRenaming(null)}
-          onSave={(to) => {
-            const from = renaming;
-            const edit = renameInList(stores, from, to);
-            if (!edit.ok) return edit.error;
-            setRenaming(null);
-            apply(edit, () => renameStoreAction(from, to));
-            return null;
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/**
- * One text box to rename a store. Portaled to the body so the page's grid
- * container cannot trap the fixed overlay (STRUCTURE.md Wide pages rule 1);
- * it only exists after a tap. `onSave` returns an error message, or null when
- * it took the new name (the editor then closes the sheet).
- */
-function RenameStoreSheet({
-  from,
-  onClose,
-  onSave,
-}: {
-  from: string;
-  onClose: () => void;
-  onSave: (to: string) => string | null;
-}) {
-  const dialog = useRef<HTMLFormElement>(null);
-  const [name, setName] = useState(from);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  // Focus goes into the sheet and comes back to the row that opened it.
-  useEffect(() => {
-    const opener = document.activeElement;
-    dialog.current?.focus();
-    return () => {
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-    };
-  }, []);
-
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/40" />
-
-      <form
-        ref={dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Rename store"
-        tabIndex={-1}
-        onSubmit={(event) => {
-          event.preventDefault();
-          setError(onSave(name));
-        }}
-        className="relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-2xl bg-surface p-4 shadow-lg outline-none md:max-w-lg md:rounded-2xl"
-        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
-      >
-        <h2 className="text-lg font-semibold">Rename store</h2>
-
-        <label htmlFor="store-rename" className="mt-3 text-sm font-medium">
-          Store name
-        </label>
-        <input
-          id="store-rename"
-          type="text"
-          value={name}
-          maxLength={MAX_STORE_NAME}
-          onChange={(event) => {
-            setName(event.target.value);
-            setError(null);
-          }}
-          className="mt-1 h-12 w-full rounded-xl border border-line bg-surface px-3 text-base"
-        />
-        <p className="mt-1 text-sm text-muted">
-          Up to {MAX_STORE_NAME} letters. Items on the list for {from} move to the new name.
-        </p>
-
-        {error && (
-          <p role="alert" className="mt-2 text-sm text-warn">
-            {error}
-          </p>
+      {renaming !== null &&
+        createPortal(
+          <TitleSheet
+            heading="Rename store"
+            label="Store name"
+            hint={`Up to ${MAX_STORE_NAME} letters. Items on the list for ${renaming} move to the new name.`}
+            maxLength={MAX_STORE_NAME}
+            initialValue={renaming}
+            submitLabel="Save"
+            error={renameError}
+            onSubmit={(to) => {
+              const from = renaming;
+              const edit = renameInList(stores, from, to);
+              if (!edit.ok) {
+                setRenameError(edit.error);
+                return;
+              }
+              setRenameError(null);
+              setRenaming(null);
+              apply(edit, () => renameStoreAction(from, to));
+            }}
+            onClose={() => {
+              setRenameError(null);
+              setRenaming(null);
+            }}
+          />,
+          document.body,
         )}
-
-        <button
-          type="submit"
-          className="mt-3 h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
-        >
-          Save
-        </button>
-      </form>
-    </div>,
-    document.body,
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { GroceryRow } from "./GroceryRow";
 import {
   GroceryItemEditSheet,
@@ -101,6 +101,13 @@ export function GroceryList({
   // fall back to All instead of showing an empty list with no chip lit.
   const filterOptions = [ALL, UNASSIGNED, ...storeFilterOptions(stores, optimisticItems.map((i) => i.store))];
   const storeFilter = filterOptions.includes(chosenFilter) ? chosenFilter : ALL;
+  // The chosen chip vanished, so we fell back to All: scroll the chip row back
+  // to its start so All is in view (only when that happens, not every render).
+  const fellBack = storeFilter !== chosenFilter;
+  const chipRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (fellBack) chipRow.current?.scrollTo({ left: 0 });
+  }, [fellBack]);
 
   const filteredByStore =
     storeFilter === ALL
@@ -159,7 +166,7 @@ export function GroceryList({
         There's no per-store icon (Lucide has no Walmart or Costco logo), so
         every chip but "All" shares one generic storefront icon.
       */}
-      <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={chipRow} className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
           {filterOptions.map((option) => {
             const active = storeFilter === option;

@@ -1,5 +1,6 @@
 import { addDays, isSameDay, sundayOf } from "@/lib/mealPlanDates";
 import { MEAL_SLOTS, STORES, type MealSlot } from "@/lib/constants";
+import { UNASSIGNED_FILTER } from "@/lib/storeList";
 import type { MealPlanView } from "@/lib/types";
 
 // Pure logic for the dashboard's four tiles. No "use client", no
@@ -91,7 +92,7 @@ export function storeBreakdown(
 ): StoreCount[] {
   const counts = new Map<string, number>();
   for (const item of items) {
-    const label = item.store ?? "Unassigned";
+    const label = item.store ?? UNASSIGNED_FILTER;
     counts.set(label, (counts.get(label) ?? 0) + 1);
   }
 
@@ -111,8 +112,8 @@ export function storeBreakdown(
     .sort((a, b) => {
       // Unassigned is pinned last regardless of count -- checked before the
       // count comparison below, not as a tiebreak within it.
-      if (a.label === "Unassigned") return 1;
-      if (b.label === "Unassigned") return -1;
+      if (a.label === UNASSIGNED_FILTER) return 1;
+      if (b.label === UNASSIGNED_FILTER) return -1;
       return b.count - a.count || sortOrder(a.label) - sortOrder(b.label);
     });
 }

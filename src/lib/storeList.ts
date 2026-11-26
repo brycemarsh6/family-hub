@@ -18,12 +18,17 @@ const isFilterName = (name: string) =>
   name.toLowerCase() === ALL_FILTER.toLowerCase() || name.toLowerCase() === UNASSIGNED_FILTER.toLowerCase();
 const FILTER_NAME_ERROR = "That name is used by the shopping list filters.";
 
-/** Trim, collapse inner spaces, cut long names, drop blanks, drop repeats (any case), drop "Other" and the two filter names. */
+/** One typed name, cleaned the same way the saved list is. */
+function cleanName(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").slice(0, MAX_STORE_NAME).trim();
+}
+
+/** Clean each name, drop blanks, drop repeats (any case), drop "Other" and the two filter names. */
 function cleanNames(names: readonly string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of names) {
-    const name = raw.trim().replace(/\s+/g, " ").slice(0, MAX_STORE_NAME).trim();
+    const name = cleanName(raw);
     if (!name) continue;
     const key = name.toLowerCase();
     if (key === OTHER_STORE.toLowerCase() || isFilterName(name) || seen.has(key)) continue;
@@ -72,11 +77,6 @@ export function storeFilterOptions(
 export type StoreEdit = { ok: true; stores: string[] } | { ok: false; error: string };
 
 const isOther = (name: string) => name.toLowerCase() === OTHER_STORE.toLowerCase();
-
-/** One typed name, cleaned the same way the saved list is. */
-function cleanName(raw: string): string {
-  return raw.trim().replace(/\s+/g, " ").slice(0, MAX_STORE_NAME).trim();
-}
 
 /** Put a new store just before "Other". */
 export function addStore(list: readonly string[], name: string): StoreEdit {
