@@ -539,6 +539,19 @@ amendment id.
   stay in `actions/winnie.ts`; the next event type with more than a sentence
   of words follows `briefing.ts`. (Added 2026-11-06, mission-42; Bryce
   approved the plan. Callers amended mission-48, A-48-2, Hill approved.)
+- **Server fetches of user-supplied URLs (mission-86).**
+  `src/lib/safeFetch.ts` (`server-only`, no auth; callers guard) is the only
+  way server code fetches an address that came from a person, or one that a
+  fetched page or redirect pointed to (recipe link import: blog pages,
+  Pinterest pins and their source links, the TikTok oEmbed call). It checks
+  every hop and connects to the exact address its own DNS lookup checked.
+  The refusal rules (schemes, ports, logins in the URL, localhost, unsafe
+  IPv4 and IPv6 ranges) live only in pure `src/lib/urlSafety.ts`
+  (`checkUrl`, `isSafeIpAddress`), tested in `urlSafety.test.ts`. A plain
+  `fetch` of such an address, or a second copy of the range list, is a
+  BLOCKER. Fixed endpoints the code names itself (Google's APIs, Winnie's
+  webhook from env) keep plain `fetch`. (Added 2026-11-26, mission-86, on
+  Captain's ruling.)
 - **Winnie's morning briefing (mission-48).** `src/lib/briefing.ts` is the
   pure builder (no `db`, env or clock read; callers pass `today` and `now`)
   and the only home of the briefing's words. `src/lib/briefingRead.ts`

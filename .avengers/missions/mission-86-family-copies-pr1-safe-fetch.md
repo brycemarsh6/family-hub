@@ -127,3 +127,35 @@ machine (which must be refused before any connection).
   `http://pinchofyum.com/the-best-soft-chocolate-chip-cookies` (301 to https)
   imports "The Best Soft Chocolate Chip Cookies", 9 ingredients;
   `https://www.recipetineats.com/chicken-stir-fry/` imports 16 ingredients.
+- 2026-11-26: Captain PASS (notes only). His STRUCTURE.md entry "Server
+  fetches of user-supplied URLs (mission-86)" added under One source of truth.
+- 2026-11-26: Vision pass 1 BLOCKED, one blocker: `origin/main` gained PR #134
+  (TikTok caption fix), whose `readTikTokCaption` calls `fetchWithTimeout`
+  twice, one of them on the user's own link, and conflicts with this branch.
+  Security probes otherwise clean (44 odd addresses, DNS answers, redirects,
+  caps, bombs, timeouts). Notes: SIIT `::ffff:0:0/96`, Teredo `2001::/32`,
+  `100::/64` and IPv4 documentation ranges pass `isSafeIpAddress` (cheap
+  hardening, folded into C2).
+
+## Contract C2: merge main, cover the TikTok page fetch, harden ranges
+
+1. **Objective:** the branch contains `origin/main` and no plain `fetch`
+   remains in link import.
+2. **Boundaries.** May touch: `src/lib/recipeUrlImport.ts` (merge
+   resolution), `src/lib/urlSafety.ts`, `src/lib/urlSafety.test.ts`, and the
+   merge commit itself (files main changed come in as main wrote them). Must
+   not touch: anything else, `package.json`.
+3. **Work.** `git merge origin/main` (no rebase: the branch's commit is
+   already gated). Resolve `recipeUrlImport.ts`: keep main's
+   `readTikTokCaption` and its wording, replace both of its calls with
+   `safeFetch(oembedUrl)` and `safeFetch(pageUrl, { headers:
+   BROWSER_HEADERS })`, keep `fetchWithTimeout` deleted. In `urlSafety.ts`
+   also refuse `::ffff:0:0/96` (SIIT, judged by inner IPv4 or simply
+   refused), `2001::/32` (Teredo), `100::/64` (discard), and IPv4
+   192.0.2/24, 198.51.100/24, 203.0.113/24; add tests for each edge.
+4. **Verification.** The full gauntlet; `grep -nE "fetchWithTimeout|[^e]fetch\("
+   src/lib/recipeUrlImport.ts` finds no plain fetch; the scratch `run.mts`
+   refusal list and the two positive blogs again.
+5. **Evidence:** every command's output, the merge commit hash, `git show
+   --stat` of it.
+6. **Done:** Vision re-gates the merge diff and the hardening.
