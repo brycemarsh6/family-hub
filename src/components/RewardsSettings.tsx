@@ -13,6 +13,7 @@ import {
   LATE_STARS_TITLE,
   PIN_CHANGE_LABEL,
   PIN_HELP,
+  PIN_HELP_OFF,
   PIN_IS_SET,
   PIN_NOT_SET,
   PIN_SAVED,
@@ -101,7 +102,7 @@ export function RewardsSettings({
           <span className="text-base">{PIN_SWITCH_LABEL}</span>
           <ToggleSwitch checked={optimisticRequired} onChange={toggleRequired} label={PIN_SWITCH_LABEL} />
         </div>
-        <p className="text-sm text-muted">{PIN_HELP}</p>
+        <p className="text-sm text-muted">{optimisticRequired ? PIN_HELP : PIN_HELP_OFF}</p>
         {requiredError && (
           <p role="alert" className="mt-2 text-sm text-warn">
             {requiredError}

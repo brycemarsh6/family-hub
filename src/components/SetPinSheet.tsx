@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { PinPad } from "./PinPad";
 import { setRewardPin } from "@/app/actions/rewardSettings";
 import { SAVE_FAILED } from "@/lib/useOptimisticRun";
-import { PIN_CONFIRM_HEADING, PIN_MISMATCH, PIN_SHEET_HEADING, PIN_SHEET_HINT } from "@/lib/rewardVocabulary";
+import { PIN_LENGTH } from "@/lib/rewards/pinPolicy";
+import { PIN_CONFIRM_HEADING, PIN_MISMATCH, PIN_SHEET_HEADING, REWARD_CLOSE_LABEL, pinSheetHint } from "@/lib/rewardVocabulary";
 
 /**
  * "Set a new PIN" (parents and admins, from the Parent PIN card): pick 4
@@ -69,7 +70,7 @@ export function SetPinSheet({ onClose, onSaved }: { onClose: () => void; onSaved
 
   const sheet = (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" disabled={pending} onClick={onClose} className="absolute inset-0 bg-black/40" />
+      <button type="button" aria-label={REWARD_CLOSE_LABEL} disabled={pending} onClick={onClose} className="absolute inset-0 bg-black/40" />
 
       <div
         role="dialog"
@@ -81,7 +82,7 @@ export function SetPinSheet({ onClose, onSaved }: { onClose: () => void; onSaved
         <PinPad
           key={round}
           heading={first === null ? PIN_SHEET_HEADING : PIN_CONFIRM_HEADING}
-          prompt={first === null ? PIN_SHEET_HINT : undefined}
+          prompt={first === null ? pinSheetHint(PIN_LENGTH) : undefined}
           onComplete={handleComplete}
           onCancel={onClose}
           error={error}

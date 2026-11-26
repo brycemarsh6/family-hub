@@ -401,7 +401,7 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
 
 ### F1 - Gate fixes, pass 1 (Vision, Captain, Strange)
 
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Clear the five pass-1 blockers and the cheap notes, so
   every gate can pass on pass 2.
 - **Boundaries:** may touch: `src/lib/rewardWrites.ts`,
@@ -477,7 +477,22 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   type definitions).
 - **Evidence required:** gauntlet output, burst output before restore,
   the greps, files and line counts.
-- **Report:** (pending)
+- **Report:** DONE (2026-11-25). The PIN check is one transaction that
+  locks the row first (`maxWait` 10s, `timeout` 15s; any error answers
+  refused). Burst on dev: 20 wrong at once gave 4 wrong, 16 locked, count
+  exactly 5; 19 wrong plus the right one gave the right one "locked";
+  row restored (hash identical). Tests 2249 both zones (UTC + 10 DST
+  skips); tsc, eslint, build clean; greps clean; `cost === null` only in
+  `rewardRules.ts` (callers that need the number narrowed use `typeof
+  cost === "number"`). RewardSheet 318 lines (under 350). Fury after F1:
+  the delete PIN step says "A parent enters the PIN to delete this."
+  (`PIN_DELETE_PROMPT`, the pattern of Bryce's save words); rewards.md
+  corrected (Captain's three doc notes, the row lock, `addWish`, the
+  words-with-numbers rule); DESIGN.md names the wish card's 1px dash.
+- **Bryce's words (2026-11-25):** save prompt "A parent enters the PIN to
+  save this."; a kid's empty column "No rewards yet. Add a wish and a
+  parent will set its cost."; wish edit heading "Edit wish". He will sign
+  the browser in as the Tablet for Strange's pass 2.
 
 ## Gate ledger
 

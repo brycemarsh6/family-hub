@@ -67,10 +67,18 @@ test("rewardRights: plain data per person for the page", () => {
   const rights = rewardRights(actor("kid"), ["kid-1", "kid-2"], onSet);
   assert.deepEqual(rights, {
     manage: "no",
-    people: { "kid-1": { redeem: "pin", wish: true }, "kid-2": { redeem: "no", wish: false } },
+    people: { "kid-1": { redeem: "pin", wish: true, addWish: true }, "kid-2": { redeem: "no", wish: false, addWish: false } },
   });
   const tablet = rewardRights(actor("device"), ["kid-1"], onUnset);
-  assert.deepEqual(tablet, { manage: "noPin", people: { "kid-1": { redeem: "noPin", wish: true } } });
+  assert.deepEqual(tablet, { manage: "noPin", people: { "kid-1": { redeem: "noPin", wish: true, addWish: true } } });
   const parent = rewardRights(actor("parent"), ["kid-1"], onSet);
-  assert.deepEqual(parent, { manage: "open", people: { "kid-1": { redeem: "open", wish: false } } });
+  assert.deepEqual(parent, { manage: "open", people: { "kid-1": { redeem: "open", wish: false, addWish: false } } });
+});
+
+test("rewardRights addWish: the Add a wish tile shows only while Add reward is not open to the login", () => {
+  assert.equal(rewardRights(actor("device"), ["kid-1"], onSet).people["kid-1"].addWish, true);
+  assert.equal(rewardRights(actor("device"), ["kid-1"], off).people["kid-1"].addWish, false);
+  assert.equal(rewardRights(actor("kid"), ["kid-1"], off).people["kid-1"].addWish, true);
+  assert.equal(rewardRights(actor("kid"), ["kid-2"], onSet).people["kid-2"].addWish, false);
+  assert.equal(rewardRights(actor("parent"), ["kid-1"], onSet).people["kid-1"].addWish, false);
 });

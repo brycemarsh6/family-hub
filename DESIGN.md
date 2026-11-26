@@ -315,7 +315,10 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
 - **`--line-strong` is decorative only.** It is the dashed outline of an
   empty vision card (a slightly darker twin of `--line`, with a dark-mode
   twin). It is too faint to carry text or to mark an interactive edge on its
-  own, so never use it for either.
+  own, so never use it for either. The Rewards page uses the same dash
+  for its Add tiles (2px, mission 81) and for a wish card (1px, mission
+  82, a reward still waiting for its cost); the words and buttons inside
+  carry the meaning, never the dash.
 - **`--streak` / `--streak-soft` are the streak's own colour** (mission-32/F1):
   a burnt peach for the flame and its count on Today rows, family rows and the
   stats tile, and the soft fill behind the nudge card. Amber (`--warn`) means

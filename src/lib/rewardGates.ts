@@ -42,12 +42,17 @@ export function mayChangeWish(actor: GateActor, ownerId: string): boolean {
 
 export type RewardRights = {
   manage: Gate;
-  people: Record<string, { redeem: Gate; wish: boolean }>;
+  people: Record<string, { redeem: Gate; wish: boolean; addWish: boolean }>;
 };
 
 /** Everything the Rewards page needs to know about this login, as plain data. */
 export function rewardRights(actor: GateActor, personIds: readonly string[], pinState: PinState): RewardRights {
   const people: RewardRights["people"] = {};
-  for (const id of personIds) people[id] = { redeem: redeemGate(actor, id, pinState), wish: mayChangeWish(actor, id) };
-  return { manage: manageGate(actor, pinState), people };
+  const manage = manageGate(actor, pinState);
+  for (const id of personIds) {
+    const wish = mayChangeWish(actor, id);
+    // The Add a wish tile: only where a wish is allowed and the Add reward tile is not already open to this login.
+    people[id] = { redeem: redeemGate(actor, id, pinState), wish, addWish: wish && manage !== "open" };
+  }
+  return { manage, people };
 }

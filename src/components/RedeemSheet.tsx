@@ -7,7 +7,7 @@ import { redeemReward, undoRedeem } from "@/app/actions/rewards";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { calendarDateInZone, formatLongCalendarDate } from "@/lib/householdDate";
 import type { Gate } from "@/lib/rewardGates";
-import { celebrationLines, redeemConfirmLines } from "@/lib/rewards/rewardRules";
+import { celebrationLines, isWish, redeemConfirmLines } from "@/lib/rewards/rewardRules";
 import type { RewardView } from "@/lib/rewardsRead";
 import {
   PIN_NOT_SET_HINT,
@@ -43,9 +43,11 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [undoing, setUndoing] = useState(false);
-  // The pad's answers: how long a lock has left, and whether the server says no PIN is set (the gate may be a moment old).
+  // The pad's answers: how long a lock has left, whether the server says no PIN is set, and whether it asked for one
+  // (the gate may be a moment old: the switch can be turned on after the page loaded).
   const [lockMs, setLockMs] = useState<number | null>(null);
   const [notSet, setNotSet] = useState(false);
+  const [pinAsked, setPinAsked] = useState(false);
 
   // A redeem in flight is not stopped by a stray tap or Escape; after it lands the celebration may close freely.
   const close = () => {
@@ -69,8 +71,10 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
       const result = await redeemReward(reward.id, pin);
       if ("error" in result) {
         if (result.pin === "notSet") setNotSet(true);
+        if (result.pin === "needed" || result.pin === "wrong" || result.pin === "locked") setPinAsked(true);
         setLockMs(result.pin === "locked" ? (result.lockMs ?? null) : null);
-        return setError(result.error);
+        // The pad speaks for a PIN that is needed or locked; only a wrong PIN or a plain refusal needs a line.
+        return setError(result.pin === "needed" || result.pin === "locked" ? null : result.error);
       }
       setRedemption(result.redemption);
     });
@@ -90,16 +94,16 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
     });
   }
 
-  const needsPin = !redemption && gate === "pin" && !notSet;
+  const needsPin = !redemption && (gate === "pin" || pinAsked) && !notSet;
   const noPin = !redemption && (gate === "noPin" || notSet);
   const heading = redemption ? REWARD_REDEEMED_HEADING : needsPin || noPin ? PIN_TITLE : REWARD_REDEEM_HEADING;
   const shownEmoji = redemption ? redemption.emoji : reward.emoji;
-  const lines = reward.cost === null ? null : redeemConfirmLines({ title: reward.title, cost: reward.cost }, ownerName, bank);
+  const lines = typeof reward.cost === "number" ? redeemConfirmLines({ title: reward.title, cost: reward.cost }, ownerName, bank) : null;
   const done = redemption ? celebrationLines(redemption, formatLongCalendarDate(calendarDateInZone(new Date(redemption.redeemedAt), HOUSEHOLD_TIME_ZONE))) : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-black/40" />
+      <button type="button" aria-label={REWARD_CLOSE_LABEL} onClick={close} className="absolute inset-0 bg-black/40" />
       <StarRain run={redemption !== null} />
 
       <div
@@ -117,6 +121,7 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
             prompt={pinRedeemText(reward.title, ownerName)}
             onComplete={handleRedeem}
             onCancel={onClose}
+            cancelLabel={lockMs ? REWARD_CLOSE_LABEL : REWARD_CANCEL_LABEL}
             error={error}
             lockMs={lockMs}
             busy={pending}
@@ -163,10 +168,10 @@ export function RedeemSheet({ reward, ownerName, bank, gate, onClose }: { reward
                   <button
                     type="button"
                     onClick={() => handleRedeem()}
-                    disabled={pending || reward.cost === null}
+                    disabled={pending || isWish(reward)}
                     className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
                   >
-                    {pending ? REWARD_REDEEMING_LABEL : reward.cost === null ? REWARD_REDEEM_LABEL : redeemButtonText(reward.cost)}
+                    {pending ? REWARD_REDEEMING_LABEL : typeof reward.cost === "number" ? redeemButtonText(reward.cost) : REWARD_REDEEM_LABEL}
                   </button>
                   <button type="button" onClick={onClose} disabled={pending} className="min-h-12 w-full rounded-xl text-base font-semibold text-muted transition-colors active:bg-surface-2 disabled:opacity-50">
                     {REWARD_CANCEL_LABEL}

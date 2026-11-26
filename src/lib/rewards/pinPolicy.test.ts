@@ -14,7 +14,19 @@ import {
   pinMinutesFromMs,
   pinMinutesLeft,
 } from "./pinPolicy";
-import { PIN_LOCKED_TITLE, PIN_NOT_SET_HINT, PIN_NOT_SET_TITLE, PIN_WRONG, REDEEM_UNDO_REFUSAL, pinLockedText, pinRedeemText } from "../rewardVocabulary";
+import {
+  PIN_HELP_OFF,
+  PIN_LOCKED_TITLE,
+  PIN_NOT_SET_HINT,
+  PIN_NOT_SET_TITLE,
+  PIN_WRONG,
+  REDEEM_UNDO_REFUSAL,
+  pinDigitsEnteredText,
+  pinLockedText,
+  pinRedeemText,
+  pinShapeRefusal,
+  pinSheetHint,
+} from "../rewardVocabulary";
 
 const NOW = new Date("2026-11-25T18:00:00Z");
 const at = (ms: number) => new Date(NOW.getTime() + ms);
@@ -80,4 +92,15 @@ test("the PIN words are the mock's", () => {
   assert.equal(PIN_NOT_SET_TITLE, "A parent needs to set a PIN first.");
   assert.equal(PIN_NOT_SET_HINT, "Settings, then Rewards, then Set PIN.");
   assert.equal(REDEEM_UNDO_REFUSAL, "Only a parent can undo this now.");
+});
+
+test("the words that state the PIN's length are functions of it", () => {
+  assert.equal(pinSheetHint(PIN_LENGTH), "Pick 4 digits. Kids shouldn't know it.");
+  assert.equal(pinShapeRefusal(PIN_LENGTH), "The PIN must be 4 digits.");
+  assert.equal(pinDigitsEnteredText(2, PIN_LENGTH), "2 of 4 digits entered");
+  assert.equal(pinShapeRefusal(6), "The PIN must be 6 digits.");
+  assert.equal(
+    PIN_HELP_OFF,
+    "Off: kids and the wall tablet redeem without a PIN, and the tablet can change rewards without one. Kids still can't set costs.",
+  );
 });

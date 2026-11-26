@@ -35,6 +35,11 @@ export function nextCostStep(cost: number | null, dir: "up" | "down"): number {
   return COST_STEPS[dir === "up" ? Math.min(index + 1, COST_STEPS.length - 1) : Math.max(index - 1, 0)];
 }
 
+/** A wish is a reward with no cost yet (R4): the one test for it. (Where a caller then needs the number, TypeScript wants the `typeof` form; the meaning is this.) */
+export function isWish(reward: { cost: number | null }): boolean {
+  return reward.cost === null;
+}
+
 /** A one-time reward that has been redeemed once is earned for good; a repeatable one never is. */
 export function isEarned(reward: { repeatable: boolean; redeemedCount: number }): boolean {
   return !reward.repeatable && reward.redeemedCount >= 1;

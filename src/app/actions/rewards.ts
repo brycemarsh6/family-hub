@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { canUndoRedeem } from "@/lib/rewards/access";
-import { checkRewardInput, checkWishInput } from "@/lib/rewards/rewardRules";
+import { checkRewardInput, checkWishInput, isWish } from "@/lib/rewards/rewardRules";
 import { manageGate, mayChangeWish, redeemGate, type Gate } from "@/lib/rewardGates";
 import { loadRewardFacts } from "@/lib/rewardsRead";
 import { loadPinStatus } from "@/lib/rewardSettingsRead";
@@ -102,7 +102,7 @@ export async function deleteReward(id: string, pin?: string): Promise<{ error?: 
   try {
     const facts = await loadRewardFacts(id);
     if (facts === null) return {};
-    const ownWish = facts.cost === null && mayChangeWish(user, facts.ownerId);
+    const ownWish = isWish(facts) && mayChangeWish(user, facts.ownerId);
     if (!ownWish) {
       const refusal = await passGate(manageGate(user, await loadPinStatus()), pin);
       if (refusal) return refusal;
@@ -132,7 +132,7 @@ export async function saveWish(raw: unknown, id?: string): Promise<{ error?: str
       await createWish(checked.value, user.userId);
     } else {
       const facts = await loadRewardFacts(id);
-      if (facts === null || facts.cost !== null) return { error: REWARD_GONE_REFUSAL };
+      if (facts === null || !isWish(facts)) return { error: REWARD_GONE_REFUSAL };
       if (!mayChangeWish(user, facts.ownerId)) return { error: REWARD_PARENT_REFUSAL };
       if ((await updateWish(id, { title: checked.value.title, emoji: checked.value.emoji })) === null) return { error: REWARD_GONE_REFUSAL };
     }
@@ -158,7 +158,7 @@ export async function redeemReward(
     const gate = redeemGate(user, facts.ownerId, await loadPinStatus());
     if (gate === "no") return { error: REWARD_PARENT_REFUSAL };
     // A wish can't be redeemed, so say so before a PIN try is spent on it.
-    if (facts.cost === null) return { error: REWARD_NEEDS_COST_REFUSAL };
+    if (isWish(facts)) return { error: REWARD_NEEDS_COST_REFUSAL };
     const refusal = await passGate(gate, pin);
     if (refusal) return refusal;
 

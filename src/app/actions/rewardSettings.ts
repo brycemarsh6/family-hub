@@ -11,8 +11,8 @@ import { revalidatePath } from "next/cache";
 
 import { getVerifiedUser } from "@/lib/dal";
 import { canSetRewardPin, canSetStars } from "@/lib/rewards/access";
-import { isPinShaped } from "@/lib/rewards/pinPolicy";
-import { LATE_STARS, LATE_STARS_OFF_LIST, LATE_STARS_REFUSAL, PIN_SHAPE_REFUSAL, PIN_SWITCH_REFUSAL, REWARD_PARENT_REFUSAL, REWARD_SAVE_FAILED } from "@/lib/rewardVocabulary";
+import { PIN_LENGTH, isPinShaped } from "@/lib/rewards/pinPolicy";
+import { LATE_STARS, LATE_STARS_OFF_LIST, LATE_STARS_REFUSAL, PIN_SWITCH_REFUSAL, REWARD_PARENT_REFUSAL, REWARD_SAVE_FAILED, pinShapeRefusal } from "@/lib/rewardVocabulary";
 import { writeLateStars, writePinRequired, writeRewardPin } from "@/lib/rewardWrites";
 
 export async function saveLateStars(value: unknown): Promise<{ error?: string }> {
@@ -25,7 +25,7 @@ export async function saveLateStars(value: unknown): Promise<{ error?: string }>
     await writeLateStars(lateStars, user.userId);
   } catch (error) {
     console.error("Late stars save failed", error);
-    return { error: "That didn't save. Please try again." };
+    return { error: REWARD_SAVE_FAILED };
   }
   revalidatePath("/settings");
   revalidatePath("/habits");
@@ -36,7 +36,7 @@ export async function saveLateStars(value: unknown): Promise<{ error?: string }>
 export async function setRewardPin(pin: unknown): Promise<{ error?: string }> {
   const user = await getVerifiedUser();
   if (!user || !canSetRewardPin(user.role)) return { error: REWARD_PARENT_REFUSAL };
-  if (!isPinShaped(pin)) return { error: PIN_SHAPE_REFUSAL };
+  if (!isPinShaped(pin)) return { error: pinShapeRefusal(PIN_LENGTH) };
 
   try {
     await writeRewardPin(pin, user.userId);

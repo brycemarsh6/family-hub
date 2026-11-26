@@ -8,6 +8,7 @@ import {
   checkRewardInput,
   checkWishInput,
   isEarned,
+  isWish,
   nextCostStep,
   orderRewards,
   redeemConfirmLines,
@@ -156,4 +157,9 @@ test("checkWishInput refuses with the same words as checkRewardInput", () => {
 test("a wish has no cost, so it can't be redeemed", () => {
   assert.equal(rewardStatus({ repeatable: false, redeemedCount: 0, cost: null }, 999).kind, "wish");
   assert.equal(redeemRefusal({ repeatable: false, redeemedCount: 0, cost: null }, 999, "Ellie") !== null, true);
+});
+
+test("isWish: a reward with no cost", () => {
+  assert.equal(isWish({ cost: null }), true);
+  assert.equal(isWish({ cost: 20 }), false);
 });

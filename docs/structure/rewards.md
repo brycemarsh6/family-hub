@@ -17,7 +17,10 @@ the list, 0 included, is null), `LATE_STARS` with `LATE_STARS_LABELS` and
 `toLateStars`, `starCountText` / `starStepText`, and the field, section,
 help and refusal words. It has **no imports** (the `habitVocabulary.ts`
 pattern), so any lib file, the habit engine included, may take words
-from it. New reward words (R3 to R5) go here until it passes about 300
+from it. A word that states a rule's number (the PIN length, lock
+minutes) is a small function taking that number, and its caller passes
+the rule's constant (`pinLockedText`, `pinSheetHint`); the number is never
+typed in the sentence (Captain, mission 82). New reward words (R3 to R5) go here until it passes about 300
 code lines; past that a concern gets its own
 `reward<Concern>Vocabulary.ts`.
 
@@ -111,8 +114,9 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   gate before it writes); another is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
   module: `server-only`, no auth, no `revalidatePath`), actions in
   `src/app/actions/rewards.ts` (`saveReward`, `deleteReward`,
-  `saveWish`, `redeemReward`, `undoRedeem`; since R4 each asks
-  `rewardGates.ts` itself, below). A redemption row snapshots the title, emoji
+  `saveWish`, `redeemReward`, `undoRedeem`; since R4 the first four ask
+  `rewardGates.ts` themselves and `undoRedeem` asks `canUndoRedeem`
+  inside its write, below). A redemption row snapshots the title, emoji
   and cost and is never rewritten; Undo redeem deletes it. **The redeem is
   one serializable transaction** (`redeemReward` in `rewardWrites.ts`): it
   re-reads the reward and the bank through `loadStarBanks([ownerId], tx)`,
@@ -129,9 +133,11 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
 (`orderRewards`: earned last, added order kept inside each group;
 `visibleRewards` uses it, Hill's H2), the redeem refusal, the
   sheet's input check and the redeem sheet's lines (the date arrives
-  formatted, by `formatLongCalendarDate` in `householdDate.ts`). `access.ts` has two named
-  checks, `canManageRewards` (add, edit, delete) and `canRedeemRewards`
-  (redeem, undo), so a later PR can widen redeem alone.
+  formatted, by `formatLongCalendarDate` in `householdDate.ts`). `access.ts` has
+  `canManageRewards` (add, edit, delete) and `canRedeemRewards` (a
+  parent's redeem); since R4 undo is `canUndoRedeem`, and kid and tablet
+  redeem go through `rewardGates.ts`. `isWish` (a null cost) is the one
+  wish test.
 - `src/lib/hideEarned.ts` is the only home of the Hide earned switch on a
   device (the `lastStore.ts` pattern, key `marshee.rewards.hideEarned`).
 
@@ -155,10 +161,14 @@ mission-82 file.
 - **The PIN is checked only on the server**, by `checkRewardPin` in
   `rewardWrites.ts`, called from the actions' one gate helper on every
   call that needs it; nothing stays unlocked. The hash is made and
-  compared only by `src/lib/password.ts`; `pinHash` is read only by
-  `loadPinCheck` (for `checkRewardPin`) and pages see only
-  `loadPinStatus`'s `{ pinSet, pinRequired }`. The lock is its own
+  compared only by `src/lib/password.ts`; `pinHash` leaves the reader
+  only through `loadPinCheck` (for `checkRewardPin`); `loadPinStatus`
+  reads it only to answer `pinSet`, and pages see only `{ pinSet,
+  pinRequired }`. The lock is its own
   columns on this row and never reads or writes `LoginAttempt`. A wrong
+  check is one transaction that first locks the row (`FOR UPDATE`), so
+  simultaneous tries wait in line and a burst cannot pass the limit
+  (Vision, mission 82 pass 1); a timeout or error answers refused. A wrong
   try is an atomic `increment`; a live lock refuses before any bcrypt
   work; a new PIN clears the lock.
 - A wish is a `Reward` with a null `cost`, made by `createWish` (no cost,
@@ -168,6 +178,8 @@ mission-82 file.
 - Kid and tablet Undo redeem: only a redemption that login made, within
   `REDEEM_UNDO_WINDOW_MS` (`canUndoRedeem`, checked inside
   `undoRedemption`'s own transaction). Parents and admins undo any.
+- `rewardRights` also answers `addWish` per person (the board never
+  decides a tile itself).
 - Components: `PinPad.tsx` is the only PIN keypad (no text input, so no
   autofill; it calls no action), used by `SetPinSheet.tsx` (Settings),
   `RedeemSheet` and `RewardSheet`. `WishSheet.tsx` is the wish sheet.

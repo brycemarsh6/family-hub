@@ -10,7 +10,7 @@
 // the tablet's rules are in src/lib/tabletRules.ts, and "may this login do it,
 // and does it need the PIN" is answered once, in src/lib/rewardGates.ts.
 
-import { MANAGER_ROLES } from "../constants";
+import { MANAGER_ROLES, type Role } from "../constants";
 
 export function canSetStars(role: string): boolean {
   return (MANAGER_ROLES as readonly string[]).includes(role);
@@ -32,7 +32,7 @@ export function canSetRewardPin(role: string): boolean {
 }
 
 /** The login (role and id) a reward check is about. */
-export type RewardActor = { userId: string; role: string };
+export type RewardActor = { userId: string; role: Role };
 
 /** A kid redeems only their own rewards (with the PIN; the gate adds it). */
 export function kidMayRedeem(actor: RewardActor, ownerId: string): boolean {

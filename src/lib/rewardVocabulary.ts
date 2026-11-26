@@ -82,6 +82,9 @@ export const REWARD_EARNED_LABEL = "Earned";
 export const REWARD_HIDE_EARNED_LABEL = "Hide earned";
 export const REWARD_CANCEL_LABEL = "Cancel";
 export const REWARD_CLOSE_LABEL = "Close";
+export const REWARD_SAVE_LABEL = "Save";
+export const REWARD_DELETE_LABEL = "Delete";
+export const REWARD_ADD_SUBMIT_LABEL = "Add";
 export const REWARD_DONE_LABEL = "Done";
 export const REWARD_UNDO_LABEL = "Undo redeem";
 export const REWARD_CELEBRATION_HEADING = "Great work!";
@@ -100,6 +103,8 @@ export const REWARD_UNDOING_LABEL = "Undoing…";
 /** An empty person's column: parents are offered the Add tile, others are pointed to one. */
 export const REWARD_EMPTY_PARENT = "No rewards yet.";
 export const REWARD_EMPTY_OTHER = "No rewards yet. Ask a parent to add one.";
+/** A kid's own empty column: they can add a wish. */
+export const REWARD_EMPTY_WISHER = "No rewards yet. Add a wish and a parent will set its cost.";
 /** A person who has rewards, all of them earned and hidden by Hide earned. */
 export const REWARD_ALL_HIDDEN = "Earned rewards are hidden.";
 /** The phone's row of people. */
@@ -124,12 +129,12 @@ export const REWARD_SAVE_FAILED = "That didn't save. Please try again.";
 export const PIN_TITLE = "Parent PIN";
 export const PIN_SWITCH_LABEL = "Ask for the PIN";
 export const PIN_HELP = "Kids and the wall tablet need the PIN to redeem. A parent's own login is never asked.";
+export const PIN_HELP_OFF = "Off: kids and the wall tablet redeem without a PIN, and the tablet can change rewards without one. Kids still can't set costs.";
 export const PIN_IS_SET = "PIN is set";
 export const PIN_NOT_SET = "No PIN yet";
 export const PIN_CHANGE_LABEL = "Change PIN";
 export const PIN_SET_LABEL = "Set PIN";
 export const PIN_SHEET_HEADING = "Set a new PIN";
-export const PIN_SHEET_HINT = "Pick 4 digits. Kids shouldn't know it.";
 export const PIN_CONFIRM_HEADING = "Enter it again";
 export const PIN_MISMATCH = "Those didn't match. Start again.";
 export const PIN_SAVED = "PIN saved.";
@@ -138,9 +143,26 @@ export const PIN_LOCKED_TITLE = "Too many wrong tries.";
 export const PIN_NOT_SET_TITLE = "A parent needs to set a PIN first.";
 export const PIN_NOT_SET_HINT = "Settings, then Rewards, then Set PIN.";
 export const PIN_NEEDED = "Enter the PIN.";
-export const PIN_SHAPE_REFUSAL = "The PIN must be 4 digits.";
 export const PIN_SWITCH_REFUSAL = "Pick on or off.";
 export const REDEEM_UNDO_REFUSAL = "Only a parent can undo this now.";
+export const PIN_SAVE_PROMPT = "A parent enters the PIN to save this.";
+export const PIN_DELETE_PROMPT = "A parent enters the PIN to delete this.";
+export const PIN_DELETE_DIGIT_LABEL = "Delete last digit";
+
+/** "Pick 4 digits. Kids shouldn't know it." (the length is `PIN_LENGTH`, passed in so the rule is typed once) */
+export function pinSheetHint(length: number): string {
+  return `Pick ${length} digits. Kids shouldn't know it.`;
+}
+
+/** "The PIN must be 4 digits." */
+export function pinShapeRefusal(length: number): string {
+  return `The PIN must be ${length} digits.`;
+}
+
+/** The dots' spoken state: "2 of 4 digits entered". */
+export function pinDigitsEnteredText(entered: number, length: number): string {
+  return `${entered} of ${length} digits entered`;
+}
 
 /** "A parent enters the PIN to redeem Cupcake for Ellie." */
 export function pinRedeemText(title: string, name: string): string {
@@ -161,6 +183,8 @@ export const WISH_SHEET_HINT = "A parent will set how many stars it costs.";
 export const WISH_SUBMIT_LABEL = "Add wish";
 export const WISH_SET_COST_HEADING = "Set a cost";
 export const WISH_EDIT_HEADING = "Edit wish";
+/** The wish sheet's answer when the wish has a cost by now (a parent turned it into a reward). */
+export const WISH_NOW_REWARD_REFUSAL = "This is a reward now. Ask a parent.";
 
 /** "Ellie needs 15 more stars." */
 export function notEnoughStarsText(name: string, short: number): string {

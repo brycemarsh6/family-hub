@@ -11,6 +11,7 @@ import {
   canUndoRedeem,
   kidMayRedeem,
   kidMayWish,
+  type RewardActor,
 } from "./access";
 
 test("admin and parent may set stars", () => {
@@ -37,7 +38,7 @@ test("only admins and parents may set the PIN", () => {
 });
 
 test("kidMayRedeem and kidMayWish: a kid and their own id only", () => {
-  const kid = { userId: "k1", role: "kid" };
+  const kid: RewardActor = { userId: "k1", role: "kid" };
   for (const check of [kidMayRedeem, kidMayWish]) {
     assert.equal(check(kid, "k1"), true);
     assert.equal(check(kid, "k2"), false);
@@ -55,14 +56,14 @@ test("canUndoRedeem: managers always, anyone else only their own within 10 minut
   assert.equal(canUndoRedeem({ userId: "p1", role: "parent" }, old, NOW), true);
   assert.equal(canUndoRedeem({ userId: "a1", role: "admin" }, redeemedAgo(0, null), NOW), true);
 
-  const kid = { userId: "k1", role: "kid" };
+  const kid: RewardActor = { userId: "k1", role: "kid" };
   assert.equal(canUndoRedeem(kid, redeemedAgo(1000, "k1"), NOW), true);
   assert.equal(canUndoRedeem(kid, redeemedAgo(REDEEM_UNDO_WINDOW_MS, "k1"), NOW), true);
   assert.equal(canUndoRedeem(kid, redeemedAgo(REDEEM_UNDO_WINDOW_MS + 1, "k1"), NOW), false);
   assert.equal(canUndoRedeem(kid, redeemedAgo(1000, "k2"), NOW), false);
   assert.equal(canUndoRedeem(kid, redeemedAgo(1000, null), NOW), false);
 
-  const tablet = { userId: "d1", role: "device" };
+  const tablet: RewardActor = { userId: "d1", role: "device" };
   assert.equal(canUndoRedeem(tablet, redeemedAgo(1000, "d1"), NOW), true);
   assert.equal(canUndoRedeem(tablet, redeemedAgo(1000, "k1"), NOW), false);
   assert.equal(canUndoRedeem(tablet, redeemedAgo(REDEEM_UNDO_WINDOW_MS + 1, "d1"), NOW), false);

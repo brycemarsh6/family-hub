@@ -14,8 +14,8 @@ import { setHideEarned, useHideEarned } from "@/lib/hideEarned";
 import type { HouseholdPerson } from "@/lib/householdPeople";
 import type { Gate, RewardRights } from "@/lib/rewardGates";
 import type { RewardView } from "@/lib/rewardsRead";
-import { visibleRewards } from "@/lib/rewards/rewardRules";
-import { REWARD_ADD_LABEL, REWARD_ALL_HIDDEN, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_HIDE_EARNED_LABEL, WISH_ADD_LABEL, addRewardForText } from "@/lib/rewardVocabulary";
+import { isWish, visibleRewards } from "@/lib/rewards/rewardRules";
+import { REWARD_ADD_LABEL, REWARD_ALL_HIDDEN, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_EMPTY_WISHER, REWARD_HIDE_EARNED_LABEL, WISH_ADD_LABEL, addRewardForText } from "@/lib/rewardVocabulary";
 
 // What the open redeem sheet was started with. It is kept as a copy: the page
 // refreshes after a redeem (the reward is now earned, the bank lower), and the
@@ -75,7 +75,7 @@ export function RewardsBoard({
             const bank = banks[person.id] ?? 0;
             const owned = rewards.filter((reward) => reward.ownerId === person.id);
             const shown = visibleRewards(owned, hideEarned);
-            const mine = rights.people[person.id] ?? { redeem: "no" as Gate, wish: false };
+            const mine = rights.people[person.id] ?? { redeem: "no" as Gate, wish: false, addWish: false };
             return (
               <section
                 key={person.id}
@@ -88,12 +88,11 @@ export function RewardsBoard({
                   <StarBank userId={person.id} stars={bank} />
                 </div>
                 {shown.length === 0 && (
-                  <p className="mb-3 text-sm text-muted">{owned.length > 0 ? REWARD_ALL_HIDDEN : mayManage ? REWARD_EMPTY_PARENT : REWARD_EMPTY_OTHER}</p>
+                  <p className="mb-3 text-sm text-muted">{owned.length > 0 ? REWARD_ALL_HIDDEN : mayManage ? REWARD_EMPTY_PARENT : mine.wish ? REWARD_EMPTY_WISHER : REWARD_EMPTY_OTHER}</p>
                 )}
                 <ul className="flex flex-col gap-3">
                   {shown.map((reward) => {
-                    const isWish = reward.cost === null;
-                    const openSheet: SheetState | null = isWish && mine.wish ? { kind: "wish", initial: reward, ownerId: person.id } : mayManage ? { kind: "reward", initial: reward, ownerId: person.id } : null;
+                    const openSheet: SheetState | null = isWish(reward) && mine.wish ? { kind: "wish", initial: reward, ownerId: person.id } : mayManage ? { kind: "reward", initial: reward, ownerId: person.id } : null;
                     return (
                       <RewardCard
                         key={reward.id}
@@ -108,7 +107,7 @@ export function RewardsBoard({
                     );
                   })}
                 </ul>
-                {mine.wish && rights.manage !== "open" && (
+                {mine.addWish && (
                   <button type="button" onClick={() => setSheet({ kind: "wish", ownerId: person.id })} className={ADD_TILE}>
                     <Plus aria-hidden="true" size={18} />
                     {WISH_ADD_LABEL}

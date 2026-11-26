@@ -6,15 +6,19 @@ import { RewardEmojiPicker } from "./RewardEmojiPicker";
 import { deleteReward, saveWish } from "@/app/actions/rewards";
 import type { RewardView } from "@/lib/rewardsRead";
 import {
+  REWARD_CLOSE_LABEL,
+  REWARD_DELETE_LABEL,
   REWARD_DELETING_LABEL,
   REWARD_NAME_LABEL,
   REWARD_NO_PICTURE_LABEL,
   REWARD_OWNER_LABEL,
   REWARD_PICTURE_LABEL,
+  REWARD_SAVE_LABEL,
   REWARD_SAVING_LABEL,
   REWARD_TITLE_MAX,
   WISH_ADD_LABEL,
   WISH_EDIT_HEADING,
+  WISH_NOW_REWARD_REFUSAL,
   WISH_SHEET_HINT,
   WISH_SUBMIT_LABEL,
 } from "@/lib/rewardVocabulary";
@@ -78,7 +82,8 @@ export function WishSheet({
       const result = await deleteReward(initial.id);
       if (result.error) {
         setDeleting(false);
-        return setError(result.error);
+        // A `pin` answer means the wish has a cost by now (a parent made it a reward): say so rather than ask for a PIN with no pad.
+        return setError("pin" in result ? WISH_NOW_REWARD_REFUSAL : result.error);
       }
       onClose();
     });
@@ -88,7 +93,7 @@ export function WishSheet({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-black/40" />
+      <button type="button" aria-label={REWARD_CLOSE_LABEL} onClick={close} className="absolute inset-0 bg-black/40" />
 
       <div
         role="dialog"
@@ -102,7 +107,7 @@ export function WishSheet({
           <button
             type="button"
             onClick={close}
-            aria-label="Close"
+            aria-label={REWARD_CLOSE_LABEL}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-2"
           >
             ×
@@ -165,7 +170,7 @@ export function WishSheet({
             disabled={pending || !title.trim()}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
-            {pending && !deleting ? REWARD_SAVING_LABEL : initial ? "Save" : WISH_SUBMIT_LABEL}
+            {pending && !deleting ? REWARD_SAVING_LABEL : initial ? REWARD_SAVE_LABEL : WISH_SUBMIT_LABEL}
           </button>
           {error && (
             <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -179,7 +184,7 @@ export function WishSheet({
               disabled={pending}
               className="min-h-12 w-full rounded-xl text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
             >
-              {deleting ? REWARD_DELETING_LABEL : "Delete"}
+              {deleting ? REWARD_DELETING_LABEL : REWARD_DELETE_LABEL}
             </button>
           )}
         </div>

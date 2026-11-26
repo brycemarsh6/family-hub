@@ -7,16 +7,21 @@ import { LadderStepper } from "./LadderStepper";
 import { RewardEmojiPicker } from "./RewardEmojiPicker";
 import { deleteReward, saveReward, type RewardRefusal } from "@/app/actions/rewards";
 import type { Gate } from "@/lib/rewardGates";
-import { nextCostStep } from "@/lib/rewards/rewardRules";
+import { isWish, nextCostStep } from "@/lib/rewards/rewardRules";
 import type { RewardView } from "@/lib/rewardsRead";
 import {
   COST_STEPS,
-  PIN_NEEDED,
+  PIN_DELETE_PROMPT,
+  PIN_SAVE_PROMPT,
   PIN_NOT_SET_HINT,
   PIN_NOT_SET_TITLE,
   PIN_TITLE,
   DEFAULT_REWARD_COST,
+  REWARD_CANCEL_LABEL,
   REWARD_CLOSE_LABEL,
+  REWARD_DELETE_LABEL,
+  REWARD_ADD_SUBMIT_LABEL,
+  REWARD_SAVE_LABEL,
   REWARD_COST_LABEL,
   REWARD_DELETING_LABEL,
   REWARD_EDIT_HEADING,
@@ -87,14 +92,19 @@ export function RewardSheet({
     if (!pending) onClose();
   };
 
-  /** Returns true when the call is finished with (done, or a plain refusal shown on the form); false when the pad stays up. */
-  function settle(result: { error?: string } | RewardRefusal): boolean {
+  /**
+   * Returns true when the call is finished with (done, or a plain refusal shown on the form); false when the pad stays up.
+   * Any PIN answer opens the PIN step for the button that ran (the page's gate may be a moment old).
+   */
+  function settle(result: { error?: string } | RewardRefusal, step: "save" | "delete"): boolean {
     if (!result.error) return true;
     const refusal = "pin" in result ? result : null;
     if (refusal?.pin) {
       if (refusal.pin === "notSet") setNotSet(true);
+      setPinStep(step);
       setLockMs(refusal.pin === "locked" ? (refusal.lockMs ?? null) : null);
-      setPinError(result.error);
+      // The pad speaks for a PIN that is needed or locked; only a wrong PIN needs a line.
+      setPinError(refusal.pin === "needed" || refusal.pin === "locked" ? null : result.error);
       return false;
     }
     setPinStep(null);
@@ -106,7 +116,7 @@ export function RewardSheet({
   function runSave(pin?: string) {
     startTransition(async () => {
       const result = await saveReward({ title, emoji, cost, repeatable, ownerId: forId }, initial?.id, pin);
-      if (settle(result) && !result.error) onClose();
+      if (settle(result, "save") && !result.error) onClose();
     });
   }
 
@@ -114,7 +124,7 @@ export function RewardSheet({
     if (!initial) return;
     startTransition(async () => {
       const result = await deleteReward(initial.id, pin);
-      if (settle(result) && !result.error) onClose();
+      if (settle(result, "delete") && !result.error) onClose();
     });
   }
 
@@ -146,12 +156,12 @@ export function RewardSheet({
     setLockMs(null);
   }
 
-  const heading = initial ? (initial.cost === null ? WISH_SET_COST_HEADING : REWARD_EDIT_HEADING) : REWARD_ADD_LABEL;
+  const heading = initial ? (isWish(initial) ? WISH_SET_COST_HEADING : REWARD_EDIT_HEADING) : REWARD_ADD_LABEL;
   const noPin = pinStep !== null && (gate === "noPin" || notSet);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
-      <button type="button" aria-label="Close" onClick={close} className="absolute inset-0 bg-black/40" />
+      <button type="button" aria-label={REWARD_CLOSE_LABEL} onClick={close} className="absolute inset-0 bg-black/40" />
 
       <div
         role="dialog"
@@ -170,7 +180,16 @@ export function RewardSheet({
               </button>
             </div>
           ) : (
-            <PinPad heading={PIN_TITLE} prompt={PIN_NEEDED} onComplete={handlePin} onCancel={cancelPin} error={pinError} lockMs={lockMs} busy={pending} />
+            <PinPad
+              heading={PIN_TITLE}
+              prompt={pinStep === "save" ? PIN_SAVE_PROMPT : PIN_DELETE_PROMPT}
+              onComplete={handlePin}
+              onCancel={cancelPin}
+              cancelLabel={lockMs ? REWARD_CLOSE_LABEL : REWARD_CANCEL_LABEL}
+              error={pinError}
+              lockMs={lockMs}
+              busy={pending}
+            />
           )
         ) : (
           <>
@@ -179,7 +198,7 @@ export function RewardSheet({
             <button
               type="button"
               onClick={close}
-              aria-label="Close"
+              aria-label={REWARD_CLOSE_LABEL}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-2"
             >
               ×
@@ -273,7 +292,7 @@ export function RewardSheet({
               disabled={pending || !title.trim()}
               className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
             >
-              {pending && !deleting ? REWARD_SAVING_LABEL : initial ? "Save" : "Add"}
+              {pending && !deleting ? REWARD_SAVING_LABEL : initial ? REWARD_SAVE_LABEL : REWARD_ADD_SUBMIT_LABEL}
             </button>
             {error && (
               <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -287,7 +306,7 @@ export function RewardSheet({
                 disabled={pending}
                 className="min-h-12 w-full rounded-xl text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
               >
-                {deleting ? REWARD_DELETING_LABEL : "Delete"}
+                {deleting ? REWARD_DELETING_LABEL : REWARD_DELETE_LABEL}
               </button>
             )}
           </div>

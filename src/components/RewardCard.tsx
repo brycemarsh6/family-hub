@@ -67,7 +67,7 @@ export function RewardCard({
             <span className="mt-1 block text-sm text-muted">{status.text}</span>
           </span>
         )}
-        {status.kind === "ready" && reward.cost !== null && <span className="mt-0.5 block text-sm text-muted">{starCountText(reward.cost)}</span>}
+        {status.kind === "ready" && typeof reward.cost === "number" && <span className="mt-0.5 block text-sm text-muted">{starCountText(reward.cost)}</span>}
         {wish && <span className="mt-0.5 block text-sm text-muted">{canSetCost ? REWARD_NO_COST_LABEL : WISH_KID_WAITING}</span>}
         {earned && (
           <span className="mt-0.5 flex items-center gap-1 text-sm font-bold uppercase tracking-wide text-fg">
@@ -81,7 +81,7 @@ export function RewardCard({
 
   return (
     <li
-      className={`@container flex flex-wrap items-center gap-3 rounded-2xl p-3 ${earned ? "bg-star-soft ring-2 ring-star" : wish ? "border-2 border-dashed border-line-strong bg-surface" : "border border-line bg-surface"}`}
+      className={`@container flex flex-wrap items-center gap-3 rounded-2xl p-3 ${earned ? "bg-star-soft ring-2 ring-star" : wish ? "border border-dashed border-line-strong bg-surface" : "border border-line bg-surface"}`}
     >
       {onEdit ? (
         <button type="button" onClick={onEdit} className="flex min-h-12 min-w-0 flex-1 basis-0 items-center gap-3 text-left">

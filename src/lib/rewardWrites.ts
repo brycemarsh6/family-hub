@@ -85,7 +85,8 @@ export async function redeemReward(rewardId: string, redeemedById: string): Prom
           if (!reward) return { ok: false as const, error: REWARD_GONE_REFUSAL };
           const bank = (await loadStarBanks([reward.ownerId], tx))[reward.ownerId] ?? 0;
           const refusal = redeemRefusal({ ...reward, redeemedCount: reward._count.redemptions }, bank, reward.owner.displayName);
-          if (refusal !== null || reward.cost === null) return { ok: false as const, error: refusal ?? REWARD_SAVE_FAILED };
+          // A wish (no cost) is refused by `redeemRefusal`; the `typeof` is for the type.
+          if (refusal !== null || typeof reward.cost !== "number") return { ok: false as const, error: refusal ?? REWARD_SAVE_FAILED };
           const row = await tx.rewardRedemption.create({
             data: { userId: reward.ownerId, rewardId: reward.id, title: reward.title, emoji: reward.emoji, cost: reward.cost, redeemedById },
             select: { id: true, redeemedAt: true },
@@ -152,42 +153,61 @@ export async function writePinRequired(pinRequired: boolean, userId: string): Pr
 
 export type PinCheck = { ok: true } | { ok: false; reason: "wrong" | "locked" | "notSet"; lockMs?: number };
 
+/** Longest a PIN check may wait for the row lock, and run once it has it. Past either, the try is refused. */
+const PIN_CHECK_MAX_WAIT_MS = 10_000;
+const PIN_CHECK_TIMEOUT_MS = 15_000;
+
 /**
- * Check a PIN a kid or the tablet typed. An ended lock is cleared first (the
- * count goes back to 0); a live lock refuses before any bcrypt work; a badly
- * shaped PIN is a wrong try without bcrypt; a wrong try adds 1 with an atomic
- * increment and, at the limit, sets the lock (and answers "locked" at once);
- * a right one resets the count. This is the PIN's own lock, separate from the
- * sign-in lock (no sign-in table is touched). Nothing stays unlocked afterwards.
+ * Check a PIN a kid or the tablet typed. The whole check is ONE transaction
+ * that first locks the settings row (`FOR UPDATE`), so a burst of simultaneous
+ * tries is checked one at a time and the count and lock cannot be raced. An
+ * ended lock is cleared first (the count goes back to 0); a live lock refuses
+ * before any bcrypt work; a badly shaped PIN is a wrong try without bcrypt; a
+ * wrong try adds 1 with an atomic increment and, at the limit, sets the lock
+ * (and answers "locked" at once); a right one resets the count. A check that
+ * times out waiting, or fails for any reason, is refused as "wrong" and never
+ * lets a try through. This is the PIN's own lock, separate from the sign-in
+ * lock (no sign-in table is touched). Nothing stays unlocked afterwards.
  */
 export async function checkRewardPin(pin: unknown, now: Date): Promise<PinCheck> {
-  const row = await loadPinCheck();
-  if (row.pinHash === null) return { ok: false, reason: "notSet" };
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        // No row means no PIN: the lock selects nothing and the read says notSet.
+        await tx.$queryRaw`SELECT 1 FROM "RewardSettings" WHERE id = 'household' FOR UPDATE`;
+        const row = await loadPinCheck(tx);
+        if (row.pinHash === null) return { ok: false as const, reason: "notSet" as const };
 
-  let failCount = row.pinFailCount;
-  let lockedUntil = row.pinLockedUntil;
-  if (pinLockEnded(lockedUntil, now)) {
-    await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0, pinLockedUntil: null } });
-    failCount = 0;
-    lockedUntil = null;
-  }
-  if (lockedUntil !== null && pinLockActive(lockedUntil, now)) {
-    return { ok: false, reason: "locked", lockMs: lockedUntil.getTime() - now.getTime() };
-  }
+        let failCount = row.pinFailCount;
+        let lockedUntil = row.pinLockedUntil;
+        if (pinLockEnded(lockedUntil, now)) {
+          await tx.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0, pinLockedUntil: null } });
+          failCount = 0;
+          lockedUntil = null;
+        }
+        if (lockedUntil !== null && pinLockActive(lockedUntil, now)) {
+          return { ok: false as const, reason: "locked" as const, lockMs: lockedUntil.getTime() - now.getTime() };
+        }
 
-  const right = isPinShaped(pin) && (await verifyPassword(pin, row.pinHash));
-  if (right) {
-    if (failCount !== 0) await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0 } });
-    return { ok: true };
-  }
+        const right = isPinShaped(pin) && (await verifyPassword(pin, row.pinHash));
+        if (right) {
+          if (failCount !== 0) await tx.rewardSettings.updateMany({ where: { id: "household" }, data: { pinFailCount: 0 } });
+          return { ok: true as const };
+        }
 
-  const updated = await db.rewardSettings.update({
-    where: { id: "household" },
-    data: { pinFailCount: { increment: 1 } },
-    select: { pinFailCount: true },
-  });
-  const lock = pinLockAfterWrong(updated.pinFailCount, now);
-  if (lock === null) return { ok: false, reason: "wrong" };
-  await db.rewardSettings.updateMany({ where: { id: "household" }, data: { pinLockedUntil: lock } });
-  return { ok: false, reason: "locked", lockMs: lock.getTime() - now.getTime() };
+        const updated = await tx.rewardSettings.update({
+          where: { id: "household" },
+          data: { pinFailCount: { increment: 1 } },
+          select: { pinFailCount: true },
+        });
+        const lock = pinLockAfterWrong(updated.pinFailCount, now);
+        if (lock === null) return { ok: false as const, reason: "wrong" as const };
+        await tx.rewardSettings.updateMany({ where: { id: "household" }, data: { pinLockedUntil: lock } });
+        return { ok: false as const, reason: "locked" as const, lockMs: lock.getTime() - now.getTime() };
+      },
+      { maxWait: PIN_CHECK_MAX_WAIT_MS, timeout: PIN_CHECK_TIMEOUT_MS },
+    );
+  } catch {
+    return { ok: false, reason: "wrong" };
+  }
 }
