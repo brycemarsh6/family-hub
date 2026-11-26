@@ -399,10 +399,93 @@ to `prisma migrate diff`) and applied to the dev branch by Fury before C1;
   words); a kid's empty column still says "Ask a parent to add one."
   though a kid can now add a wish.
 
+### F1 - Gate fixes, pass 1 (Vision, Captain, Strange)
+
+- **Status:** PENDING
+- **Objective:** Clear the five pass-1 blockers and the cheap notes, so
+  every gate can pass on pass 2.
+- **Boundaries:** may touch: `src/lib/rewardWrites.ts`,
+  `src/lib/rewardSettingsRead.ts` (only if the transaction needs it),
+  `src/lib/rewardGates.ts`, `src/lib/rewardGates.test.ts`,
+  `src/lib/rewards/access.ts`, `src/lib/rewards/access.test.ts`,
+  `src/lib/rewards/rewardRules.ts`, `src/lib/rewards/rewardRules.test.ts`,
+  `src/lib/rewards/pinPolicy.test.ts`, `src/lib/rewardVocabulary.ts`,
+  `src/app/actions/rewards.ts`, `src/app/actions/rewardSettings.ts`,
+  `src/components/PinPad.tsx`, `src/components/SetPinSheet.tsx`,
+  `src/components/RewardsSettings.tsx`, `src/components/RedeemSheet.tsx`,
+  `src/components/RewardSheet.tsx`, `src/components/WishSheet.tsx`,
+  `src/components/RewardCard.tsx`, `src/components/RewardsBoard.tsx`. ·
+  must not touch: schema, migrations, `starBankRead.ts`, `password.ts`,
+  sign-in files, pages, docs, `.avengers/`.
+- **Blockers:**
+  1. (Vision) `checkRewardPin` lets a burst of simultaneous tries all be
+     checked (proven: 19 wrong plus the right one at once, the right one
+     passed, count 19). Do the whole check in one
+     `db.$transaction(async (tx) => ...)` that first takes the row lock
+     (`SELECT 1 FROM "RewardSettings" WHERE id = 'household' FOR UPDATE`
+     through `tx.$queryRaw`), then reads with `loadPinCheck(tx)`, clears
+     an ended lock, refuses a live lock, runs bcrypt, and writes the
+     increment, lock or reset, all with `tx`; an explicit `timeout` (and
+     `maxWait`) so a queued check fails closed (refused, never let
+     through). Re-proof: 20 simultaneous wrong PINs leave `pinFailCount`
+     at exactly 5 with 4 "wrong" and 16 "locked"; then 19 wrong plus the
+     right one at once: the right one is refused unless it lands within
+     the first 5; positive control first.
+  2. (Vision) A `{ pin: "needed" }` answer never shows the pad when the
+     page's gate is stale (switch turned on after the page loaded).
+     RewardSheet's `settle` opens the PIN step for the step that ran;
+     RedeemSheet keeps a `pinAsked` state so the pad shows.
+  3. (Captain) "Pick 4 digits..." and "The PIN must be 4 digits." type
+     the PIN length. Make them `pinSheetHint(length)` and
+     `pinShapeRefusal(length)` in the vocabulary (the `pinLockedText`
+     pattern), called with `PIN_LENGTH`; a test pins the 4-digit words.
+  4. (Strange) With the switch off, the Parent PIN card's help line is
+     false. Add `PIN_HELP_OFF` with mock G's words: "Off: kids and the
+     wall tablet redeem without a PIN, and the tablet can change rewards
+     without one. Kids still can't set costs." and show it when off.
+  5. (Strange) After a lock ends, "Too many wrong tries." stays under
+     live keys. On `pin === "locked"` the sheets pass no error (the lock
+     panel speaks), and PinPad hides any error once a lock it showed has
+     run out, and stops its timer.
+- **Notes folded in:**
+  - PinPad: the 4th dot shows while the request runs (clear the dots
+    when `busy` goes from true to false, or `error` or `lockMs` changes);
+    a `cancelLabel` so the locked pad's button reads "Close" (mock C).
+  - Words in the vocabulary, not inline: PinPad's "of N digits entered"
+    and "Delete last digit", every "Close", WishSheet's "Save" and
+    "Delete", and `rewardSettings.ts`'s "That didn't save. Please try
+    again." becomes `REWARD_SAVE_FAILED`.
+  - `rewardRights` gains `addWish` per person (`wish` and manage not
+    `open`), and the board reads it instead of deciding.
+  - `isWish(reward)` in `rewardRules.ts` (cost is null) is the one test,
+    used by the board, sheets, card, actions and writes.
+  - `RewardActor.role` typed `Role`.
+  - Wish card border 1px dashed (mock), not the Add tile's 2px.
+  - WishSheet: if the server answers with a `pin` field (the wish became
+    a reward meanwhile), show `REWARD_GONE_REFUSAL`-style words from the
+    vocabulary ("This is a reward now. Ask a parent.") rather than "Enter
+    the PIN." with no pad.
+- **Words (Fury's defaults, Bryce asked in parallel; one-line changes):**
+  RewardSheet's PIN step prompt "A parent enters the PIN to save this.";
+  wish edit heading "Edit wish"; a kid's empty column "No rewards yet.
+  Add a wish and a parent will set its cost."
+- **Verification:** the Gauntlet both zones (count goes up); the burst
+  re-proof above through the real `checkRewardPin` on dev (scratchpad
+  script, dev host checked, row restored exactly, hash 7 chars); the
+  C1 greps; `grep -rn "cost === null\|cost !== null" src --include=*.ts
+  --include=*.tsx | grep -v generated` shows only `rewardRules.ts` (and
+  type definitions).
+- **Evidence required:** gauntlet output, burst output before restore,
+  the greps, files and line counts.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD 9032939; Denver 2246/0 skip, UTC 2236 + 10 DST skips) | BLOCKED | (1) a burst of simultaneous PIN tries is all checked (19 wrong + right at once: right passed, count 19); (2) a stale gate's `pin: "needed"` never shows the pad (Save does nothing, Redeem shows words with no pad) | C2 committed Fury's docs (outside C2's list; inert); PinPad timer runs on after a lock; WishSheet delete after a cost is set says "Enter the PIN." with no pad; stale noPin until reload; forged owner costs one try. Sound: forged ids, odd PINs, every kid refusal, missing row, redeem transaction, no leaks |
+| 1 | Captain (HEAD 9032939) | BLOCKED | PIN length typed in two words ("Pick 4 digits", "must be 4 digits") | rewards.md: `loadPinStatus` also reads `pinHash`; undo and settings actions ask access.ts, not rewardGates; "two named checks" stale; inline Close/Save/Delete and aria words; inline "That didn't save"; addWish decided in the board; `cost === null` about 8 times; `RewardActor.role` is string; settings page fallback copies the default. Amendment: words that state a rule's number are functions |
+| 1 | Strange (HEAD 9032939, running app as a parent, 390 and 1180, light and dark, Largest text) | BLOCKED | (1) switch off still says kids need the PIN (mock G has other words); (2) code-read: after a lock ends, "Too many wrong tries." stays under live keys | busy pad hides the 4th dot; wish card 2px dashed like the Add tile (mock 1px; DESIGN.md names `--line-strong` only for the vision card); locked pad says Cancel (mock Close); words for Bryce; Largest text landscape pad scrolls; parent redeem not seen live (banks too low). Tablet pass still needed for mock A to D, H, I, K |
 
 ## Handoff log
 
