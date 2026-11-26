@@ -555,6 +555,14 @@ person.
   "decided by Hill"; logins, real-device tests, money and the danger
   register still wait for Bryce. Merge does not wait (2026-11-05 rule).
 
+- 2026-11-25 - Pass-1 verdicts, H1 to H3 and F1 committed as ece5eda.
+  Stark dispatched on F1 (not yet reported; Bryce paused the internet).
+  **Resume:** if Stark's F1 commit is on the branch (`git log ece5eda..HEAD`),
+  read its report and re-gate (Vision, Captain, Strange pass 2; Strange
+  needs a bank of 5+). If not, check `git status` for half-done F1 edits
+  and re-dispatch Stark on F1. Dev test rows still to clean are listed in
+  C3's report.
+
 ## Delivery
 
 (Not yet.)
