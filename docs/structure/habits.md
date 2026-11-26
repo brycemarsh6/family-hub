@@ -41,7 +41,10 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `src/lib/starBankRead.ts` sums `HabitLog.stars` per person with one
   `groupBy`, reads no other `HabitLog` column and no other habit table, and
   builds no habit row (rules: docs/structure/rewards.md, "Stars and the
-  star bank"). **Dependency direction:** `src/lib/habits/` may import
+  star bank"). The star history's check rows are not an exception: they come
+  from `loadStarLogs` in `habitsStatsRead.ts` (mission-83), which reads only
+  star-paying logs with the habit's title, privacy and participants; hiding a
+  private name is `starHistoryRows.ts`'s job. **Dependency direction:** `src/lib/habits/` may import
   `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `rewardVocabulary.ts` and
   `rewards/stars.ts` (mission-79), `householdDate.ts`,
   `constants.ts`, `householdPeople.ts` and `rewardSettingsRead.ts` (the

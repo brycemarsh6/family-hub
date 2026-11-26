@@ -56,8 +56,15 @@ code lines; past that a concern gets its own
   typed in a component is a BLOCKER; the two celebration layers keep the
   `z-[70]` class (the sheets' `z-[60]` precedent), and
   `CONFETTI_Z_INDEX`'s test pins it between 61 and 70.
-- `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below); R4 and R5
-  add `pinPolicy.ts` and `starHistory.ts` here, each pure with its own test.
+- `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below); R4 adds
+  `pinPolicy.ts`. R5 (mission 83) added two, each pure with its own test:
+  `starAdjustments.ts` (`ADJUST_DEFAULT_STARS`, `ADJUST_NOTE_MAX`,
+  `nextAdjustStep`, the only give or take stepper walk, 1 to 50 on
+  `STAR_STEPS`, never None, and `toAdjustmentInput`, the only check of a
+  give or take) and `starHistory.ts` (`starHistory`, the only grouping and
+  wording of a person's history lines, and `recentLines`, Manage's Recent
+  lines). `starHistory.ts` takes a plain `nameHidden` flag; it never decides
+  privacy itself.
 
 **Dependency direction.** `src/lib/rewards/` imports only
 `rewardVocabulary.ts`, `constants.ts`, its own files and types. It never
@@ -94,13 +101,14 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   `habitsStatsRead.ts`: it reads only `stars`, grouped by `userId`, and
   builds no habit row. The bank counts stars from private habits; only
   the number leaves the server (the chore-streak precedent). R3 added
-  redemptions inside `loadStarBanks`; R5 adds adjustments there; a second bank
+  redemptions inside `loadStarBanks`; R5 added adjustments there; a second bank
   sum in a page, action, component or Winnie route is a BLOCKER.
 - **R3's reward catalogue (mission 81).** `Reward` and `RewardRedemption`
   each have one reader of rows and one writer: `loadRewards` in
   `src/lib/rewardsRead.ts` is the only reader that builds a `RewardView`;
-  the only other reads are `loadStarBanks`'s cost sum and the reads inside
-  `rewardWrites.ts`'s own writes; a third is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
+  the only other reads are `loadStarBanks`'s cost sum, the reads inside
+  `rewardWrites.ts`'s own writes and `starHistoryRead.ts`'s history and
+  Recent lists (mission 83); a fourth is a BLOCKER. Writes in `src/lib/rewardWrites.ts` (a domain write
   module: `server-only`, no auth, no `revalidatePath`), actions in
   `src/app/actions/rewards.ts` (`saveReward`, `deleteReward`,
   `redeemReward`, `undoRedeem`; each checks `canManageRewards` or
@@ -126,6 +134,40 @@ reducer lives at the top of `src/lib/` (`starDiffReducer.test.ts`).
   (redeem, undo), so a later PR can widen redeem alone.
 - `src/lib/hideEarned.ts` is the only home of the Hide earned switch on a
   device (the `lastStore.ts` pattern, key `marshee.rewards.hideEarned`).
+
+- **R5's star adjustments and history (mission 83).** `StarAdjustment`
+  (person, signed amount never 0, note or null, giver, when) has one
+  writer, `src/lib/starAdjustmentWrites.ts` (a domain write module:
+  `server-only`, no auth, no `revalidatePath`; it refuses a person who is
+  not an active household person), and its actions live in
+  `src/app/actions/starAdjustments.ts` (`giveOrTakeStars`,
+  `undoStarAdjustment`, each checking `canAdjustStars` itself; refusing
+  non-string ids). Its readers are `loadStarBanks` (the `amount` sum) and
+  `src/lib/starHistoryRead.ts` (`loadStarHistory`, `loadRecentActivity`:
+  the last 30 Denver days; Recent capped at 100); a third is a BLOCKER. The
+  history's check rows come from `loadStarLogs` in `habitsStatsRead.ts`
+  (the habit tables keep their two readers, habits.md), and
+  `src/lib/starHistoryRows.ts` (top of `src/lib/`, because it imports
+  `habits/access.ts`) is the only place a history line's habit name is
+  hidden: `canSeeHabit` decides, so a private habit reads "A private habit"
+  to anyone who cannot see it, and its title never reaches the browser.
+  `getStarHistory` in `src/app/actions/starHistory.ts` is the history's
+  only door: any signed-in login, the bank from `loadStarBanks`.
+  `access.ts` gains `canAdjustStars`. Days are labelled by
+  `formatWeekdayShortDate` ("Sat, Nov 21") in `householdDate.ts`.
+
+**Manage and history components (R5, mission 83).** `/rewards/manage` is a
+wide page for whoever `canManageRewards` lets in (it redirects anyone else
+to `/rewards`); `RewardsManage.tsx` owns its `@container` layout (stacked,
+two columns from 48rem) and opens `RewardSheet` as-is for Set cost;
+`StarAdjustForm.tsx` is the give or take form (its stepper is a
+`LadderStepper` walking `nextAdjustStep`); `RewardActivityList.tsx` is the
+Recent list (Undo calls R3's `undoRedeem` or `undoStarAdjustment`, then
+refreshes, since `undoRedeem` does not revalidate this page);
+`StarHistorySheet.tsx` is the history sheet. History opens only from the
+Rewards page (the wide column's bank button, the phone's link under the
+chips); the sheet shows the bank as words, never a second `StarBank`, so
+`data-star-bank` stays unique.
 
 **Rewards page components (R3).** `/rewards` is a wide page
 (`data-page-width="wide"`). `RewardsBoard.tsx` owns the sheet state and

@@ -190,8 +190,11 @@ tell when a rule's reason has expired.
   icon is filled.
   A fourth exception (mission 81, Bryce 2026-11-24): **colour emoji**, chosen
   from `REWARD_EMOJI_GROUPS` or the device's emoji keyboard ("Any emoji"),
-  shown only on reward cards, the redeem sheet and the reward picture picker.
-  They are a reward's picture, not icons; nowhere else.
+  shown only on reward cards, the redeem sheet and the reward picture picker,
+  and (mission 83, Bryce's approved mock 2026-11-25) on Manage rewards' wish
+  and Recent redeem rows and the star history's redeem lines. They are a
+  reward's picture, not icons; nowhere else. A bonus or take-away line uses
+  the outline Lucide `Star`, and a wish with no picture an outline `Gift`.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which

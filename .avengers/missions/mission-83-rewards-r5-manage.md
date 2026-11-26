@@ -238,7 +238,7 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   failure.
 
 ### C2 - The Manage page, the history sheet and the Rewards page links (UI)
-- **Status:** DISPATCHED
+- **Status:** DONE, commit f102738
 - **Objective:** build the approved screens on top of C1.
 - **Boundaries:** may touch: new `src/app/(app)/rewards/manage/page.tsx`,
   new `src/components/RewardsManage.tsx` (layout and sheet state), new
@@ -301,6 +301,44 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   dev rows made, for cleanup. Screenshots are Strange's job.
 - **Done criteria:** Strange's screenshots match the approved mock; no
   R4 file in `git diff --stat main`.
+- **Report:** DONE at f102738 (9 files, all may-touch; no R4 file).
+  Gauntlet green (Denver 2248/2248, UTC 2238 + 10 DST skips; added
+  assertions, not tests), build lists `/rewards/manage`; signed out it
+  redirects to `/login`. Inline person chips (ReportPersonChips are links,
+  RewardPersonChips draw StarBank); RewardSheet-style 48px radio tiles for
+  Give / Take away. Not run: the signed-in checks (no dev login), left to
+  Strange. Flags: colour emoji now also on Manage's wish and Recent rows and
+  history redeem lines (DESIGN.md exception to widen, Fury); no "zz r5" rows.
+
+### F0 - The history's check rows come from the habit reader (Fury's pre-gate catch)
+- **Status:** DONE, commit d06fcb3
+- **Objective:** `starHistoryRead.ts` stops querying `HabitLog`/`Habit`
+  itself; the rows come from a new export in `habitsStatsRead.ts`, so the
+  habit tables keep their two readers (docs/structure/habits.md, "A third
+  reader is a BLOCKER").
+- **Boundaries:** may touch: `src/lib/habitsStatsRead.ts` (one new export,
+  `loadStarLogs(userId, from)` returning the same `select` C1 uses),
+  `src/lib/starHistoryRead.ts` (call it), `src/lib/starHistoryRows.ts`
+  (types only if needed) · must not touch: everything else.
+- **Verification:** the Gauntlet green, same counts as C2; `grep -n
+  "habitLog\|db.habit" src/lib/starHistoryRead.ts` prints nothing.
+- **Evidence required:** the diff, the Gauntlet tails, the grep.
+- **Done criteria:** Fury reads the diff; no behaviour change.
+- **Report:** DONE at d06fcb3: `loadStarLogs(userId, from)` in
+  habitsStatsRead.ts, called by starHistoryRead.ts; Gauntlet same counts;
+  the habitLog grep empty.
+
+### F1 - One "Sat, Nov 21" formatter (Fury's pre-gate catch)
+- **Status:** DISPATCHED
+- **Objective:** `feedbackTimeLabel` builds its date with C1's
+  `formatWeekdayShortDate` instead of its own copy of the same pattern
+  (STRUCTURE.md's date-formatter homes; the R3 screensaver precedent).
+- **Boundaries:** may touch: `src/lib/feedbackTime.ts` · must not touch:
+  everything else (its test must pass unchanged).
+- **Verification:** the Gauntlet green, same counts; `feedbackTime.test.ts`
+  unchanged and passing in both zones.
+- **Evidence required:** the diff and the Gauntlet tails.
+- **Done criteria:** output unchanged (the existing tests pin it).
 - **Report:** (pending)
 
 ## Gate ledger

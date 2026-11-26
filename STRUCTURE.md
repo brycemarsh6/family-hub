@@ -624,6 +624,8 @@ amendment id.
   (mission-71; docs/structure/calendar.md, "A repeating series belongs to
   Google"). `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
+  `formatWeekdayShortDate(date)` is the only "Sat, Nov 21" (mission-83: the
+  star history's day labels, and the feedback sheet's stamp before its time).
   `formatLongCalendarDate(date)` is the only zone-explicit "Tuesday,
   November 24" (weekday, long month, day, from a `CalendarDate`), built
   from `mealPlanDates.ts`'s `FULL_DAY_NAMES` and `FULL_MONTH_NAMES`
@@ -672,11 +674,12 @@ amendment id.
   (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
 - **Habits & Chores PR F homes (mission-36).**
   (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
-- **Rewards (missions 79 and 81, `.avengers/plans/rewards-v1.md`).** Star
+- **Rewards (missions 79, 81 and 83, `.avengers/plans/rewards-v1.md`).** Star
   and reward words in `src/lib/rewardVocabulary.ts` (no imports), pure
-  rules in `src/lib/rewards/`, one row reader per table
-  (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`), one write
-  module (`rewardWrites.ts`), one bank sum and one serializable redeem.
+  rules in `src/lib/rewards/`, named row readers per table
+  (`rewardSettingsRead.ts`, `rewardsRead.ts`, `starBankRead.ts`,
+  `starHistoryRead.ts`), one write module per table (`rewardWrites.ts`,
+  `starAdjustmentWrites.ts`), one bank sum and one serializable redeem.
   (Rules: docs/structure/rewards.md, "Stars and the star bank". Added
   2026-11-24 on Captain's ruling; Bryce approved. R3 homes added
   2026-11-25, mission-81.)
@@ -936,7 +939,7 @@ amendment id.
   `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
-  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309. (Added
+  `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 235 (was 193), `habits.md` 312. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
