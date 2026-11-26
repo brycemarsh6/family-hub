@@ -2,6 +2,7 @@ import { isWish, orderRewards, rewardStatus } from "@/lib/rewards/rewardRules";
 import type { HistoryDay, RecentLine } from "@/lib/rewards/starHistory";
 import type { RewardView } from "@/lib/rewardsRead";
 import type { LateStars } from "@/lib/rewardVocabulary";
+import type { HouseholdPerson } from "@/lib/householdPeople";
 
 // Reader output -> wire format for the Assistant API's Rewards routes. Pure,
 // and every output is built field by field: never a spread of a row, so a
@@ -9,7 +10,7 @@ import type { LateStars } from "@/lib/rewardVocabulary";
 // rewards and the history lines come from the app's own readers; this file
 // only shapes them.
 
-export type RewardPerson = { id: string; displayName: string };
+export type RewardPerson = Pick<HouseholdPerson, "id" | "displayName">;
 
 /** `GET /rewards`: each person (household order) with their bank and their rewards, earned ones last. */
 export function toRewardsAnswer(input: {

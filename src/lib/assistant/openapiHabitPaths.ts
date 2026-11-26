@@ -45,7 +45,7 @@ export const habitOperations: Operation[] = [
       WHO,
     query: habitPersonQuery,
     response:
-      "{ date, people: [{ personId, rows: [{ habitId, title, kind, dueState (required | open | none), state (done | late | skipped | left), carriedFrom | null, stars | null, onVacation, skippedThisWeek, " +
+      "{ date, people: [{ personId, rows: [{ habitId, title, kind, dueState (required | open | none), state (done | late | skipped | left), carriedFrom | null, stars | null (the habit's per-check value, not what a late check pays; see GET /rewards lateStars), onVacation, skippedThisWeek, " +
       "hours: { doneMinutes, targetMinutes, leftMinutes, met } | null }], choreStreak }] }. 404 for an unknown personId.",
   },
   {

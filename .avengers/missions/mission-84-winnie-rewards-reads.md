@@ -229,8 +229,19 @@ AGENTS.md in full. For this mission specifically:
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision | PASS (de1a2da) | none | 6 NOTEs: 404 via `loadHouseholdPeople` filter instead of `requireHouseholdPerson` (same rule, fine); Recent's WHO wording too broad; summary stars are live whatever `date`; W2 must audit creates under model "Reward"; Stark's time-window cleanup; `.env` holds a commented second DB host (to Bryce). Live re-run by Vision on the dev branch, cleanup by id from `x-assistant-request-id`. |
+| 1 | Captain | PASS (de1a2da) | none | NOTEs: rewards.md paragraph misplaced two rules (rewritten to Captain's text); `RewardPerson` now `Pick<HouseholdPerson>`; today row `stars` is the raw value (OpenAPI now says so; `rowStars` if a late pay is ever wanted); fifth copy of the batched created-ids query (proposed `assistantCreatedIds` in `audit.ts`, for W2); rewards.md now 309 lines; STRUCTURE.md headline names mission 84. |
+| 2 | Vision | — | — | fix batch F1 (strings, doc, type alias) |
+
+**F1 (Fury, fix batch after pass 1, all NOTEs):** `docs/structure/rewards.md`
+paragraph replaced with Captain's text; `openapiRewardPaths.ts` Recent row
+says it is household-wide and may name a deactivated person;
+`openapiSummaryPaths.ts` says stars are as they stand now;
+`openapiHabitPaths.ts` today row says `stars` is the per-check value, not
+the late pay; `serializeRewards.ts` `RewardPerson` is a `Pick` of
+`HouseholdPerson`; STRUCTURE.md's Rewards headline names mission 84 and
+the plan. Gauntlet re-run by Fury: tsc 0, eslint 0, tests 2281/2281
+Denver, UTC 2281 (2271 pass, 10 skipped, 0 fail), build 0, lib grep empty.
 
 ## Handoff log
 
@@ -238,6 +249,8 @@ AGENTS.md in full. For this mission specifically:
   `npm ci`). Mission file written; C1 next.
 - 2026-11-25: C1 DONE by Stark; Fury read the diff and committed it. Vision
   and Captain pass 1 next.
+- 2026-11-26: Vision and Captain pass 1 both PASS with NOTEs. F1 fix batch
+  committed; Vision pass 2 on the F1 delta next.
 
 ## Delivery
 
