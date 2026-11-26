@@ -3,6 +3,7 @@ import { effectiveExpiry, daysUntil, urgencyFor } from "@/lib/expiring";
 import { ExpiringList, type ExpiringEntry } from "@/components/ExpiringList";
 import { LogLeftoverButton } from "@/components/LogLeftoverButton";
 import { getVerifiedUser } from "@/lib/dal";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { MANAGER_ROLES, type Category, type Location } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -29,7 +30,7 @@ export default async function ExpiringPage() {
   const user = await getVerifiedUser();
   const canManage = user !== null && MANAGER_ROLES.includes(user.role);
 
-  const [pantryItems, openGroceryLinks] = await Promise.all([
+  const [pantryItems, openGroceryLinks, stores] = await Promise.all([
     db.pantryItem.findMany({
       select: {
         id: true,
@@ -49,6 +50,7 @@ export default async function ExpiringPage() {
       where: { checked: false, pantryItemId: { not: null } },
       select: { pantryItemId: true },
     }),
+    householdStores(),
   ]);
 
   const onListIds = new Set(
@@ -123,7 +125,7 @@ export default async function ExpiringPage() {
         <LogLeftoverButton />
       </div>
 
-      <ExpiringList entries={entries} canManage={canManage} />
+      <ExpiringList entries={entries} canManage={canManage} stores={stores} />
     </div>
   );
 }

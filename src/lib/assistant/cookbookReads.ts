@@ -4,7 +4,7 @@ import "server-only";
 // shaped by serializeCookbooks.ts.
 
 import { db } from "@/lib/db";
-import { assistantCreatedWhere, didAssistantCreate } from "./audit";
+import { assistantCreatedIds, didAssistantCreate } from "./audit";
 import { toCookbook, toCookbookDetail } from "./serializeCookbooks";
 
 const LIST_SELECT = {
@@ -49,10 +49,5 @@ export async function getCookbook(id: string, origin: string) {
  */
 export async function assistantFiledIds(cookbookId: string): Promise<Set<string>> {
   const filings = await db.cookbookRecipe.findMany({ where: { cookbookId }, select: { id: true } });
-  if (filings.length === 0) return new Set();
-  const hits = await db.assistantChange.findMany({
-    where: assistantCreatedWhere("CookbookRecipe", { in: filings.map((f) => f.id) }),
-    select: { recordId: true },
-  });
-  return new Set(hits.map((h) => h.recordId));
+  return assistantCreatedIds("CookbookRecipe", filings.map((f) => f.id));
 }

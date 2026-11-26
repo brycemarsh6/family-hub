@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { RewardView } from "@/lib/rewardsRead";
 import type { HistoryDay, RecentLine } from "@/lib/rewards/starHistory";
-import { toHistoryAnswer, toRecentAnswer, toRewardsAnswer, toStarSummary } from "./serializeRewards";
+import { adjustmentChange, rewardChange, toAdjustmentAnswer, toHistoryAnswer, toRecentAnswer, toRewardsAnswer, toStarSummary } from "./serializeRewards";
 
 const people = [{ id: "a", displayName: "Ann" }, { id: "b", displayName: "Ben" }];
 const reward = (over: Partial<RewardView>): RewardView => ({
@@ -73,4 +73,48 @@ test("toStarSummary: banks in household order and the wishes still waiting for a
     banks: [{ personId: "a", name: "Ann", stars: 7 }, { personId: "b", name: "Ben", stars: 0 }],
     wishesWaiting: 1,
   });
+});
+
+const T = new Date("2026-11-26T10:00:00.000Z");
+const row = (over: Record<string, unknown> = {}) => ({
+  id: "r1", ownerId: "a", title: "Movie", emoji: null, cost: 50, repeatable: false, sortOrder: 2, createdById: null,
+  createdAt: T, updatedAt: T, ...over,
+});
+
+test("rewardChange: model Reward, the whole row as a copy (dates as ISO), only the sides the action has", () => {
+  const created = rewardChange("create", null, row());
+  assert.equal(created.model, "Reward");
+  assert.equal(created.recordId, "r1");
+  assert.equal(created.action, "create");
+  assert.equal(created.before, null);
+  assert.deepEqual(created.after, {
+    id: "r1", ownerId: "a", title: "Movie", emoji: null, cost: 50, repeatable: false, sortOrder: 2, createdById: null,
+    createdAt: T.toISOString(), updatedAt: T.toISOString(),
+  });
+  assert.deepEqual(created.summary, { title: "Movie", cost: 50 });
+  const removed = rewardChange("delete", row({ cost: null }), null);
+  assert.equal(removed.after, null);
+  assert.equal(removed.before?.cost, null);
+  assert.deepEqual(removed.summary, { title: "Movie", cost: null });
+});
+
+test("rewardChange: an update carries both rows, and a column added to the row later does not reach the copy", () => {
+  const change = rewardChange("update", row({ cost: null }), row({ cost: 25, secret: "x" }));
+  assert.equal(change.before?.cost, null);
+  assert.equal(change.after?.cost, 25);
+  assert.ok(!("secret" in (change.after ?? {})));
+});
+
+test("adjustmentChange: model StarAdjustment, a create with the whole row as its after copy", () => {
+  const change = adjustmentChange({ id: "s1", userId: "a", amount: -5, note: "Late", createdById: null, createdAt: T });
+  assert.equal(change.model, "StarAdjustment");
+  assert.equal(change.action, "create");
+  assert.equal(change.before, null);
+  assert.deepEqual(change.after, { id: "s1", userId: "a", amount: -5, note: "Late", createdById: null, createdAt: T.toISOString() });
+  assert.deepEqual(change.summary, { amount: -5 });
+});
+
+test("toAdjustmentAnswer: field by field, the creator left off", () => {
+  const out = toAdjustmentAnswer({ id: "s1", userId: "a", amount: 5, note: null, createdAt: T, createdById: "p" } as Parameters<typeof toAdjustmentAnswer>[0]);
+  assert.deepEqual(out, { id: "s1", personId: "a", amount: 5, note: null, createdAt: T.toISOString() });
 });

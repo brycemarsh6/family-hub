@@ -1,5 +1,6 @@
-// Tests for undoPlan.ts (general undo rules). Cookbooks as undo parents are in
-// the sibling undoPlanCookbook.test.ts.
+// Tests for undoPlan.ts (general undo rules). The siblings cover cookbooks as
+// undo parents (undoPlanCookbook.test.ts), goals (undoPlanGoals.test.ts),
+// habits (undoPlanHabits.test.ts) and Rewards (undoPlanRewards.test.ts).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Tablet, Users } from "lucide-react";
+import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Store, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { AiUsageCard } from "@/components/AiUsageCard";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
@@ -22,6 +22,7 @@ import { canSetStars } from "@/lib/rewards/access";
 import { loadLateStars, loadPinStatus } from "@/lib/rewardSettingsRead";
 import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { householdStores } from "@/lib/householdSettingsRead";
 import { isOwnerCopy } from "@/lib/copyConfig";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
 import { loadAiUsageCard } from "@/lib/aiUsageRead";
@@ -34,15 +35,15 @@ export const dynamic = "force-dynamic";
  * "Menu style" for everyone (devices too), "Text size", "Open Marshee on"
  * (accounts only: the tablet sets its own on the Wall tablet page), the
  * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
- * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), and last the "Habits & Chores" section
+ * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), the parent and admin "Stores" door, and last the "Habits & Chores" section
  * and the Vacation mode card with the parent and admin "Rewards" section right under it (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
- * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
+ * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Stores, Feedback, Sign out. Right:
  * Habits & Chores, Vacation then Rewards, AI features (parents and admins), Winnie. A phone keeps one column in this order:
- * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
+ * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos, Wall tablet and Stores (they
  * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation then Rewards (they share order-6, so source order decides),
  * 7 AI features (parents and admins) then Winnie (they share order-7, so source order decides), 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
@@ -56,6 +57,7 @@ export default async function SettingsPage() {
   // Same people as the calendar link: parents and admins on a real login.
   const canManageSlideshow = canSyncCalendars;
   const slideshowCount = canManageSlideshow ? await countSlideshowPhotos() : 0;
+  const storeCount = canSyncCalendars ? (await householdStores()).length : 0;
   // Late checks pay stars, so the Rewards section is for the same people who set them.
   const canSetRewards = canSetStars(user.role);
   const lateStars = canSetRewards ? await loadLateStars() : "full";
@@ -145,6 +147,24 @@ export default async function SettingsPage() {
                     Wall tablet
                   </span>
                   <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+                </Link>
+              </div>
+            )}
+
+            {canSyncCalendars && (
+              <div className="order-3">
+                <Link
+                  href="/settings/stores"
+                  className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+                >
+                  <span className="flex items-center gap-3">
+                    <Store aria-hidden="true" size={22} className="shrink-0 text-muted" />
+                    Stores
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm text-muted">{storeCount}</span>
+                    <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+                  </span>
                 </Link>
               </div>
             )}

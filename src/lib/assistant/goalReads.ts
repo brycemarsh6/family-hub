@@ -6,7 +6,6 @@ import "server-only";
 // `canEdit` and `canEditVision` (goals.ts, visions.ts) and nowhere else: a goal
 // she may not see is answered as missing, never filtered by a second rule.
 
-import { db } from "@/lib/db";
 import { TOGETHER_BOARD, VISION_HORIZONS, toGoalVisibility, type VisionHorizon } from "@/lib/goalVocabulary";
 import { canEdit, canSee, countsInScope, goalsInScope, type GoalView } from "@/lib/goals";
 import type { GoalPolicyRow } from "@/lib/goalWrites";
@@ -15,7 +14,7 @@ import type { CalendarDate } from "@/lib/householdDate";
 import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { boardOwnerId, canEditVision } from "@/lib/visions";
 import { loadGoalVision, loadVisionRows } from "@/lib/visionsRead";
-import { assistantCreatedWhere, didAssistantCreate } from "./audit";
+import { assistantCreatedIds, didAssistantCreate } from "./audit";
 import { assistantGoalViewer, assistantOwnerId } from "./habitActorEnv";
 import { requireHouseholdPerson } from "./habitReads";
 import { toGoalDetail, toGoalSummary, toVisionBoards, toWeek } from "./serializeGoals";
@@ -54,17 +53,12 @@ export async function getGoal(id: string, today: CalendarDate) {
   if (!view) return null;
   const [vision, hers, createdByAssistant] = await Promise.all([
     loadGoalVision(view),
-    view.checkIns.length === 0
-      ? []
-      : db.assistantChange.findMany({
-          where: assistantCreatedWhere("GoalCheckIn", { in: view.checkIns.map((checkIn) => checkIn.id) }),
-          select: { recordId: true },
-        }),
+    assistantCreatedIds("GoalCheckIn", view.checkIns.map((checkIn) => checkIn.id)),
     didAssistantCreate("Goal", id),
   ]);
   return toGoalDetail(view, {
     checkIns: view.checkIns,
-    madeByAssistant: new Set(hers.map((change) => change.recordId)),
+    madeByAssistant: hers,
     vision: vision ? { board: vision.boardKey, horizon: vision.horizon, text: vision.text } : null,
     createdByAssistant,
   });

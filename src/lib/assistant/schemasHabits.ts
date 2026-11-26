@@ -11,6 +11,7 @@ import {
   TIMES_OF_DAY,
 } from "@/lib/habitVocabulary";
 import type { HabitInput } from "@/lib/habitInput";
+import { HOURS_NO_STARS } from "./schemasRewards";
 import { calendarDateFromUtcMidnight, formatCalendarDate } from "@/lib/householdDate";
 
 // Request shapes for the Assistant API's habit routes, and the two pure
@@ -38,6 +39,8 @@ const optionalFields = {
   track: oneOf(HABIT_TRACKS).optional(),
   weeklyHours: z.number().int().optional(),
   paceDays: oneOf(PACE_DAYS).optional(),
+  // What one check pays; `checkHabitInput` refuses a value off the star list.
+  stars: z.number().int().nullable().optional(),
 };
 
 const personIds = z.array(z.string().min(1)).max(50);
@@ -138,6 +141,7 @@ export function newHabitInput(body: HabitCreateBody, household: readonly string[
     track,
     weeklyHours: body.weeklyHours ?? null,
     paceDays: hours ? body.paceDays ?? "monsat" : null,
+    ...(body.stars !== undefined ? { stars: body.stars } : {}),
   };
 }
 
@@ -170,7 +174,14 @@ export function patchedHabitInput(current: HabitInput, body: HabitPatchBody): Ha
     track,
     weeklyHours: given(body.weeklyHours, current.weeklyHours),
     paceDays: given(body.paceDays, current.paceDays) ?? (track === "hours" ? "monsat" : null),
+    // Left out, the star value stays as it is (the column is not written).
+    ...(body.stars !== undefined ? { stars: body.stars } : {}),
   };
+}
+
+/** An hours habit is measured in time, so a number of stars on one is refused (the app would quietly drop it). */
+export function habitStarsRefusal(input: HabitInput): string | null {
+  return input.track === "hours" && typeof input.stars === "number" ? HOURS_NO_STARS : null;
 }
 
 /** What `habitInputFromRow` reads of a stored habit. */
