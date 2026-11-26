@@ -1,7 +1,7 @@
 # Mission 88: Family copies PR 2, time zone per copy and a brand-new database
 
 **Project:** family-hub (Marshee)
-**Status:** GATING
+**Status:** DELIVERED (merge and production check follow the final push)
 **Started:** 2026-11-26 · **Updated:** 2026-11-26
 **Branch:** `claude/family-copies-pr2-timezone`
 
@@ -162,3 +162,17 @@ path, then `git show --stat HEAD`.
 - Vision NOTEs kept for later: Winnie's OpenAPI descriptions still say
   "(Denver)" (`openapiGoalPaths.ts:49`, `openapiMealPlanPaths.ts:13`); Intl
   accepts lowercase and legacy zone names (consistent with the app).
+- 2026-11-26: Vision pass 2 PASS on 9890146 (CI run 45877123959 fully green:
+  "All migrations have been successfully applied", "No difference
+  detected", smoke empty, time zone bad name refused and good name
+  accepted, Record check ran).
+
+## Delivery
+
+- Merged `origin/main` (PR 3, owner flag) into the branch: clean merge,
+  `tsc` OK, `npm test` 2294 pass, direct `TZ=UTC` line green.
+- Bryce: nothing to set for his own copy. A new family copy sets
+  `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` in its Vercel project before first use.
+- Deliberate leftovers: the briefing crons in `vercel.json` stay on Denver's
+  9 AM hour (the briefing is owner-copy only since PR 3); Winnie's OpenAPI
+  "(Denver)" wording; the 5433 URL written three times in ci.yml.
