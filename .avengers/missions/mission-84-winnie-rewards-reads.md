@@ -230,7 +230,7 @@ AGENTS.md in full. For this mission specifically:
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | PASS (de1a2da) | none | 6 NOTEs: 404 via `loadHouseholdPeople` filter instead of `requireHouseholdPerson` (same rule, fine); Recent's WHO wording too broad; summary stars are live whatever `date`; W2 must audit creates under model "Reward"; Stark's time-window cleanup; `.env` holds a commented second DB host (to Bryce). Live re-run by Vision on the dev branch, cleanup by id from `x-assistant-request-id`. |
-| 1 | Captain | PASS (de1a2da) | none | NOTEs: rewards.md paragraph misplaced two rules (rewritten to Captain's text); `RewardPerson` now `Pick<HouseholdPerson>`; today row `stars` is the raw value (OpenAPI now says so; `rowStars` if a late pay is ever wanted); fifth copy of the batched created-ids query (proposed `assistantCreatedIds` in `audit.ts`, for W2); rewards.md now 309 lines; STRUCTURE.md headline names mission 84. |
+| 1 | Captain | PASS (de1a2da) | none | NOTEs: rewards.md paragraph misplaced two rules (rewritten to Captain's text); `RewardPerson` now `Pick<HouseholdPerson>`; today row `stars` is the raw value (OpenAPI now says so; `rowStars` if a late pay is ever wanted); fifth copy of the batched created-ids query (proposed `assistantCreatedIds` in `audit.ts`, for W2); rewards.md now 312 lines after F1; STRUCTURE.md headline names mission 84. |
 | 2 | Vision | PASS (bef387c) | none | NOTE for W2: rewards.md's new BLOCKER sentence bans Reward and StarAdjustment reads under `src/lib/assistant/`, which W2's planned `undoModels.ts` / `undoWrites.ts` work needs; W2 must add that exception first. |
 
 **F1 (Fury, fix batch after pass 1, all NOTEs):** `docs/structure/rewards.md`
@@ -262,7 +262,7 @@ Denver, UTC 2281 (2271 pass, 10 skipped, 0 fail), build 0, lib grep empty.
   answer and today row; `/summary` `stars: { banks, wishesWaiting }`;
   OpenAPI rows; 8 new tests (2273 to 2281). Commits de1a2da (C1) and
   bef387c (F1), plus the plan (761d778) and this record. Evidence: C1's
-  report, Vision's two live runs (pass 1) and the gate ledger above.
+  report and live run, Vision's own live run (pass 1) and the gate ledger above.
 - **Gates:** Vision PASS (passes 1 and 2), Captain PASS (pass 1).
 - **Shipped check:** run after the merge; the result goes in the handoff
   note to the planning chat and in `.avengers/status.md` if anything is
@@ -280,7 +280,7 @@ Denver, UTC 2281 (2271 pass, 10 skipped, 0 fail), build 0, lib grep empty.
     window here; dev only, counts back to baseline).
   - The today row's `stars` is the habit's raw value; if Winnie should ever
     say what a carried row pays, use `rowStars` (Captain).
-  - `docs/structure/rewards.md` is 309 lines; a split is a housekeeping
+  - `docs/structure/rewards.md` is 312 lines; a split is a housekeeping
     candidate (Captain).
 - **For Bryce:** how Winnie picks up new endpoints (she reads
   `GET /openapi.json`; she may need telling to refresh), and the commented
