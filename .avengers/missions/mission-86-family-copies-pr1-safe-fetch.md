@@ -159,3 +159,9 @@ machine (which must be refused before any connection).
 5. **Evidence:** every command's output, the merge commit hash, `git show
    --stat` of it.
 6. **Done:** Vision re-gates the merge diff and the hardening.
+- 2026-11-26: Stark reported C2 DONE: merge `d3f3a89` (only conflict
+  `recipeUrlImport.ts`, both `readTikTokCaption` fetches now `safeFetch`),
+  hardening `4fa3172`. Gauntlet green both timezones (2290 / 2280+10 skipped),
+  no plain fetch left, refusals and both positive blogs re-proven. Note: C2's
+  "`::ffff:0:0/96` (SIIT)" was Fury's wrong prefix (that is IPv4-mapped);
+  Stark correctly refused the real SIIT form `::ffff:0:a.b.c.d`.
