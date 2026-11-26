@@ -25,7 +25,7 @@ import { toHabitTrack, type HabitTrack } from "./habitHoursVocabulary";
 
 // The reader for habit rows, so pages never query the habit tables directly.
 // It holds the Plans & Goals, Today, Manage, roster and tap loaders; a new reader goes
-// in a sibling file when this passes 350 lines. No auth: the caller (a page or action) has already
+// in a sibling file when its code passes 350 lines, and docs/structure/habits.md names the new reader. No auth: the caller (a page or action) has already
 // checked the session and decides what the viewer may see via `access.ts`.
 
 /** Everything the Plans & Goals views need to know about one habit. */

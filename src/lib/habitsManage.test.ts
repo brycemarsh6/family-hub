@@ -51,6 +51,8 @@ test("the address builders add ?person= only for someone else, URL-encoded", () 
   assert.equal(editHabitHref("h1", "ledger"), "/habits/h1/edit?person=ledger");
   assert.equal(choreChartHref(null), "/habits/chart");
   assert.equal(choreChartHref("ledger"), "/habits/chart?person=ledger");
+  assert.equal(choreChartHref(null, "week"), "/habits/chart?view=week");
+  assert.equal(choreChartHref("ledger", "default"), "/habits/chart?person=ledger&view=default");
 });
 
 test("managePersonChips: the viewer first, then household order; a kid and a household of one get none", () => {

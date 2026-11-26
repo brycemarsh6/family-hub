@@ -8,6 +8,7 @@ import { HabitIcon } from "./HabitIcon";
 import { QUIT_TAG_CLASS } from "./HabitRow";
 import { SortableList } from "./SortableList";
 import { reorderHabits, restoreHabit } from "@/app/actions/habits";
+import { refillSlots } from "@/lib/habits/habitRows";
 import { editHabitHref, choreChartHref, newHabitHref } from "@/lib/habitsManage";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import {
@@ -119,8 +120,7 @@ export function HabitManager({
 
   function reorderWithin(kind: HabitManagerItem["kind"], groupIds: string[]) {
     // Put the group's new order into the slots the group held in the full list.
-    const queue = [...groupIds];
-    const ids = state.active.map((item) => (item.kind === kind ? (queue.shift() ?? item.id) : item.id));
+    const ids = refillSlots(state.active.map((item) => item.id), groupIds);
     run({ type: "order", ids }, () => reorderHabits(ids, personParam ?? undefined));
   }
 
@@ -147,7 +147,7 @@ export function HabitManager({
 
       {state.active.length === 0 && (
         <div className="mt-5">
-          <EmptyState emoji="🌱" title="Nothing here yet" hint={own ? "Add a habit or chore to start your list." : MANAGE_LABELS.emptyOther(subjectName)} />
+          <EmptyState emoji="🌱" title={MANAGE_LABELS.emptyTitle} hint={own ? MANAGE_LABELS.emptyOwn : MANAGE_LABELS.emptyOther(subjectName)} />
         </div>
       )}
 

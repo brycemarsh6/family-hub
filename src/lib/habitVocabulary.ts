@@ -295,6 +295,9 @@ export const MANAGE_LABELS = {
   subtitleTap: "Tap a row to edit.",
   /** The aria label of the person chips under it. */
   personAria: "Whose habits",
+  /** The empty list's title, and its hint on your own list. */
+  emptyTitle: "Nothing here yet",
+  emptyOwn: "Add a habit or chore to start your list.",
   /** The empty list of someone else: "Add a habit or chore to start Ledger's list." */
   emptyOther: (name: string) => `Add a habit or chore to start ${name}'s list.`,
   /** The habit page's link to its edit page (decision D3). */

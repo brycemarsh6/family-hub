@@ -5,7 +5,8 @@ import { personChipsFor, type ChartChip, type ChartPerson } from "./choreChart";
 // Manage's person, chips and the habit page addresses (mission 86), with no
 // database: whose list Manage opens on, the `?person=` that carries that
 // person through Manage, the edit page, New and the chore chart, and the chips
-// that switch between people. Pure; the page and `habitsRead.ts` call it.
+// that switch between people. Pure; the pages and the client components
+// (`HabitsDayView`, `HabitManager`, `ChoreChart`, `ChoreChartSheet`) call it.
 
 /**
  * The person whose Manage list opens: the one asked for when they are a
@@ -28,7 +29,12 @@ function withPerson(path: string, personId: string | null): string {
 export const manageHref = (personId: string | null): string => withPerson("/habits/manage", personId);
 export const newHabitHref = (personId: string | null): string => withPerson("/habits/new", personId);
 export const editHabitHref = (habitId: string, personId: string | null): string => withPerson(`/habits/${habitId}/edit`, personId);
-export const choreChartHref = (personId: string | null): string => withPerson("/habits/chart", personId);
+/** The chart's address; `view` (the Default week or This week tab) rides after `?person=`. */
+export function choreChartHref(personId: string | null, view?: "default" | "week"): string {
+  const path = withPerson("/habits/chart", personId);
+  if (!view) return path;
+  return `${path}${personId ? "&" : "?"}view=${view}`;
+}
 
 /**
  * Manage's person chips: the people the viewer may open (`canOpenManageOf`),

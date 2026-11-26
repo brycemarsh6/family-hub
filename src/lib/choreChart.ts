@@ -18,10 +18,11 @@ import { CHORE_CHART_LABELS, choreTagLabel, habitWhoLabel, toHabitKind, type Wee
 import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 
 // The chore pages' pure builders, with no database: `habitsRead.ts` and
-// `habitsStatsRead.ts` fetch the rows and call these. Three jobs: the chore
+// `habitsStatsRead.ts` fetch the rows and call these. Four jobs: the chore
 // header on Today and the family view (the streak, the Sunday shout-out, the
 // vacation line: decisions 115, 120, 122), the chart page (116, 117, 119) and
-// the Settings vacation list (123). Callers pass `today`; days leave this file
+// the Settings vacation list (123), and the shared person chips (`personChipsFor`,
+// `firstNameOf`) the chart, the Report and Manage all use. Callers pass `today`; days leave this file
 // as "YYYY-MM-DD" strings.
 
 /** A habit as the chore builders read it; `TodayHabitInput` fits. */

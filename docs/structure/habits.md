@@ -165,9 +165,9 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   and the flag leave the server. **Dependency direction:**
   `choreChart.ts` imports only `habits/`, `habitVocabulary.ts`,
   `householdDate.ts` and `mealPlanDates.ts`. `habitsToday.ts`,
-  `habitsFamily.ts`, `habitsRead.ts`, `habitsStatsRead.ts`, `habitsReport.ts`
-  and `habitsReportScope.ts` may import it (the two Report files take
-  `firstNameOf` and the chip types), and it never imports any of them. Among the write files,
+  `habitsFamily.ts`, `habitsRead.ts`, `habitsStatsRead.ts`, `habitsReport.ts`,
+  `habitsReportScope.ts` and `habitsManage.ts` may import it (the two Report
+  files take `firstNameOf` and the chip types), and it never imports any of them. Among the write files,
   `vacationWrites.ts` and `habitWrites.ts` may import `streakWrites.ts`;
   `streakWrites.ts` may import `choreWrites.ts`; `habitWrites.ts`,
   `streakWrites.ts`, `choreWrites.ts` and `vacationWrites.ts` may import
@@ -246,8 +246,12 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   is the only home of Manage's person (`resolveManagePerson`), the
   `?person=` value (`personParam`), the chips (`managePersonChips`) and the
   Manage, New, Edit and chart addresses (`manageHref`, `newHabitHref`,
-  `editHabitHref`, `choreChartHref`); a `"/habits/manage?person` string built
-  anywhere else is a BLOCKER. `canOpenManageOf` and `canReorderListOf` in
+  `editHabitHref`, `choreChartHref`), every one that carries `?person=`; a
+  hand-built `/habits/` address with `?person=` anywhere else is a BLOCKER.
+  Client components (`HabitsDayView`, `HabitManager`, `ChoreChart`,
+  `ChoreChartSheet`) may import it. `personChipsFor` (`choreChart.ts`) is the
+  one chip order-and-name rule for the chart, Report and Manage; each caller
+  only filters who. `canOpenManageOf` and `canReorderListOf` in
   `habits/access.ts` are the only Manage and reorder policy, the page and
   `reorderHabits` both call them. `loadManageLists` (`habitsRead.ts`) is the
   Manage reader; `refillSlots` is the one slot rule for a reorder.
@@ -309,13 +313,13 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `isDayExcused(spec, overrides, vacations, day)` in `weekOverrides.ts`
   should become the one per-day "excused" rule; `monthCalendar` and
   `nothingDueText` each decide it today (not yet built). **Size watch:**
-  `habitVocabulary.ts` is 425 lines (about 254 code; mission-53, A-L3-8:
+  `habitVocabulary.ts` is 457 lines (269 code; mission-53, A-L3-8:
   new habit words stay there while its code is well under the cap, past
   about 300 code lines a concern gets its own file, and an exported word
   is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
-  361 (about 288 code; mission-79 added stars plumbing only),
-  `habitsReportScope.ts` 275, `HabitForm.tsx` 350 (298 code),
-  `habitsRead.ts` 406, `habitsFamily.ts` 360 (its stats-page data is
+  387 (304 code; mission-79 added stars plumbing only),
+  `habitsReportScope.ts` 275, `HabitForm.tsx` 350 (296 code),
+  `habitsRead.ts` 406 (303 code), `habitsFamily.ts` 360 (its stats-page data is
   the split seam), and the tests `habitsStats.test.ts` 426,
   `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
   `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Pencil, RotateCcw, SkipForward } from "lucide-react";
 import type { ChartWeekChore } from "@/lib/choreChart";
-import { editHabitHref } from "@/lib/habitsManage";
+import { editHabitHref, personParam } from "@/lib/habitsManage";
 import { CHORE_CHART_LABELS } from "@/lib/habitVocabulary";
 import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
@@ -24,6 +24,8 @@ export function ChoreChartSheet({
   chore,
   column,
   personId,
+  viewerId,
+  saved,
   onMove,
   onSkip,
   onClear,
@@ -33,6 +35,10 @@ export function ChoreChartSheet({
   column: number;
   /** The chart's person, so Edit chore comes back to their Manage. */
   personId: string;
+  /** The signed-in person, so Edit chore carries `?person=` only for someone else. */
+  viewerId: string;
+  /** The chore is saved (a chore just added to the chart is not, so it has nothing to edit yet). */
+  saved: boolean;
   onMove: (toWeekday: number) => void;
   onSkip: () => void;
   onClear: () => void;
@@ -107,8 +113,8 @@ export function ChoreChartSheet({
               {CHORE_CHART_LABELS.backToDefault}
             </button>
           )}
-          {chore.canEdit && !chore.id.startsWith("new-") && (
-            <Link href={editHabitHref(chore.id, personId)} className={ROW}>
+          {chore.canEdit && saved && (
+            <Link href={editHabitHref(chore.id, personParam(personId, viewerId))} className={ROW}>
               <Pencil aria-hidden="true" size={18} className="text-muted" />
               {CHORE_CHART_LABELS.editChore}
             </Link>

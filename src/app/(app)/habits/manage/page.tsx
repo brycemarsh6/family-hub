@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
 import { HabitManager } from "@/components/HabitManager";
 import { ReportPersonChips } from "@/components/ReportPersonChips";
+import { firstNameOf } from "@/lib/choreChart";
 import { requireVerifiedUser } from "@/lib/dal";
 import { canReorderListOf } from "@/lib/habits/access";
 import { loadHabitRoster, loadManageLists } from "@/lib/habitsRead";
@@ -49,7 +50,7 @@ export default async function ManageHabitsPage({ searchParams }: { searchParams:
         archived={archived}
         personParam={personParam(subjectId, user.userId)}
         canReorder={canReorder}
-        subjectName={subject?.displayName.split(" ")[0] ?? ""}
+        subjectName={subject ? firstNameOf(subject.displayName) : ""}
         own={own}
       />
     </div>

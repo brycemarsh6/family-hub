@@ -123,12 +123,12 @@ export function HabitForm({
   const peopleCount = who === "me" ? 1 : selectedIds.length;
   const hours = track === "hours";
   const canCarry = !hours && canCarryOver(schedule.schedule, schedule.days);
-  const canBePrivate = canBePrivateWith(peopleCount);
+  const canBePrivate = !(who === "me" && soloId !== viewerId) && canBePrivateWith(peopleCount); // not on another person's item (mission 86, D6)
 
   function pickWho(next: HabitWho) {
     setWho(next);
     if (next !== "me" && selectedIds.length === 0) setSelectedIds([soloId]);
-    if (hours) setIsPrivate(next === "me"); // decision 194: Just me is private, Side by side is not
+    if (hours) setIsPrivate(next === "me" && soloId === viewerId); // decision 194: Just me is private, Side by side is not
   }
 
   /** Hours is for habits, one person each (decisions 193, 194): Together becomes Side by side, and Just me turns Private on. */
@@ -136,7 +136,7 @@ export function HabitForm({
     setTrack(next);
     if (next !== "hours") return;
     if (who === "together") setWho("each");
-    if (who === "me") setIsPrivate(true);
+    if (who === "me") setIsPrivate(soloId === viewerId);
     if (who === "each") setIsPrivate(false);
   }
 

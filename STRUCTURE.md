@@ -983,7 +983,7 @@ amendment id.
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
   Forms trend (mission-54, A-L6-13): `GoalForm.tsx` 349 total / about 308
   code (was 334; the next goal field moves the Track a number block into
-  its own component), `HabitForm.tsx` 339 / about 288 code (mission-79 added the Stars field, was 329; before that 350; the
+  its own component), `HabitForm.tsx` 350 / 296 code (mission-86 held it at 350; mission-79 added the Stars field, was 329; before that 350; the
   Edit actions moved to `HabitEditActions.tsx`, now 53), `FeedbackList.tsx`
   119 (holds both layouts; no action).
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
