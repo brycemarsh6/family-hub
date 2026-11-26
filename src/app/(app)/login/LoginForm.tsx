@@ -6,6 +6,8 @@ import { login, type LoginState } from "@/app/actions/auth";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { DeviceBadge } from "@/components/DeviceBadge";
 import type { Role } from "@/lib/constants";
+import { RECOVERY_WORDS } from "@/lib/setupVocabulary";
+import { RecoveryResetForm } from "./RecoveryResetForm";
 
 const EMPTY: LoginState = {};
 
@@ -39,6 +41,8 @@ function AccountIcon({ account }: { account: LoginAccount }) {
 export function LoginForm({ accounts }: { accounts: LoginAccount[] }) {
   const [state, formAction, pending] = useActionState(login, EMPTY);
   const [selected, setSelected] = useState<LoginAccount | null>(null);
+  // The "Forgot password?" view for the selected account.
+  const [forgot, setForgot] = useState(false);
 
   if (!selected) {
     return (
@@ -47,13 +51,45 @@ export function LoginForm({ accounts }: { accounts: LoginAccount[] }) {
           <button
             key={account.id}
             type="button"
-            onClick={() => setSelected(account)}
+            onClick={() => {
+              setSelected(account);
+              setForgot(false);
+            }}
             className="flex min-h-14 items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 text-left text-base font-semibold text-fg transition-colors active:bg-line"
           >
             <AccountIcon account={account} />
             {account.displayName}
           </button>
         ))}
+      </div>
+    );
+  }
+
+  if (forgot) {
+    return (
+      <div className="mt-6 flex flex-col gap-4">
+        <div>
+          <button
+            type="button"
+            onClick={() => setForgot(false)}
+            className="flex min-h-11 w-fit items-center gap-1 -ml-1 text-sm font-medium text-muted transition-colors hover:text-fg"
+          >
+            <ChevronLeft aria-hidden="true" size={18} />
+            {RECOVERY_WORDS.backToPassword}
+          </button>
+          <div className="mt-2 flex items-center gap-3">
+            <AccountIcon account={selected} />
+            <span className="text-lg font-semibold">{selected.displayName}</span>
+          </div>
+        </div>
+        {selected.role === "admin" ? (
+          <RecoveryResetForm userId={selected.id} />
+        ) : (
+          <div>
+            <h2 className="text-xl font-bold">{RECOVERY_WORDS.notAdminTitle}</h2>
+            <p className="mt-1 text-base text-muted">{RECOVERY_WORDS.notAdminBody}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -125,6 +161,14 @@ export function LoginForm({ accounts }: { accounts: LoginAccount[] }) {
         className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
       >
         {pending ? "Checking…" : "Sign in"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setForgot(true)}
+        className="mx-auto min-h-11 px-3 text-sm font-semibold text-accent underline"
+      >
+        {RECOVERY_WORDS.forgot}
       </button>
     </form>
   );
