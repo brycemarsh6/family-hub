@@ -58,7 +58,7 @@ code lines; past that a concern gets its own
   `CONFETTI_Z_INDEX`'s test pins it between 61 and 70.
 - `rewardRules.ts` and `rewardEmoji.ts` arrived in R3 (below); R4 adds
   `pinPolicy.ts`. R5 (mission 83) added two, each pure with its own test:
-  `starAdjustments.ts` (`ADJUST_DEFAULT_STARS`, `ADJUST_NOTE_MAX`,
+  `starAdjustments.ts` (`ADJUST_DEFAULT_STARS`,
   `nextAdjustStep`, the only give or take stepper walk, 1 to 50 on
   `STAR_STEPS`, never null, and `toAdjustmentInput`, the only check of a
   give or take) and `starHistory.ts` (`starHistory`, the only grouping and

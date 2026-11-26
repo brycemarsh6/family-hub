@@ -352,7 +352,7 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   after the gates.
 
 ### F2 - Gate fixes, pass 1 (Captain, Strange, Vision notes)
-- **Status:** DISPATCHED
+- **Status:** DONE, commit fa8833c
 - **Objective:** fix every pass-1 code blocker and the cheap notes in one
   batch, so pass 2 re-gates once.
 - **Boundaries:** may touch: `src/components/RewardActivityList.tsx`,
@@ -398,7 +398,15 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 - **Evidence required:** per-item file:line, Gauntlet tails both zones,
   `git show --stat HEAD`.
 - **Done criteria:** pass-2 gates.
-- **Report:** (pending)
+- **Report:** DONE at fa8833c (7 files, all may-touch). All nine items
+  made: RewardActivityList and StarAdjustForm on `useOptimisticRun`;
+  placeholder muted; wide bank button outlined with a chevron; chips wrap
+  from 48rem; Gift for a no-picture redeem; `ADJUSTING_LABEL` gone;
+  `ADJUST_NOTE_MAX` moved to the vocabulary with the refusal built from it
+  (Fury dropped it from rewards.md's `starAdjustments.ts` list);
+  `historyBankLabelText` and `recentUndoLabelText`. Denver 2248/2248, UTC
+  2238 + 10 skips; tsc clean; eslint run on `src` only and build not run
+  (pass-2 Vision runs both).
 
 ## Gate ledger
 
