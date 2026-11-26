@@ -14,10 +14,8 @@ export const WELCOME_WORDS = {
   next: "Next",
   backToFamily: "Your family",
   goToDashboard: "Go to my dashboard",
-  roleAdmin: "Admin",
-  roleParent: "Parent",
-  roleKid: "Kid",
-  roleKidProfile: "Kid, profile",
+  /** Said after the role for a kid who has no login: "Kid, profile". */
+  profileSuffix: "profile",
 } as const;
 
 export const INSTALL_WORDS = {
@@ -30,8 +28,8 @@ export const INSTALL_WORDS = {
   everyone: "Everyone else in the family does this on their own phone.",
 } as const;
 
-/** The three Safari steps. `bold` is the part to show in bold; `before` and
- * `after` are the plain text around it. A step with an icon names which one. */
+/** The three Safari steps. A part is plain text, or bold when `bold` is set.
+ * A part with an `icon` shows that icon (its `text` is empty). */
 export type InstallStepPart = { text: string; bold?: boolean; icon?: "share" | "add" };
 
 export const INSTALL_STEPS: Record<"iphone" | "ipad", readonly (readonly InstallStepPart[])[]> = {

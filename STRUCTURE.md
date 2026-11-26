@@ -15,7 +15,7 @@ a one-line pointer.
 
 | Path | What lives here | What never lives here |
 |---|---|---|
-| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout | Pages needing a genuinely chrome-free root layout; those get their own top-level folder beside `(app)`, as `src/app/share/`, `src/app/privacy/` and `src/app/setup/` do |
+| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout. `/welcome` keeps the chrome but shows no menu (`hidesMenu` in `src/lib/appChrome.ts`) | Pages needing a genuinely chrome-free root layout; those get their own top-level folder beside `(app)`, as `src/app/share/`, `src/app/privacy/` and `src/app/setup/` do |
 | `src/app/privacy/` | The one public static policy page (own root layout, no chrome, indexable) | Anything session-dependent |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/setup/` | A relative's first-run setup page (own root layout like `/privacy`, no chrome, `noindex`; `notFound()` unless `isSetupOpen()`; no `loading.tsx`, so the 404 is a real HTTP 404 and not a 200 with a not-found screen) | A `loading.tsx`; any session read |
@@ -27,6 +27,7 @@ a one-line pointer.
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
 | `prisma/` | Schema, **additive-only** migrations, the Vercel build hook (`migrate-on-production.mjs` — applies migrations to production at release time, and nowhere else, after first refusing a bad `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` on every build), the CI-only empty-database checks (`fresh-db-smoke.ts`, and `setup-attack-smoke.ts`, which also refuses a non-empty `User` table and deletes only `LoginAttempt` rows; both refuse any host but localhost), scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
 | `brand/` | Master brand vectors (`marshee-mark.svg`, `marshee-wordmark.svg`, `marshee-app-icon.svg`) — the source every other brand asset is generated from. Committed so the artwork and the generated files can't silently drift; **never imported by app code** (the components in `src/components/` carry their own copy of the path data, generated from these) | Generated output — the icon PNG/ICO files live in `src/app/` as Next's file conventions require; anything the app imports at build or runtime |
+| `public/` | Static files served as is. `public/icons/` holds the manifest's sized PNGs, resized (never redrawn) from `src/app/icon.png` (mission-94) | Anything imported by code; new brand artwork (that is `brand/`) |
 | `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
 ## Boundary rules
@@ -972,7 +973,7 @@ amendment id.
   `calendar.md` 87, `plans-goals.md` 68; 2026-11-24 (mission-79)
   `rewards.md` 113 (new), `habits.md` 309; 2026-11-25 (mission-81)
   `rewards.md` 193 (was 113; R2 and R3 together), `layout.md` 332, `habits.md` 309; 2026-11-25 (mission-83) `rewards.md` 240 (was 193), `habits.md` 312, `layout.md` 334;
-  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new); 2026-11-26 (mission-94) `family-copies.md` 50 (new). (Added
+  2026-11-25 (mission-82, after syncing with R5) `rewards.md` 296 (was 240); 2026-11-26 (mission-85) `rewards.md` 300 (was 312 after mission-84; Winnie's rules moved to the new `rewards-winnie.md`), `rewards-winnie.md` 78 (new); 2026-11-26 (mission-90) `feedback.md` 57 (new); 2026-11-26 (mission-94) `family-copies.md` 50 (new), `dashboard.md` 91 (was 89). (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,

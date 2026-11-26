@@ -11,7 +11,7 @@ row reads as defaults; `updatedById` is a plain id, like
 no auth, callers check) is the only reader (it also holds `setupFinished`, `recoveryCodeHash`, `hasRecoveryCode`, `checklistDismissed`, `storesSaved`); a second `db.householdSettings`
 read in `src/` is a BLOCKER, so later PRs add their readers there (the CI check `prisma/setup-attack-smoke.ts` reads the row directly on purpose, to verify the writes independently). Its writes live in
 `src/lib/householdSettingsWrites.ts` (`server-only`, no auth, no
-`revalidatePath`). `createFamilyAndFirstAdmin` there also creates the first `User` and the `MEAL_SLOTS` tags, by design: setup is one serializable transaction gated by the user count. It is the only write outside `tagWrites.ts` that makes a `Tag`. The store list rules are pure in `src/lib/storeList.ts`
+`revalidatePath`); a second `db.householdSettings` write in `src/` is a BLOCKER. `createFamilyAndFirstAdmin` there also creates the first `User` and the `MEAL_SLOTS` tags, by design: setup is one serializable transaction gated by the user count. It is the only write outside `tagWrites.ts` that makes a `Tag`. The store list rules are pure in `src/lib/storeList.ts`
 and nowhere else: cleaning, `MAX_STORES` / `MAX_STORE_NAME`, "Other"
 always last, the shopping filter words ("All", "Unassigned"),
 `storeFilterOptions`, and the add, remove, rename and reorder helpers.

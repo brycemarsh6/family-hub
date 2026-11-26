@@ -11,7 +11,14 @@ import {
   type ChecklistFacts,
 } from "./setupChecklist";
 import { postLoginPath } from "./startPage";
-import { CHECKLIST_WORDS, INSTALL_ROW_WORDS, checklistCount } from "./welcomeVocabulary";
+import {
+  CHECKLIST_WORDS,
+  INSTALL_ROW_WORDS,
+  INSTALL_STEPS,
+  INSTALL_WORDS,
+  WELCOME_WORDS,
+  checklistCount,
+} from "./welcomeVocabulary";
 
 const NONE: ChecklistFacts = {
   hasOtherPeople: false,
@@ -90,4 +97,12 @@ test("words: the mock's exact strings, and no dashes", () => {
   assert.equal(CHECKLIST_WORDS.allSetTitle, "You're all set");
   assert.equal(INSTALL_ROW_WORDS.label, "Install on your phone");
   assert.equal(checklistCount(2, 5), "2 of 5");
+  const strings: string[] = [];
+  const walk = (value: unknown) => {
+    if (typeof value === "string") strings.push(value);
+    else if (value && typeof value === "object") Object.values(value).forEach(walk);
+  };
+  [WELCOME_WORDS, INSTALL_WORDS, INSTALL_STEPS, CHECKLIST_WORDS, INSTALL_ROW_WORDS, checklistCount(2, 5)].forEach(walk);
+  assert.ok(strings.length > 20);
+  for (const text of strings) assert.doesNotMatch(text, /[\u2013\u2014]/, text);
 });

@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { MANAGER_ROLES, toRole, type Role } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
+import { PERSON_SELECT, toPersonInfo, type PersonInfo } from "@/lib/personInfo";
 
 // The one rule for "the family": every active person who is not a shared
 // device login (the wall tablet). Habit participants, the habit pickers and
@@ -28,6 +29,21 @@ export async function loadHouseholdPeople(client: Prisma.TransactionClient = db)
     orderBy: HOUSEHOLD_ORDER_BY,
     select: { id: true, displayName: true, avatarColor: true },
   });
+}
+
+/** How many household people there are (no shared device login, no deactivated person). */
+export async function countHouseholdPeople(client: Prisma.TransactionClient = db): Promise<number> {
+  return client.user.count({ where: HOUSEHOLD_PERSON_WHERE });
+}
+
+/** Every household person as the admin UI may see them (no password hash), in the household order. */
+export async function loadHouseholdPersonInfos(client: Prisma.TransactionClient = db): Promise<PersonInfo[]> {
+  const rows = await client.user.findMany({
+    where: HOUSEHOLD_PERSON_WHERE,
+    orderBy: HOUSEHOLD_ORDER_BY,
+    select: PERSON_SELECT,
+  });
+  return rows.map(toPersonInfo);
 }
 
 /** A household adult (admin or parent), as the morning briefing needs them. */

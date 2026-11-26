@@ -9,6 +9,8 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 
 ### The widget registry
 
+The setup checklist card (mission-94) renders above `DashboardWidgetList`, outside the registry and the `notes` slot; its rules are in `family-copies.md`.
+
 `calendar` is first (mission-49,
   decision 237: all four sizes, Large by default, on the tablet).
   `WIDGET_SIZES` / `WIDGET_SIZE_LABELS` are the only size list and size

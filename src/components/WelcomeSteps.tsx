@@ -6,6 +6,7 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { CreatePersonSheet } from "@/components/CreatePersonSheet";
 import { InstallHelp } from "@/components/InstallHelp";
+import { ROLE_LABELS } from "@/lib/constants";
 import type { PersonInfo } from "@/lib/personInfo";
 import { INSTALL_WORDS, WELCOME_WORDS } from "@/lib/welcomeVocabulary";
 
@@ -23,9 +24,8 @@ function Dots({ step }: { step: 1 | 2 }) {
 }
 
 function roleWords(person: PersonInfo): string {
-  if (person.role === "admin") return WELCOME_WORDS.roleAdmin;
-  if (person.role === "parent") return WELCOME_WORDS.roleParent;
-  return person.hasAccount ? WELCOME_WORDS.roleKid : WELCOME_WORDS.roleKidProfile;
+  const label = ROLE_LABELS[person.role];
+  return person.role === "kid" && !person.hasAccount ? `${label}, ${WELCOME_WORDS.profileSuffix}` : label;
 }
 
 /**

@@ -1,6 +1,9 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { countHouseholdPeople } from "@/lib/householdPeople";
+import { hasAnyLinkedAccount } from "@/lib/linkedCalendarsRead";
+import { loadTabletStartPage } from "@/lib/startPageRead";
 import { isOwnerCopy } from "@/lib/copyConfig";
 import { isGoogleConfigured } from "@/lib/google/oauth";
 import { checklistDismissed, setupFinished, storesSaved } from "@/lib/householdSettingsRead";
@@ -25,11 +28,11 @@ export async function loadSetupChecklist(
   const [finished, dismissed, people, stores, pantry, tablet, linked] = await Promise.all([
     setupFinished(),
     checklistDismissed(),
-    db.user.count({ where: { deactivatedAt: null, role: { not: "device" } } }),
+    countHouseholdPeople(),
     storesSaved(),
     db.pantryItem.findFirst({ select: { id: true } }),
-    db.user.findFirst({ where: { deactivatedAt: null, role: "device" }, select: { id: true } }),
-    db.linkedAccount.findFirst({ select: { id: true } }),
+    loadTabletStartPage(),
+    hasAnyLinkedAccount(),
   ]);
   if (!showSetupChecklist({ isOwner: owner, setupFinished: finished, dismissed, role })) return null;
 
@@ -38,7 +41,7 @@ export async function loadSetupChecklist(
     storesSaved: stores,
     hasPantryItem: pantry !== null,
     hasTablet: tablet !== null,
-    hasLinkedGoogle: linked !== null,
+    hasLinkedGoogle: linked,
     googleConfigured: isGoogleConfigured(),
   });
   return { items, allRequiredDone: checklistAllRequiredDone(items) };

@@ -66,6 +66,7 @@ export function SetupChecklistCard({
       </div>
       <div
         role="progressbar"
+        aria-label={CHECKLIST_WORDS.title}
         aria-valuemin={0}
         aria-valuemax={items.length}
         aria-valuenow={doneCount}
