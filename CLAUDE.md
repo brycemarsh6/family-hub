@@ -136,8 +136,8 @@ files named beside it.
   carry-over, who can see or log) are pure code in `src/lib/habits/`, words
   in `src/lib/habitVocabulary.ts`. Settings has a Show streaks switch and, for
   admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
-- **Rewards** (R1 of 5): habits and chores can pay stars into each person's
-  star bank. Rules `docs/structure/rewards.md`, plan `.avengers/plans/rewards-v1.md`.
+- **Rewards** (R1, R2 of 5): checks pay stars into each person's star bank, which fly there (a Celebrations
+  switch turns that off). Rules `docs/structure/rewards.md`, plan `.avengers/plans/rewards-v1.md`.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, a
   month dropdown (an iPad side panel, 72), sliding swipe (69), pinch zoom
   (65), drag (70) and its This one or All of them (71), task Undo (74),
@@ -242,7 +242,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Rewards R2 and R3** are next (they can run in parallel): `.avengers/plans/rewards-v1.md`.
+- **Rewards R3** (the Rewards page, mission 81) is in its own session: `.avengers/plans/rewards-v1.md`.
 - **Winnie next:** calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).

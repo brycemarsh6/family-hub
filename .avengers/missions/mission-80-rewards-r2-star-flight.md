@@ -1,7 +1,7 @@
 # Mission: Rewards R2, the star flight, its switch and the all-done words
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-24 · **Updated:** 2026-11-25
 **Branch:** `claude/rewards-r2-earn-animation-991ed6`, cut from main after
 PR brycemarsh6/family-hub#124 (R1) merged. R3 (mission 81) runs at the same
@@ -327,6 +327,8 @@ Fury's, after C2.
 | 2 (f7ecb39) | Captain | BLOCKED | Two rewards.md sentences Fury wrote in C3 were untrue: the "celebration layer number" rule is broken by the two `z-[70]` classes; "only client reader ... `useCelebrations()`" is wrong (StarFlightLayer takes `enabled` from the layout; HabitConfetti calls the hook). Docs only. | Code clean, pass-1 blocker cleared, `takeBackPayments` home correct. Confetti particle numbers still typed (pre-mission, later). Settings switch row still duplicated. Fury's fix to the record introduced both blockers: the doctrine's "a correction is a change" law, again. |
 | 2 (f7ecb39) | Vision | BLOCKED | Dashboard tile drops the failed-save cancel: `HabitsTile.tsx:107` wraps `run` as `(change, action) => keep(change, action)`, and `keep: RunChange` has no `onError`, so the 4th argument is thrown away. | Gauntlet re-run green (Denver 2197; UTC 2187 + 10 old skips; build OK). Family and Today paths cancel correctly. Two overlapping checks for one person where one fails cancel both rings (final number still right). Docs wording NOTEs as Captain's. |
 | 2 (f7ecb39) | Strange | PASS | | Confetti at z 65 under the pill at 70, all sizes and themes; inverted pill about 6.9:1 light, 15:1 dark, centred, never takes taps; flight still lands on the Mine bank. NOTE: the pill now looks like the UndoBar if both ever show together. Reviewed this worktree's code on port 3001 (port 3000 was R3's). |
+| 3 (1f827bf) | Vision | PASS | | Gauntlet re-run green (Denver 2197; UTC 2187 + 10 old skips; build OK). Tile cancel reaches `run`; held rows and the hours sheet unchanged; every rewards.md claim checked true. NOTE: the "any other way" sentence should except the Settings switch rows. |
+| 3 (1f827bf) | Captain | PASS | | Both rewards.md sentences match the code; C4 keeps STRUCTURE.md. Same wording NOTE as Vision; `keep` restates `run`'s parameters by hand. |
 
 ## Handoff log
 
@@ -379,4 +381,15 @@ Fury's, after C2.
 
 ## Delivery
 
-(Pending.)
+- All gates PASS: Strange pass 2 (f7ecb39), Vision and Captain pass 3
+  (1f827bf). Each gate used its full budget except Strange.
+- Commits: 95dfce0 (C1), fb464dc (C2), f7ecb39 (C3), 1f827bf (C4), plus
+  the delivery record commit. Main had not moved since the branch was cut
+  (checked 2026-11-25 before pushing).
+- Decided by Hill (Bryce to review): the failed-save cancel, the DESIGN.md
+  ring wording, the dark all-done pill. Listed in `.avengers/status.md`.
+- Bryce's phone and iPad test: top of `.avengers/status.md`.
+- Gate NOTEs left for later: `.avengers/status.md`, "Star flight
+  follow-ups".
+- The migration (`20261124100000_celebrations_switch`, one additive
+  Boolean column) runs on production through the Vercel build when merged.
