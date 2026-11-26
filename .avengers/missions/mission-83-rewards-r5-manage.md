@@ -409,7 +409,7 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
   (pass-2 Vision runs both).
 
 ### F3 - Gate fixes, pass 2 (Vision, Strange; Bryce's header call)
-- **Status:** DISPATCHED
+- **Status:** DONE, commit 7676992
 - **Objective:** Recent's Undo hides the row the moment it is tapped, and
   the wide column header never cuts a name.
 - **Boundaries:** may touch: `src/components/RewardActivityList.tsx`,
@@ -433,7 +433,15 @@ DESIGN.md if needed, CLAUDE.md, status.md, the plan) after C2.
 - **Verification:** the Gauntlet green, same counts.
 - **Evidence required:** the diff, the Gauntlet tails, `git show --stat HEAD`.
 - **Done criteria:** pass-3 gates (each gate's last pass).
-- **Report:** (pending)
+- **Report:** DONE at 7676992 (two files). RewardActivityList: a
+  `useOptimistic` hide passed to `useOptimisticRun` (the PlanDayCard
+  pattern), `gone` added on success, no `onError` restore. RewardsBoard:
+  wide header line 1 avatar plus the full name (no truncate), line 2 the
+  outlined 48px bank button (`w-fit`, left under the name); phone
+  unchanged. Gauntlet green (Denver 2248/2248, UTC 2238 + 10 skips, eslint
+  whole repo, build). Not seen in the browser (Strange pass 3). Captain is
+  not re-gated: F3 adds no file, import or rule, and his pass-2 doc notes
+  were applied in 2ff6da3.
 
 ## Gate ledger
 
