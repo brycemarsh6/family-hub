@@ -216,7 +216,8 @@ Reasons for each are in the archive and the mission files.
 - **No recipe photos** (Recipes v2 C7 was dropped: it needed paid Vercel Blob).
 - **Recipe ↔ inventory matching is presence-only.** If it's in the pantry, we
   have it. No quantity math, no auto-deduct.
-- **"Today" on the server means Denver** (`HOUSEHOLD_TIME_ZONE`).
+- **"Today" on the server means `HOUSEHOLD_TIME_ZONE`**: Denver unless a copy sets
+  `NEXT_PUBLIC_HOUSEHOLD_TIME_ZONE` (before it has data). Never hard-code a zone.
 - **The Assistant bot may hard-delete only what it created**; inventory is only
   ever zeroed, never deleted. No agent ever sees the API token.
 - **Bryce directs content and design decisions** (layout, fields, wording).
@@ -241,7 +242,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Dashboard widgets W3** is next: `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (tablet dashboard, calendar editing, parent rule) and
   PR C (per-person habits tiles) are next: `.avengers/missions/mission-39-tablet-login.md`.
-- **Family copies** (a private copy of Marshee per relative): PR 1 is next, `.avengers/plans/family-copies-v1.md`.
+- **Family copies** (a private copy of Marshee per relative): next PRs per "Running order" in `.avengers/plans/family-copies-v1.md`. Owner-only features (Winnie, voice, Alexa, briefing) check `isOwnerCopy()` in `src/lib/copyConfig.ts` (on only with `MARSHEE_OWNER_COPY=1`, Bryce's Vercel Production); a new one must too.
 - **Winnie next:** Rewards writes (W2, `.avengers/plans/winnie-rewards-v1.md`), then calendar and tasks, then her replacing the app's Claude features (parked).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).

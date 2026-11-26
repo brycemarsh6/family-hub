@@ -7,9 +7,10 @@ tell when a rule's reason has expired.
 
 ## Identity
 
-- **What this is:** a private web app for one family — a shared home base for
-  the kitchen (inventory, shopping, expiring food, recipes, meal plans) and,
-  eventually, calendar, chores, and lists. Not a product; one household.
+- **What this is:** a private web app for a family: a shared home base for
+  the kitchen (inventory, shopping, expiring food, recipes, meal plans),
+  calendar, habits and chores, rewards and plans. Each family gets its own
+  private copy; there is no public sign-up.
 - **Who uses it, on what:** parents on phones (often one-handed, in a store,
   or holding a kid) and a tablet mounted on the kitchen wall — possibly with
   wet hands. Laptop use is secondary.
