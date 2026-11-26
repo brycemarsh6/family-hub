@@ -45,8 +45,21 @@ test("a dated model id still matches its family", () => {
 
 test("an unknown model is priced as the most expensive row", () => {
   const usage = { input_tokens: 1_000_000, output_tokens: 1_000_000 };
-  assert.equal(costMicroUsd("claude-mystery-9", usage), costMicroUsd("claude-opus-5-5", usage));
+  assert.equal(costMicroUsd("claude-mystery-9", usage), 60_000_000);
   assert.ok(costMicroUsd("claude-mystery-9", usage) > costMicroUsd(SONNET, usage));
+});
+
+test("an unknown model costs at least as much as every listed row, on every token type", () => {
+  const usage = {
+    input_tokens: 1_000_000,
+    output_tokens: 1_000_000,
+    cache_read_input_tokens: 1_000_000,
+    cache_creation_input_tokens: 1_000_000,
+  };
+  const unknown = costMicroUsd("claude-mystery-9", usage);
+  for (const model of ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"]) {
+    assert.ok(unknown >= costMicroUsd(model, usage), model);
+  }
 });
 
 test("cache read and write tokens are priced on their own rows", () => {

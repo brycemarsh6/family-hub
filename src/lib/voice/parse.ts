@@ -1,5 +1,5 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { meteredCreate } from "@/lib/aiMeter";
 
 // Turns a spoken sentence into a list of things to do.
 //
@@ -90,12 +90,7 @@ Rules:
 export async function parseTranscript(
   transcript: string,
 ): Promise<ParsedAction[]> {
-  // Constructed per call rather than at module load: this file is imported by
-  // the route, and a missing key should fail that one request with a clear
-  // message, not crash the whole app at boot.
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await meteredCreate("voice", {
     model: "claude-sonnet-5-5",
     max_tokens: 2048,
     system: SYSTEM,

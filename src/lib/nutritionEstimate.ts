@@ -1,5 +1,5 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import { meteredCreate } from "@/lib/aiMeter";
 
 // Estimates calories and macros for one recipe, per serving.
 //
@@ -77,9 +77,7 @@ export async function estimateNutrition(
   ingredients: string,
   servings: number,
 ): Promise<NutritionEstimate> {
-  const client = new Anthropic();
-
-  const response = await client.messages.create({
+  const response = await meteredCreate("nutrition", {
     model: "claude-sonnet-5-5",
     max_tokens: 2048,
     system: SYSTEM,

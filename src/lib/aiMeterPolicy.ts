@@ -44,8 +44,15 @@ const PRICE_BY_MODEL_PREFIX: ReadonlyArray<readonly [string, ModelPrice]> = [
   ["claude-haiku-5-5", HAIKU_5_5],
 ];
 
-/** An unknown model is priced as the most expensive row, so the meter never under-counts. */
-const UNKNOWN_MODEL_PRICE = OPUS_5_5;
+/**
+ * Fable 5.1 and Fable 5 are the most expensive models in the price table
+ * ($10 in, $50 out; cache at the usual 0.1x read and 1.25x write). Nothing
+ * here calls them; this row exists only as the price of an unknown model.
+ */
+const MOST_EXPENSIVE_MODEL_PRICE: ModelPrice = { input: 10_000, output: 50_000, cacheRead: 1_000, cacheWrite: 12_500 };
+
+/** An unknown model is priced as the most expensive model there is, so the meter never under-counts. */
+const UNKNOWN_MODEL_PRICE = MOST_EXPENSIVE_MODEL_PRICE;
 
 export function priceForModel(model: string): ModelPrice {
   const row = PRICE_BY_MODEL_PREFIX.find(([prefix]) => model.startsWith(prefix));
