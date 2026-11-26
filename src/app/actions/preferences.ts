@@ -1,7 +1,7 @@
 "use server";
 
-// Per-person settings. Today that is five things: the dashboard widget layout,
-// the menu style, the start page, the text size and the "Show streaks" switch. Any signed-in
+// Per-person settings. Today that is six things: the dashboard widget layout,
+// the menu style, the start page, the text size, the "Show streaks" switch and the "Celebrations" switch. Any signed-in
 // ACCOUNT may save its own dashboard layout; a device-mode session (the wall
 // tablet) is refused there, because it always shows the default layout and has
 // no Customize button. The menu style and the text size are different: devices
@@ -16,6 +16,7 @@ import {
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { CELEBRATIONS_WORDS } from "@/lib/rewardVocabulary";
 import { NAV_MODES } from "@/lib/navMode";
 import { isStartPage, START_PAGE_WORDS } from "@/lib/startPage";
 import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
@@ -196,6 +197,72 @@ export async function saveShowStreaks(input: unknown): Promise<PreferencesResult
   } catch (err) {
     console.error("saveShowStreaks failed", err);
     return { error: "Couldn't save your streak setting. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the signed-in person's "Celebrations" switch (flying stars and the
+ * all-done confetti). A device-mode session is refused here: the wall tablet
+ * has its own switch (saveTabletCelebrations). Anything but a real boolean
+ * is an error, not a silent default.
+ */
+export async function saveCelebrations(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+  if (user.isDevice) {
+    return { error: CELEBRATIONS_WORDS.deviceRefused };
+  }
+  if (typeof input !== "boolean") return { error: "That isn't a valid choice." };
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, celebrations: input },
+      update: { celebrations: input },
+    });
+  } catch (err) {
+    console.error("saveCelebrations failed", err);
+    return { error: CELEBRATIONS_WORDS.saveError };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the wall tablet's "Celebrations" switch: written on every active
+ * device login. Allowed for a device login (the tablet itself) or a parent or
+ * admin, the same gate as saveTabletStartPage. Only a real boolean is saved.
+ */
+export async function saveTabletCelebrations(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+  if (!MANAGER_ROLES.includes(user.role) && !tabletMayChangeWallTablet(user.role)) {
+    return { error: CELEBRATIONS_WORDS.notAllowed };
+  }
+  if (typeof input !== "boolean") return { error: "That isn't a valid choice." };
+  const celebrations = input;
+
+  try {
+    const devices = await db.user.findMany({
+      where: { role: "device", deactivatedAt: null },
+      select: { id: true },
+    });
+    await db.$transaction(
+      devices.map((device) =>
+        db.userPreferences.upsert({
+          where: { userId: device.id },
+          create: { userId: device.id, celebrations },
+          update: { celebrations },
+        }),
+      ),
+    );
+  } catch (err) {
+    console.error("saveTabletCelebrations failed", err);
+    return { error: CELEBRATIONS_WORDS.saveError };
   }
 
   revalidatePath("/", "layout");

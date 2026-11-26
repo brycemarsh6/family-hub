@@ -184,8 +184,9 @@ tell when a rule's reason has expired.
   icon system and tolerated.)
   A third exception (mission 79, Bryce 2026-11-24): the **star** is one
   filled Lucide `Star` (`fill="currentColor"`) in `--star`, used only for
-  stars: the row chip (`StarChip`) and the star bank (`StarBank`). No other
-  icon is filled.
+  stars: the row chip (`StarChip`), the star bank (`StarBank`) and the
+  star flight's ring (`StarFlightLayer`, mission 80). No other icon is
+  filled.
 - **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
   by the one hamburger button (`HamburgerButton`) and rendered once from the
   root layout via `AppChrome`. Its list never changes as you move, only which
@@ -342,6 +343,27 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   each person's header. The bank moves the instant a check is tapped
   (`starDiff` over the server's rows and the optimistic ones) and matches the
   server after refresh. A negative bank shows its minus.
+- **The star flight and the all-done words** (Bryce, 2026-11-24, from the
+  mission-80 mock). A check that pays stars sends a ring of 8 filled
+  `--star` stars out round the tapped check; they fly to that person's star
+  bank, shrinking, and the number counts up (about 1 second in all). Each
+  person paid whose star bank is on screen gets their own ring, flying to
+  their bank. Anyone paid whose bank is not on screen (a dashboard tile) is
+  shown by one shared ring that pops in place where the tap was and fades
+  (decided by Hill, 2026-11-25). A save that fails cancels any ring still
+  in the air. An un-check never flies, and the
+  number drops at once. The flight sits on a layer that never takes taps,
+  so a second tap mid-flight always works. When every required item is
+  done, the daily confetti falls behind a centred pill (the inverted
+  `bg-fg text-bg` look the `UndoBar` uses; decided by Hill), "You did it!
+  All done today." (`ALL_DONE_LINE`), gone after 3 seconds; it never takes
+  taps either. This replaces habits-plan decision 99 ("Confetti has no
+  words"). One per-login switch, **Celebrations** ("Flying stars and the
+  all-done confetti"), turns off the flight, the count-up, the confetti and
+  the words; the wall tablet's own switch is on Wall tablet settings.
+  **Reduce Motion always wins:** no flight, no count-up and no confetti,
+  but the words still show, because they do not move. These two, with the
+  confetti, are the app's only celebration motion.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

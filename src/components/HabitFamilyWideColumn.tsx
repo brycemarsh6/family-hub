@@ -39,7 +39,7 @@ export function HabitFamilyWideColumn({
   fits?: boolean;
   /** The lit filter chip: whether a row shows. The count above is always the whole day. */
   keep: (row: FamilyRow) => boolean;
-  onToggle: (row: FamilyRow) => void;
+  onToggle: (row: FamilyRow, from?: HTMLElement) => void;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
   lateStars: LateStars;
 }) {
@@ -71,7 +71,7 @@ export function HabitFamilyWideColumn({
             </span>
           </div>
           {column.onVacation && <Plane aria-hidden="true" size={18} className="shrink-0 text-muted-strong" />}
-          <StarBank stars={bank} />
+          <StarBank userId={column.id} stars={bank} />
         </div>
         {column.shoutOut && (
           <p className="mt-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">
@@ -94,7 +94,7 @@ export function HabitFamilyWideColumn({
               <ul className="mt-2 flex flex-col gap-2">
                 {group.items.map(({ row, tag, together: isTogether }) => (
                   <li key={row.id}>
-                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} layout="card" lateStars={lateStars} />
+                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={(from) => onToggle(row, from)} together={isTogether} tag={tag} layout="card" lateStars={lateStars} />
                   </li>
                 ))}
               </ul>

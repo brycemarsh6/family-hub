@@ -6,6 +6,23 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Flying stars (mission 80, R2)**, about 4 minutes, on your iPhone and
+  the iPad, light and dark. Give a chore 5 stars, then check it on Mine: a
+  ring of 8 gold stars pops out round the check, flies into your star bank
+  and the number counts up. Un-check it: the number drops at once, no
+  stars. On the iPad's Whole family view, check a Together habit: each
+  person gets their own ring into their own bank. On a dashboard Habits
+  tile the ring pops in place. Check off everything for the day: confetti
+  falls behind a dark pill, "You did it! All done today.", gone in 3
+  seconds. **Hill chose that pill's look (dark, the Undo bar style): check
+  it in dark mode first and say if you want it changed.** Settings, Habits
+  & Chores: switch Celebrations off; checks no longer fly and there is no
+  confetti. Wall tablet settings has its own Celebrations switch.
+- **Decided by Hill in mission 80, for your review:** (1) a save that fails
+  stops any stars still flying; (2) the design rule now says each person
+  whose bank is on screen gets their own ring, and everyone else shares one
+  ring that pops where you tapped; (3) the all-done pill is dark with light
+  text (the Undo bar look). Details: the mission 80 file's handoff log.
 - **Rewards stars (mission 79, R1)**, about 4 minutes, on your iPhone and
   the iPad, light and dark. Edit a chore: under Icon there is a Stars
   field; tap + and it walks None, 1, 2, 3, 4, 5, 10, 15, 20, 25, 50. Give
@@ -358,6 +375,13 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Star flight follow-ups (mission 80 gate NOTEs): two overlapping checks
+  for one person where one fails cancel both rings (the number stays
+  right); the all-done pill now looks like the Undo bar if both show at
+  once; the Settings switch row is copied in two components; the confetti's
+  particle numbers are still typed in `HabitConfetti.tsx`; rewards.md's
+  "reading the preference any other way" sentence should except the two
+  Settings switch rows; `HoursLogButton`'s onClick type is loose.
 - Rewards follow-ups (mission 79 Delivery): checking a carried row on
   Today makes it vanish with no on-screen Undo (the habit's stats page
   can still undo it for 7 days); a past day shows today's star bank; a

@@ -404,7 +404,9 @@ in PR B (mission 31).
 98. **Streaks on rows:** flame plus number with its unit ("12 days", "3
     weeks"), only at 2 or more, hidden by the person's Show streaks switch,
     always shown on the tablet.
-99. **Confetti has no words.**
+99. **Confetti has no words.** *Replaced by Rewards R2 (mission 80, Bryce
+    2026-11-24): the confetti falls behind "You did it! All done today."
+    See DESIGN.md, "The star flight and the all-done words".*
 100. **Checking a carried-over row** writes done late on the missed day; the
      row shows done until the next load, then leaves Today (matches 89).
 101. **A skipped row's meta line reads "Skipped today".**
