@@ -447,7 +447,7 @@ person.
   the gates.
 
 ### F1 - Gate fixes, pass 1 (Vision, Captain, Strange) and Hill's calls
-- **Status:** DISPATCHED 2026-11-25
+- **Status:** DONE 3b0ab71 (2026-11-25)
 - **Objective:** Clear every pass-1 blocker and apply H1 to H3, in one
   commit. Fury already made the doc fixes (STRUCTURE.md A1 to A6,
   `docs/structure/rewards.md`).
@@ -523,7 +523,12 @@ person.
 - **Evidence required:** gauntlet tails with counts, test names added,
   `git show --stat HEAD`.
 - **Done criteria:** one commit, only boundary files, gauntlet green.
-- **Report:** -
+- **Report:** DONE 3b0ab71, 15 boundary files, items 1 to 13 done. tsc, eslint,
+  build, `@/app` grep, Intl and `import *` greps all clean. Denver 2200 pass;
+  UTC 2190 pass + 10 skipped (Stark says the skips predate F1; Vision must
+  confirm on main). New: `orderRewards` exported; `basis-0` on the card body
+  so the row wraps only when needed; `lastGrapheme` uses the `"en"`
+  segmenter. Not seen in a browser by Stark.
 
 ## Gate ledger
 
@@ -556,7 +561,7 @@ person.
   register still wait for Bryce. Merge does not wait (2026-11-05 rule).
 
 - 2026-11-25 - Pass-1 verdicts, H1 to H3 and F1 committed as ece5eda.
-  Stark dispatched on F1 (not yet reported; Bryce paused the internet).
+  Stark's F1 landed as 3b0ab71; Bryce paused the internet before re-gating.
   **Resume:** if Stark's F1 commit is on the branch (`git log ece5eda..HEAD`),
   read its report and re-gate (Vision, Captain, Strange pass 2; Strange
   needs a bank of 5+). If not, check `git status` for half-done F1 edits
