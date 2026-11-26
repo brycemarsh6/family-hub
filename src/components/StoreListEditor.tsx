@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Trash2 } from "lucide-react";
+import { CircleMinus } from "lucide-react";
 import { SortableList } from "@/components/SortableList";
 import { SwipeActions } from "@/components/SwipeActions";
 import { TitleSheet } from "@/components/TitleSheet";
@@ -103,8 +103,8 @@ export function StoreListEditor({ initialStores }: { initialStores: string[] }) 
               {
                 label: "Remove",
                 accessibleLabel: `Remove ${item.id}`,
-                icon: <Trash2 aria-hidden="true" size={18} />,
-                tone: "danger",
+                icon: <CircleMinus aria-hidden="true" size={18} />,
+                tone: "neutral",
                 onAction: () => apply(removeStore(stores, item.id), () => removeStoreAction(item.id)),
               },
             ]}

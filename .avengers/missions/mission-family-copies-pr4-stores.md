@@ -317,6 +317,21 @@ F1 (below) fixes the S2-reachable notes before S2 is gated.
   `git diff --stat`, `git status` showing the rename.
 - **Done criteria:** Vision and Strange pass 2.
 
+### F3 — Neutral Remove (Bryce's call)
+
+**Bryce (2026-11-26, in chat): "Gray, instant".** Removing a store destroys
+nothing (items keep it, it can be added back), so the swipe action is neutral
+and stays optimistic, like the cookbook "Remove" in `RecipeList.tsx`.
+
+- **Objective:** the Stores screen's swipe Remove reads as a neutral, reversible action.
+- **Boundaries:** may touch: `src/components/StoreListEditor.tsx`. Must not touch anything else.
+- **Change:** the SwipeActions action becomes `tone: "neutral"` with the Lucide
+  `CircleMinus` icon (outline), label still "Remove", still optimistic through
+  the existing queue. Nothing else changes.
+- **Verification:** tsc, eslint, `npm test`, `npm run build`.
+- **Evidence required:** the diff and the tool tails.
+- **Done criteria:** Strange pass 2 sees a gray Remove.
+
 ## Notes and follow-ups
 
 - Assistant API store enum stays fixed (`schemasShopping.ts`); if Bryce edits
