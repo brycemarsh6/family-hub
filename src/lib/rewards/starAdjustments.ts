@@ -4,6 +4,7 @@
 import {
   ADJUST_AMOUNT_REFUSAL,
   ADJUST_DIRECTION_REFUSAL,
+  ADJUST_NOTE_MAX,
   ADJUST_NOTE_REFUSAL,
   STAR_STEPS,
   toStarValue,
@@ -11,7 +12,6 @@ import {
 
 /** The give or take amount starts here. */
 export const ADJUST_DEFAULT_STARS = 5;
-export const ADJUST_NOTE_MAX = 60;
 
 export type AdjustDirection = "give" | "take";
 

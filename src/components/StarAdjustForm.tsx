@@ -1,20 +1,22 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { LadderStepper } from "./LadderStepper";
 import { giveOrTakeStars } from "@/app/actions/starAdjustments";
 import type { HouseholdPerson } from "@/lib/householdPeople";
-import { ADJUST_DEFAULT_STARS, ADJUST_NOTE_MAX, nextAdjustStep, type AdjustDirection } from "@/lib/rewards/starAdjustments";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { ADJUST_DEFAULT_STARS, nextAdjustStep, type AdjustDirection } from "@/lib/rewards/starAdjustments";
 import {
-  ADJUSTING_LABEL,
   ADJUST_AMOUNT_LABEL,
   ADJUST_DIRECTION_LABEL,
   ADJUST_GIVE_LABEL,
   ADJUST_NOTE_LABEL,
+  ADJUST_NOTE_MAX,
   ADJUST_PERSON_LABEL,
   ADJUST_TAKE_LABEL,
+  REWARD_SAVING_LABEL,
   STAR_STEPS,
   giveButtonText,
   starCountText,
@@ -34,24 +36,18 @@ export function StarAdjustForm({ people, defaultPersonId }: { people: HouseholdP
   const [direction, setDirection] = useState<AdjustDirection>("give");
   const [amount, setAmount] = useState<number>(ADJUST_DEFAULT_STARS);
   const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const { run, error, pending } = useOptimisticRun<never>(() => {});
 
   const person = people.find((candidate) => candidate.id === personId);
 
   function handleSubmit() {
     if (!person || pending) return;
-    setError(null);
-    startTransition(async () => {
-      const result = await giveOrTakeStars({ userId: person.id, direction, amount, note });
-      if (result.error) return setError(result.error);
-      setNote("");
-    });
+    run(null, () => giveOrTakeStars({ userId: person.id, direction, amount, note }), () => setNote(""));
   }
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3">
-      <div role="group" aria-label={ADJUST_PERSON_LABEL} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div role="group" aria-label={ADJUST_PERSON_LABEL} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 @min-[48rem]:flex-wrap">
         {people.map((candidate) => {
           const selected = candidate.id === personId;
           return (
@@ -112,7 +108,7 @@ export function StarAdjustForm({ people, defaultPersonId }: { people: HouseholdP
         placeholder={ADJUST_NOTE_LABEL}
         aria-label={ADJUST_NOTE_LABEL}
         enterKeyHint="done"
-        className="h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-fg"
+        className="h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-fg placeholder:text-muted"
       />
 
       <button
@@ -121,7 +117,7 @@ export function StarAdjustForm({ people, defaultPersonId }: { people: HouseholdP
         disabled={pending || !person}
         className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
       >
-        {pending ? ADJUSTING_LABEL : person ? (direction === "give" ? giveButtonText(person.displayName, amount) : takeButtonText(person.displayName, amount)) : ADJUST_GIVE_LABEL}
+        {pending ? REWARD_SAVING_LABEL : person ? (direction === "give" ? giveButtonText(person.displayName, amount) : takeButtonText(person.displayName, amount)) : ADJUST_GIVE_LABEL}
       </button>
       {error && (
         <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">

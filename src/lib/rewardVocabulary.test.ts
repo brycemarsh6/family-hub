@@ -12,6 +12,9 @@ import {
   ADJUST_TAKE_LABEL,
   bonusFromText,
   giveButtonText,
+  ADJUST_NOTE_MAX,
+  ADJUST_NOTE_REFUSAL,
+  historyBankLabelText,
   historyLinkText,
   historyTitleText,
   recentAdjustSub,
@@ -19,6 +22,7 @@ import {
   recentRedeemSub,
   recentRedeemedTitle,
   recentTakenTitle,
+  recentUndoLabelText,
   signedStarsText,
   takeButtonText,
   takenByText,
@@ -159,6 +163,11 @@ test("R5 Manage and history words", () => {
   assert.equal(wishOfText("Ellie"), "Ellie's wish");
   assert.equal(historyTitleText("Ellie"), "Ellie's stars");
   assert.equal(historyLinkText("Ellie"), "Ellie's star history");
+  assert.equal(historyBankLabelText("Ledger", 5), "Ledger's star history, 5 stars");
+  assert.equal(historyBankLabelText("Ledger", 1), "Ledger's star history, 1 star");
+  assert.equal(recentUndoLabelText("Bonus: zz r5 fury"), "Undo: Bonus: zz r5 fury");
+  assert.equal(ADJUST_NOTE_MAX, 60);
+  assert.equal(ADJUST_NOTE_REFUSAL, "Keep the note to 60 letters or fewer.");
   assert.equal(bonusFromText("Dad"), "Bonus from Dad");
   assert.equal(bonusFromText(null), "Bonus stars");
   assert.equal(takenByText("Mom"), "Taken away by Mom");

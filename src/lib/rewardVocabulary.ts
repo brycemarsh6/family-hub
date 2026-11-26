@@ -210,7 +210,8 @@ export function wishOfText(name: string): string {
 export const ADJUST_GIVE_LABEL = "Give";
 export const ADJUST_TAKE_LABEL = "Take away";
 export const ADJUST_NOTE_LABEL = "What for? (optional)";
-export const ADJUSTING_LABEL = "Saving…";
+/** The most letters a bonus or taken-star note may hold. */
+export const ADJUST_NOTE_MAX = 60;
 export const ADJUST_PERSON_LABEL = "Who";
 export const ADJUST_DIRECTION_LABEL = "Give or take away";
 export const ADJUST_AMOUNT_LABEL = "Stars";
@@ -228,7 +229,7 @@ export function takeButtonText(name: string, stars: number): string {
 /** Refusals for a bonus or taken star line. */
 export const ADJUST_AMOUNT_REFUSAL = "Pick a number of stars from the list.";
 export const ADJUST_DIRECTION_REFUSAL = "Choose Give or Take away.";
-export const ADJUST_NOTE_REFUSAL = "Keep the note to 60 letters or fewer.";
+export const ADJUST_NOTE_REFUSAL = `Keep the note to ${ADJUST_NOTE_MAX} letters or fewer.`;
 export const ADJUST_PERSON_REFUSAL = "Pick a person from the family.";
 
 /** Star history. */
@@ -251,6 +252,16 @@ export function historyTitleText(name: string): string {
 /** "Ellie's star history" (the link and the wide bank button's label) */
 export function historyLinkText(name: string): string {
   return `${name}'s star history`;
+}
+
+/** "Ledger's star history, 5 stars" (the wide bank button's label: the count is read out too) */
+export function historyBankLabelText(name: string, stars: number): string {
+  return `${historyLinkText(name)}, ${starCountText(stars)}`;
+}
+
+/** "Undo: Bonus: Chores" (a Recent row's Undo, named by its row) */
+export function recentUndoLabelText(title: string): string {
+  return `${RECENT_UNDO_LABEL}: ${title}`;
 }
 
 /** "Bonus from Dad" */

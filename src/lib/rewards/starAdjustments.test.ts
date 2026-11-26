@@ -2,8 +2,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ADJUST_AMOUNT_REFUSAL, ADJUST_DIRECTION_REFUSAL, ADJUST_NOTE_REFUSAL, STAR_STEPS } from "../rewardVocabulary";
-import { ADJUST_DEFAULT_STARS, ADJUST_NOTE_MAX, nextAdjustStep, toAdjustmentInput } from "./starAdjustments";
+import { ADJUST_AMOUNT_REFUSAL, ADJUST_DIRECTION_REFUSAL, ADJUST_NOTE_MAX, ADJUST_NOTE_REFUSAL, STAR_STEPS } from "../rewardVocabulary";
+import { ADJUST_DEFAULT_STARS, nextAdjustStep, toAdjustmentInput } from "./starAdjustments";
 
 test("the default is on the list", () => {
   assert.ok((STAR_STEPS as readonly number[]).includes(ADJUST_DEFAULT_STARS));

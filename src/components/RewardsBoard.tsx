@@ -14,7 +14,7 @@ import { setHideEarned, useHideEarned } from "@/lib/hideEarned";
 import type { HouseholdPerson } from "@/lib/householdPeople";
 import type { RewardView } from "@/lib/rewardsRead";
 import { visibleRewards } from "@/lib/rewards/rewardRules";
-import { REWARD_ADD_LABEL, REWARD_ALL_HIDDEN, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_HIDE_EARNED_LABEL, addRewardForText, historyLinkText } from "@/lib/rewardVocabulary";
+import { REWARD_ADD_LABEL, REWARD_ALL_HIDDEN, REWARD_EMPTY_OTHER, REWARD_EMPTY_PARENT, REWARD_HIDE_EARNED_LABEL, addRewardForText, historyBankLabelText, historyLinkText } from "@/lib/rewardVocabulary";
 
 // What the open redeem sheet was started with. It is kept as a copy: the page
 // refreshes after a redeem (the reward is now earned, the bank lower), and the
@@ -96,11 +96,12 @@ export function RewardsBoard({
                   <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{person.displayName}</h2>
                   <button
                     type="button"
-                    aria-label={historyLinkText(person.displayName)}
+                    aria-label={historyBankLabelText(person.displayName, bank)}
                     onClick={() => setHistory({ userId: person.id, name: person.displayName })}
-                    className="flex min-h-12 items-center rounded-xl px-2 active:bg-surface-2"
+                    className="flex min-h-12 items-center gap-1 rounded-xl border border-line px-2 active:bg-surface-2"
                   >
                     <StarBank userId={person.id} stars={bank} />
+                    <ChevronRight aria-hidden="true" size={16} className="text-muted" />
                   </button>
                 </div>
                 {shown.length === 0 && (
